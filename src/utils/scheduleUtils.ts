@@ -148,7 +148,7 @@ export function generateSlotsForDate(
         for (const s of b.schedule) {
           if (s.date === dateStr && isTimeOverlap(startTime, endTime, s.startTime, s.endTime)) {
             isOccupied = true;
-            bookedBy = `${b.customer.name.slice(0, 3)}*** (${b.courseTitle})`;
+            bookedBy = `${(b.customer?.name || 'User').slice(0, 3)}*** (${b.courseTitle})`;
             break;
           }
         }
@@ -192,7 +192,7 @@ export function generateSlotsForDate(
           for (const s of b.schedule) {
             if (s.date === dateStr && isTimeOverlap(cand.startTime, cand.endTime, s.startTime, s.endTime)) {
               isOccupied = true;
-              bookedBy = `${b.customer.name.slice(0, 3)}*** (${b.courseTitle})`;
+              bookedBy = `${(b.customer?.name || 'User').slice(0, 3)}*** (${b.courseTitle})`;
               break;
             }
           }
@@ -217,7 +217,7 @@ export function generateSlotsForDate(
         for (const s of b.schedule) {
           if (s.date === dateStr && isTimeOverlap(cand.startTime, cand.endTime, s.startTime, s.endTime)) {
             isOccupied = true;
-            bookedBy = `${b.customer.name.slice(0, 3)}*** (${b.courseTitle})`;
+            bookedBy = `${(b.customer?.name || 'User').slice(0, 3)}*** (${b.courseTitle})`;
             break;
           }
         }
@@ -251,7 +251,7 @@ export function generateSlotsForDate(
         for (const s of b.schedule) {
           if (s.date === dateStr && isTimeOverlap(startTime, endTime, s.startTime, s.endTime)) {
             isOccupied = true;
-            bookedBy = `${b.customer.name.slice(0, 3)}*** (${b.courseTitle})`;
+            bookedBy = `${(b.customer?.name || 'User').slice(0, 3)}*** (${b.courseTitle})`;
             break;
           }
         }

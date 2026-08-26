@@ -41,9 +41,13 @@ export function CourseDetailModal({
 
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs font-bold">
-              {course.totalDays === 1 
-                ? `คอร์ส 1 วัน (${course.totalHours} ชม.)` 
-                : `คอร์ส ${course.totalDays} วัน (${course.totalHours} ชม. วันละ ${course.hoursPerDay} ชม.)`}
+              {course.durationCategory === 'vdo'
+                ? 'คอร์ส VDO Online (เวลาอิสระ)'
+                : course.totalDays && course.totalHours
+                ? course.totalDays === 1
+                  ? `คอร์ส 1 วัน (${course.totalHours} ชม.)`
+                  : `คอร์ส ${course.totalDays} วัน (${course.totalHours} ชม. วันละ ${course.hoursPerDay} ชม.)`
+                : 'คอร์สเรียน (เวลาจัดสรรตามความเหมาะสม)'}
             </span>
             <span className="text-xs text-slate-400 font-medium">
               {course.level}
@@ -59,7 +63,7 @@ export function CourseDetailModal({
             {course.title}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            {course.titleEn}
+            {course.titleEn || ''}
           </p>
         </div>
 
@@ -151,7 +155,7 @@ export function CourseDetailModal({
           {/* Schedule Rules */}
           <div className="bg-cyan-50/70 p-3.5 rounded-xl border border-cyan-200 text-xs text-cyan-900 flex items-center gap-2">
             <Calendar className="w-4 h-4 text-cyan-600 shrink-0" />
-            <span>{course.scheduleRuleNotice}</span>
+            <span>{course.scheduleRuleNotice || 'ไม่มีข้อมูล'}</span>
           </div>
 
         </div>

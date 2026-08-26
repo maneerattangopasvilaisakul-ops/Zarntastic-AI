@@ -350,7 +350,7 @@ export function CustomerForm({
               {course.title}
             </h3>
             <p className="text-xs text-slate-400 mb-4">
-              {course.titleEn}
+              {course.titleEn || ''}
             </p>
 
             <div className="space-y-3 border-t border-slate-800 pt-4 text-xs text-slate-300">

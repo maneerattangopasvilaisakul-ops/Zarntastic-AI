@@ -40,30 +40,35 @@ export interface Course {
   description: string;
   durationCategory: DurationCategory;
   categoryGroup?: CourseCategoryGroup;
-  totalHours: number;
-  totalDays: number;
-  hoursPerDay: number;
+  totalHours?: number;
+  totalDays?: number;
+  hoursPerDay?: number;
   price: number;
   originalPrice: number;
-  level: 'เริ่มต้น (Beginner)' | 'ปานกลาง (Intermediate)' | 'ขั้นสูง (Advanced)' | 'ปานกลาง - ขั้นสูง (Intermediate - Advanced)';
-  instructor: {
+  level?: 'เริ่มต้น (Beginner)' | 'ปานกลาง (Intermediate)' | 'ขั้นสูง (Advanced)' | 'ปานกลาง - ขั้นสูง (Intermediate - Advanced)';
+  instructor?: {
     name: string;
     role: string;
     avatar: string;
     bio: string;
     fastworkBadge?: string;
   };
-  topics: string[];
-  prerequisites: string[];
-  whoIsThisFor: string[];
+  topics?: string[];
+  prerequisites?: string[];
+  whoIsThisFor?: string[];
   bonusGifts?: string[];
-  scheduleRuleNotice: string;
-  badgeColor: string;
-  iconName: string;
+  scheduleRuleNotice?: string;
+  badgeColor?: string;
+  iconName?: string;
   featured?: boolean;
   fastworkUrl?: string;
   fastworkRating?: number;
   fastworkReviewCount?: number;
+  coverImage?: string;
+  keyFeatures?: string[];
+  targetAudience?: string | string[];
+  recommended?: boolean;
+  isActive?: boolean;
 }
 
 export interface ScheduleSlot {
@@ -148,3 +153,103 @@ export interface DayAvailability {
   slots: AvailableSlotInfo[];
   message?: string;
 }
+
+// User & Auth Types
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  lineId: string;
+  role: 'student' | 'admin';
+}
+
+export interface LineNotificationLog {
+  id: string;
+  bookingId?: string;
+  recipientName: string;
+  recipientLineId?: string;
+  targetLineUserId?: string;
+  eventType: 'booking_created' | 'slip_uploaded' | 'payment_confirmed' | 'status_changed' | 'reminder' | 'test';
+  message: string;
+  status: 'sent' | 'failed' | 'simulated';
+  deliveryMode: 'push' | 'broadcast' | 'simulated';
+  timestamp: string;
+  details?: {
+    courseTitle?: string;
+    totalPrice?: number;
+    scheduleText?: string;
+    meetingLink?: string;
+    reviewNotes?: string;
+    tokenSource?: 'environment' | 'custom' | 'sandbox';
+    flexMessageUsed?: boolean;
+    botName?: string;
+  };
+}
+
+export interface LineMessagingApiSettings {
+  enabled: boolean;
+  tokenConfigured: boolean;
+  channelAccessToken?: string;
+  channelSecret?: string;
+  adminLineUserId?: string;
+  defaultDeliveryMode: 'push' | 'broadcast' | 'auto';
+  useFlexMessage: boolean;
+  notifyOnBookingCreated: boolean;
+  notifyOnSlipUploaded: boolean;
+  notifyOnPaymentConfirmed: boolean;
+  notifyOnStatusChanged: boolean;
+  includeMeetingLink: boolean;
+  botInfo?: {
+    userId?: string;
+    basicId?: string;
+    displayName?: string;
+    pictureUrl?: string;
+    chatMode?: string;
+  };
+}
+
+export interface KnowledgeFaq {
+  question: string;
+  answer: string;
+}
+
+export interface KnowledgePromptExample {
+  title: string;
+  role: string;
+  prompt: string;
+  explanation: string;
+}
+
+export interface KnowledgeArticle {
+  id: number | string;
+  slug: string;
+  type: 'article' | 'video' | 'guide';
+  category: 'prompt' | 'geo_seo' | 'marketing' | 'models' | 'automation' | 'agents' | 'studio';
+  categoryLabel: string;
+  title: string;
+  seoTitle: string;
+  metaDescription: string;
+  desc: string;
+  image: string;
+  readTime: string;
+  publishedAt: string;
+  updatedAt: string;
+  author: {
+    name: string;
+    role: string;
+    avatar: string;
+    verified: boolean;
+  };
+  tags: string[];
+  keyTakeaways: string[];
+  contentHtml: string;
+  promptExamples?: KnowledgePromptExample[];
+  faqs: KnowledgeFaq[];
+  relatedCourseId?: string;
+  views?: number;
+  likes?: number;
+}
+
+// Backward compatibility alias if needed
+export type LineNotifySettings = LineMessagingApiSettings;

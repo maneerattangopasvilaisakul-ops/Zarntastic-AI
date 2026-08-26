@@ -34,57 +34,57 @@ import {
 import { formatCurrency } from '../utils/scheduleUtils';
 
 interface CourseSelectorProps {
+  courses?: Course[];
   selectedCourse: Course | null;
   onSelectCourse: (course: Course) => void;
   onOpenDetails: (course: Course) => void;
+  globalSearchQuery?: string;
+  onGlobalSearchChange?: (query: string) => void;
 }
 
 export function CourseSelector({
+  courses = COURSES,
   selectedCourse,
   onSelectCourse,
   onOpenDetails,
+  globalSearchQuery = '',
+  onGlobalSearchChange,
 }: CourseSelectorProps) {
-  const [selectedCategory, setSelectedCategory] = useState<CourseCategoryGroup>('all');
-  const [durationFilter, setDurationFilter] = useState<'all' | '1-day' | '2-day' | '4-day'>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedDuration, setSelectedDuration] = useState<'all' | '1h' | '3h' | '6h'>('all');
+  const [localSearchQuery, setLocalSearchQuery] = useState<string>('');
+  const searchQuery = globalSearchQuery || localSearchQuery;
+  const setSearchQuery = onGlobalSearchChange || setLocalSearchQuery;
 
-  // Category Tabs
-  const categoryTabs: Array<{ id: CourseCategoryGroup; label: string; count: number }> = [
-    { id: 'all', label: 'ทั้งหมด', count: COURSES.length },
-    { id: 'starter', label: 'Starter พื้นฐาน AI', count: COURSES.filter(c => c.categoryGroup === 'starter').length },
-    { id: 'productivity', label: 'Productivity & งานเอกสาร', count: COURSES.filter(c => c.categoryGroup === 'productivity').length },
-    { id: 'marketing', label: 'Content & การตลาด', count: COURSES.filter(c => c.categoryGroup === 'marketing').length },
-    { id: 'web', label: 'Landing Page & No-Code', count: COURSES.filter(c => c.categoryGroup === 'web').length },
-    { id: 'claude', label: 'Claude & AI Agent', count: COURSES.filter(c => c.categoryGroup === 'claude').length },
-    { id: 'coaching', label: 'Private Coaching', count: COURSES.filter(c => c.categoryGroup === 'coaching').length },
+  // Filter Tabs by Hours
+  const filterTabs: Array<{ id: 'all' | '1h' | '3h' | '6h'; label: string; count: number }> = [
+    { id: 'all', label: 'ทั้งหมด', count: courses.length },
+    { id: '1h', label: 'คอร์ส 1 ชั่วโมง', count: courses.filter(c => c.totalHours === 1).length },
+    { id: '3h', label: 'คอร์ส 3 ชั่วโมง', count: courses.filter(c => c.totalHours === 3).length },
+    { id: '6h', label: 'คอร์ส 6 ชั่วโมง', count: courses.filter(c => c.totalHours === 6).length },
   ];
 
   // Filtered courses
   const filteredCourses = useMemo(() => {
-    return COURSES.filter((c) => {
-      // Category Match
-      if (selectedCategory !== 'all' && c.categoryGroup !== selectedCategory) {
-        return false;
-      }
-
-      // Duration Match
-      if (durationFilter === '1-day' && c.totalDays !== 1) return false;
-      if (durationFilter === '2-day' && c.totalDays !== 2) return false;
-      if (durationFilter === '4-day' && c.totalDays !== 4) return false;
+    return courses.filter((c) => {
+      // Duration / Hours Filter
+      if (selectedDuration === '1h' && c.totalHours !== 1) return false;
+      if (selectedDuration === '3h' && c.totalHours !== 3) return false;
+      if (selectedDuration === '6h' && c.totalHours !== 6) return false;
 
       // Search query Match
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const inTitle = c.title.toLowerCase().includes(q) || c.titleEn.toLowerCase().includes(q);
-        const inDesc = c.description.toLowerCase().includes(q) || c.tagline.toLowerCase().includes(q);
-        const inTopics = c.topics.some(t => t.toLowerCase().includes(q));
-        const inBonus = c.bonusGifts?.some(b => b.toLowerCase().includes(q));
-        return inTitle || inDesc || inTopics || inBonus;
+        const inTitle = c.title.toLowerCase().includes(q) || (c.titleEn || '').toLowerCase().includes(q);
+        const inDesc = (c.description || '').toLowerCase().includes(q) || (c.tagline || '').toLowerCase().includes(q);
+        const inTopics = (c.topics || []).some(t => t.toLowerCase().includes(q));
+        const inFeatures = (c.keyFeatures || []).some(f => f.toLowerCase().includes(q));
+        const inBonus = (c.bonusGifts || []).some(b => b.toLowerCase().includes(q));
+        return inTitle || inDesc || inTopics || inFeatures || inBonus;
       }
 
       return true;
     });
-  }, [selectedCategory, durationFilter, searchQuery]);
+  }, [courses, selectedDuration, searchQuery]);
 
   const getCourseIcon = (iconName: string) => {
     switch (iconName) {
@@ -154,91 +154,45 @@ export function CourseSelector({
       {/* Filter and Search Controls */}
       <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
         
-        {/* Search Bar & Duration Quick Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              id="course-search-input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ค้นหาชื่อคอร์ส, เครื่องมือ AI (เช่น Lovable, Claude, Gamma, NotebookLM, Nano Banana, Prompt)..."
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all placeholder:text-slate-400"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Duration Filter Buttons */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 overflow-x-auto">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            id="course-search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ค้นหาชื่อคอร์ส, เครื่องมือ AI (เช่น Lovable, Claude, ChatGPT, Antigravity, Gamma, NotebookLM, Prompt)..."
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all placeholder:text-slate-400"
+          />
+          {searchQuery && (
             <button
-              onClick={() => setDurationFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                durationFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              ทุกระยะเวลา
+              <X className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => setDurationFilter('1-day')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                durationFilter === '1-day'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              1 วัน (1-3 ชม.)
-            </button>
-            <button
-              onClick={() => setDurationFilter('2-day')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                durationFilter === '2-day'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              2 วัน (6-8 ชม.)
-            </button>
-            <button
-              onClick={() => setDurationFilter('4-day')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                durationFilter === '4-day'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              4 วัน (12 ชม.)
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Category Pills Strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-slate-100 scrollbar-thin">
-          {categoryTabs.map((tab) => {
-            const isActive = selectedCategory === tab.id;
+        {/* Filter Pills Strip by Duration */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 border-t border-slate-100 scrollbar-thin">
+          {filterTabs.map((tab) => {
+            const isActive = selectedDuration === tab.id;
             return (
               <button
                 key={tab.id}
-                id={`cat-tab-${tab.id}`}
-                onClick={() => setSelectedCategory(tab.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
+                id={`duration-tab-${tab.id}`}
+                onClick={() => setSelectedDuration(tab.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 cursor-pointer ${
                   isActive
-                    ? 'bg-slate-900 text-white font-bold shadow-xs'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
                 }`}>
                   {tab.count}
                 </span>
@@ -254,12 +208,11 @@ export function CourseSelector({
         <span>
           พบ <strong>{filteredCourses.length}</strong> หลักสูตร {searchQuery && `(ค้นหา "${searchQuery}")`}
         </span>
-        {(searchQuery || selectedCategory !== 'all' || durationFilter !== 'all') && (
+        {(searchQuery || selectedDuration !== 'all') && (
           <button
             onClick={() => {
               setSearchQuery('');
-              setSelectedCategory('all');
-              setDurationFilter('all');
+              setSelectedDuration('all');
             }}
             className="text-cyan-700 hover:underline font-medium"
           >
@@ -276,13 +229,12 @@ export function CourseSelector({
           </div>
           <h3 className="font-bold text-slate-900 text-base">ไม่พบคอร์สเรียนที่ตรงกับเงื่อนไข</h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            ลองค้นหาด้วยคำสำคัญอื่น หรือเลือกดูหมวดหมู่ "ทั้งหมด" เพื่อดูหลักสูตรที่มีให้เลือกทั้งหมด 15 คอร์ส
+            ลองค้นหาด้วยคำสำคัญอื่น หรือเลือกดูหมวดหมู่ "ทั้งหมด" เพื่อดูหลักสูตรทั้งหมด
           </p>
           <button
             onClick={() => {
               setSearchQuery('');
-              setSelectedCategory('all');
-              setDurationFilter('all');
+              setSelectedDuration('all');
             }}
             className="px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-xl hover:bg-slate-800"
           >
@@ -318,18 +270,26 @@ export function CourseSelector({
                   <div className="flex items-start justify-between gap-2 mb-3 mt-1">
                     
                     {/* Category Duration Pill */}
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${
-                      course.totalDays === 1
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : course.totalDays === 2
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}>
-                      <Clock className="w-3.5 h-3.5 shrink-0" />
-                      {course.totalDays === 1
-                        ? `เรียน 1 วัน (${course.totalHours} ชม.)`
-                        : `เรียน ${course.totalDays} วัน (${course.totalHours} ชม. วันละ ${course.hoursPerDay} ชม.)`}
-                    </span>
+                    
+                    {course.durationCategory === 'vdo' ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
+                        เรียนผ่าน VDO Online (เวลาอิสระ)
+                      </span>
+                    ) : course.totalDays && course.totalHours ? (
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${
+                        course.totalDays === 1
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : course.totalDays === 2
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}>
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
+                        {course.totalDays === 1
+                          ? `เรียน 1 วัน (${course.totalHours} ชม.)`
+                          : `เรียน ${course.totalDays} วัน (${course.totalHours} ชม. วันละ ${course.hoursPerDay} ชม.)`}
+                      </span>
+                    ) : null}
 
                     {/* Fastwork Rating */}
                     {course.fastworkRating && (
@@ -359,7 +319,7 @@ export function CourseSelector({
                         {course.title}
                       </h3>
                       <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
-                        {course.titleEn}
+                        {course.titleEn || ''}
                       </p>
                     </div>
                   </div>
@@ -375,7 +335,7 @@ export function CourseSelector({
                       <BookOpen className="w-3 h-3 text-cyan-600" /> เนื้อหา & Workshop:
                     </p>
                     <ul className="text-[11px] text-slate-600 space-y-1 pl-0.5">
-                      {course.topics.slice(0, 2).map((t, idx) => (
+                      {(course.topics || []).slice(0, 2).map((t, idx) => (
                         <li key={idx} className="flex items-start gap-1.5">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
                           <span className="line-clamp-1">{t}</span>
@@ -395,7 +355,7 @@ export function CourseSelector({
                   {/* Schedule Notice */}
                   <div className="flex items-center gap-1.5 text-[10px] text-slate-500 bg-slate-100/70 px-2.5 py-1.5 rounded-xl">
                     <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
-                    <span className="truncate">{course.scheduleRuleNotice}</span>
+                    <span className="truncate">{course.scheduleRuleNotice || 'ไม่มีข้อมูล'}</span>
                   </div>
                 </div>
 

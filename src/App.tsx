@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from './contexts/AuthContext';
 import { Course, Booking, ScheduleSlot, CustomerInfo, NotificationItem, BookingStatus, UserCategory } from './types';
 import { COURSES } from './data/courses';
 import { Header } from './components/Header';
@@ -7,11 +8,14 @@ import { SlotScheduler } from './components/SlotScheduler';
 import { CustomerForm } from './components/CustomerForm';
 import { PaymentModal } from './components/PaymentModal';
 import { BookingSuccessModal } from './components/BookingSuccessModal';
+import { TrackBookingModal } from './components/TrackBookingModal';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AdminLoginForm } from './components/AdminLoginForm';
 import { AICourseAdvisor } from './components/AICourseAdvisor';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import { CourseDetailModal } from './components/CourseDetailModal';
 import { FastworkReviews } from './components/FastworkReviews';
+import { KnowledgeBase } from './components/KnowledgeBase';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -24,8 +28,28 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const { user, isAdmin } = useAuth();
   // Navigation & View Mode
-  const [currentView, setCurrentView] = useState<'student' | 'admin'>('student');
+  const [currentView, setCurrentView] = useState<'student' | 'admin' | 'knowledge'>('student');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
+  
+  // Dynamic Course List State
+  const [coursesList, setCoursesList] = useState<Course[]>(COURSES);
+
+  // Auto-fill customer info if logged in
+  useEffect(() => {
+    if (user) {
+      setCustomerInfo(prev => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        lineId: user.lineId || prev.lineId,
+      }));
+    }
+  }, [user]);
+
   const [bookingStep, setBookingStep] = useState<'course' | 'schedule' | 'customer'>('course');
 
   // Selected State
@@ -53,6 +77,7 @@ export default function App() {
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
+  const [isTrackBookingModalOpen, setIsTrackBookingModalOpen] = useState<boolean>(false);
   const [isAIAdvisorOpen, setIsAIAdvisorOpen] = useState<boolean>(false);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState<boolean>(false);
   const [activeBooking, setActiveBooking] = useState<Booking | null>(null);
@@ -99,6 +124,27 @@ export default function App() {
     }, 5000);
   };
 
+  // Fetch Courses from Server
+  const fetchCourses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/courses');
+      if (res.ok) {
+        const data: Course[] = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setCoursesList(data);
+          // Keep selectedCourse in sync if it's currently selected
+          setSelectedCourse(prev => {
+            if (!prev) return data[0];
+            const updated = data.find(c => c.id === prev.id);
+            return updated || data[0];
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Courses fetch fallback to local list:', e);
+    }
+  }, []);
+
   // Fetch Bookings & Notifications from Backend API
   const fetchBookings = useCallback(async () => {
     try {
@@ -129,10 +175,89 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    fetchCourses();
     fetchBookings();
     const interval = setInterval(fetchBookings, 8000); // polling updates
     return () => clearInterval(interval);
-  }, [fetchBookings]);
+  }, [fetchCourses, fetchBookings]);
+
+  // Course Management Handlers
+  const handleAddCourse = async (courseData: Partial<Course>): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(courseData),
+      });
+      if (res.ok) {
+        triggerToast('เพิ่มคอร์สเรียนสำเร็จ', 'คอร์สใหม่พร้อมเปิดรับการจองแล้ว', 'success');
+        await fetchCourses();
+        return true;
+      }
+      const data = await res.json();
+      triggerToast('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถเพิ่มคอร์สได้', 'alert');
+      return false;
+    } catch (e) {
+      triggerToast('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'alert');
+      return false;
+    }
+  };
+
+  const handleEditCourse = async (courseId: string, courseData: Partial<Course>): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(courseData),
+      });
+      if (res.ok) {
+        triggerToast('บันทึกคอร์สเรียนสำเร็จ', 'อัปเดตข้อมูลคอร์สเรียบร้อย', 'success');
+        await fetchCourses();
+        return true;
+      }
+      const data = await res.json();
+      triggerToast('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถแก้ไขคอร์สได้', 'alert');
+      return false;
+    } catch (e) {
+      triggerToast('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'alert');
+      return false;
+    }
+  };
+
+  const handleDeleteCourse = async (courseId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/courses/${courseId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        triggerToast('ลบคอร์สเรียนสำเร็จ', 'นำคอร์สออกจากระบบเรียบร้อย', 'info');
+        await fetchCourses();
+        return true;
+      }
+      const data = await res.json();
+      triggerToast('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถลบคอร์สได้', 'alert');
+      return false;
+    } catch (e) {
+      triggerToast('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'alert');
+      return false;
+    }
+  };
+
+  const handleResetCourses = async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/courses/reset', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        triggerToast('รีเซ็ตหลักสูตรสำเร็จ', 'กู้คืน 7 คอร์สมาตรฐานของ Zarntastic เรียบร้อย', 'success');
+        await fetchCourses();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  };
 
   // Create Booking
   const handleCreateBooking = async () => {
@@ -270,12 +395,30 @@ export default function App() {
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled((prev) => !prev)}
         onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
+        onOpenTrackBooking={() => setIsTrackBookingModalOpen(true)}
+        searchQuery={globalSearchQuery}
+        onSearchChange={setGlobalSearchQuery}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
         
-        {currentView === 'student' ? (
+        
+        {currentView === 'knowledge' && (
+          <div className="space-y-8">
+            <KnowledgeBase 
+              onSelectCourse={(course) => {
+                setSelectedCourse(course);
+                setSelectedSlots([]);
+                setBookingStep('schedule');
+                setCurrentView('student');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </div>
+        )}
+        {currentView === 'student' && (
+
           <div className="space-y-8">
             
             {/* Step Navigation Progress Bar */}
@@ -328,7 +471,10 @@ export default function App() {
             {bookingStep === 'course' && (
               <div className="space-y-12">
                 <CourseSelector
+                  courses={coursesList}
                   selectedCourse={selectedCourse}
+                  globalSearchQuery={globalSearchQuery}
+                  onGlobalSearchChange={setGlobalSearchQuery}
                   onSelectCourse={(course) => {
                     setSelectedCourse(course);
                     setSelectedSlots([]);
@@ -373,13 +519,23 @@ export default function App() {
             )}
 
           </div>
-        ) : (
-          /* Admin / Instructor Portal */
-          <AdminDashboard
-            bookings={bookings}
-            onUpdateBookingStatus={handleAdminUpdateStatus}
-            onRefreshBookings={fetchBookings}
-          />
+        )}
+        {currentView === 'admin' && (
+          isAdminAuthenticated ? (
+            /* Admin / Instructor Portal */
+            <AdminDashboard
+              bookings={bookings}
+              courses={coursesList}
+              onUpdateBookingStatus={handleAdminUpdateStatus}
+              onRefreshBookings={fetchBookings}
+              onAddCourse={handleAddCourse}
+              onEditCourse={handleEditCourse}
+              onDeleteCourse={handleDeleteCourse}
+              onResetCourses={handleResetCourses}
+            />
+          ) : (
+            <AdminLoginForm onSuccess={() => setIsAdminAuthenticated(true)} />
+          )
         )}
 
       </main>
@@ -395,6 +551,16 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {/* Track Booking & Upload Slip Modal */}
+      <TrackBookingModal
+        isOpen={isTrackBookingModalOpen}
+        onClose={() => setIsTrackBookingModalOpen(false)}
+        onOpenPaymentForBooking={(booking) => {
+          setActiveBooking(booking);
+          setIsPaymentModalOpen(true);
+        }}
+      />
 
       {/* Course Detail Modal */}
       <CourseDetailModal
@@ -437,7 +603,7 @@ export default function App() {
         isOpen={isAIAdvisorOpen}
         onClose={() => setIsAIAdvisorOpen(false)}
         onSelectCourseById={(courseId) => {
-          const found = COURSES.find((c) => c.id === courseId);
+          const found = coursesList.find((c) => c.id === courseId) || COURSES.find((c) => c.id === courseId);
           if (found) {
             setSelectedCourse(found);
             setSelectedSlots([]);

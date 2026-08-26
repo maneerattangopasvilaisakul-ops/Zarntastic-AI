@@ -117,21 +117,13 @@ export function FastworkReviews() {
                 </p>
               </div>
 
-              {/* Author & Course Details */}
-              <div className="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-bold text-white group-hover:text-cyan-300 transition-colors">
-                    {review.author}
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    {review.role} {review.company && `• ${review.company}`}
-                  </div>
-                  <div className="text-[10px] text-cyan-400/90 font-medium mt-0.5">
-                    คอร์ส: {review.courseTitle}
-                  </div>
+              {/* Course Details & Date */}
+              <div className="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs gap-2">
+                <div className="text-[11px] text-cyan-400 font-medium">
+                  คอร์ส: {review.courseTitle}
                 </div>
 
-                <div className="text-[10px] text-slate-500 font-mono">
+                <div className="text-[10px] text-slate-500 font-mono shrink-0">
                   {review.date}
                 </div>
               </div>
