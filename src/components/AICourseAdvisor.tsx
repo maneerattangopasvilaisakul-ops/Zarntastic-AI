@@ -73,31 +73,35 @@ export function AICourseAdvisor({
     const matched: Course[] = [];
 
     if (t.includes('ai starter') || t.includes('เริ่มใช้ ai ให้เป็น') || t.includes('มือใหม่')) {
-      const c = courses.find(item => item.id === 'c1' || item.id === 'vdo-starter');
+      const c = courses.find(item => item.id === 'live-ai-starter');
       if (c && !matched.includes(c)) matched.push(c);
     }
     if (t.includes('marketing') || t.includes('การตลาด') || t.includes('ยิงแอด')) {
-      const c = courses.find(item => item.id === 'c-mkt');
+      const c = courses.find(item => item.id === 'live-ai-marketing');
+      if (c && !matched.includes(c)) matched.push(c);
+    }
+    if (t.includes('claude starter') || t.includes('claude/claude cowork starter')) {
+      const c = courses.find(item => item.id === 'live-claude-starter');
       if (c && !matched.includes(c)) matched.push(c);
     }
     if (t.includes('productivity') || t.includes('ทำงานน่าเบื่อให้เร็วขึ้น') || t.includes('ออฟฟิศ')) {
-      const c = courses.find(item => item.id === 'c2');
+      const c = courses.find(item => item.id === 'live-ai-productivity');
       if (c && !matched.includes(c)) matched.push(c);
     }
-    if (t.includes('claude cowork') || t.includes('claude code') || t.includes('agents & skills')) {
-      const c = courses.find(item => item.id === 'c-claude-agent' || item.id === 'c-claude');
+    if (t.includes('claude cowork, claude code') || (t.includes('claude') && t.includes('agent'))) {
+      const c = courses.find(item => item.id === 'live-claude-cowork-code-agents');
       if (c && !matched.includes(c)) matched.push(c);
     }
     if (t.includes('antigravity') || t.includes('webapp') || t.includes('web app')) {
-      const c = courses.find(item => item.id === 'c3');
+      const c = courses.find(item => item.id === 'live-ai-webapp-antigravity');
       if (c && !matched.includes(c)) matched.push(c);
     }
     if (t.includes('lovable') || t.includes('website builder')) {
-      const c = courses.find(item => item.id === 'c4');
+      const c = courses.find(item => item.id === 'live-ai-website-lovable');
       if (c && !matched.includes(c)) matched.push(c);
     }
     if (t.includes('chat gpt work') || t.includes('gpt work') || t.includes('codex')) {
-      const c = courses.find(item => item.id === 'c-gpt-agent');
+      const c = courses.find(item => item.id === 'live-chatgpt-work-codex-agents');
       if (c && !matched.includes(c)) matched.push(c);
     }
 

@@ -9,7 +9,7 @@ export interface CourseRecommendation {
   courseTitle: string;
   price: number;
   duration: string;
-  type: 'VDO' | 'Live 1:1';
+  type: 'Live 1:1';
   summary: string;
   highlight: string;
 }
@@ -27,18 +27,13 @@ export function generateAdvisorResponse(userQuery: string): string {
     text.includes('start') ||
     text.includes('ปูพื้นฐาน')
   ) {
-    return `สวัสดีครับสำหรับผู้เรียนระดับ**มือใหม่ หรือไม่เคยเขียนโค้ดมาก่อน** แนะนำเริ่มต้นด้วย 2 หลักสูตรนี้ครับ:
+    return `สวัสดีครับสำหรับผู้เรียนระดับ**มือใหม่ หรือไม่เคยเขียนโค้ดมาก่อน** แนะนำเริ่มต้นด้วยหลักสูตรนี้ครับ:
 
-🎯 **1. AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.” (Live 1:1)**
+🎯 **AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.” (Live 1:1)**
 - **รูปแบบ:** เรียนสดออนไลน์ตัวต่อตัว 1 ชั่วโมงเต็ม (สอนแบบจับมือทำ)
 - **ราคา:** ฿1,500 (จากปกติ ฿2,500)
 - **สิ่งที่จะได้:** ปูพื้นฐานการสั่งงาน Prompt Engineering, วิธีใช้ ChatGPT, Claude, Gemini ในชีวิตประจำวันและงานออฟฟิศให้เห็นผลทันที
 - **เหมาะสำหรับ:** ผู้ที่ต้องการมีผู้สอนคอยตอบข้อสงสัยแบบ Real-time และตรวจเช็คการทำงานสดๆ
-
-📹 **2. Package AI STARTER 1 ชั่วโมง (VDO Online)**
-- **รูปแบบ:** คอร์สวิดีโอออนไลน์ ทบทวนได้ตลอด 24 ชม.
-- **ราคา:** ฿599 (จากปกติ ฿1,500)
-- **สิ่งที่จะได้:** รวมเทคนิคการใช้ ChatGPT, Claude, Gemini, NotebookLM, Perplexity, Gamma ครบในที่เดียว
 
 ⏰ **ช่วงเวลาเรียน Live 1:1:**
 - วันธรรมดา (จันทร์-ศุกร์): 19:30 - 20:30, 20:30 - 21:30 หรือ 21:30 - 22:30 น.
@@ -127,8 +122,6 @@ export function generateAdvisorResponse(userQuery: string): string {
   • การสร้าง Action / Function Calling เชื่อมต่อระบบภายนอก
   • สร้าง Automation Workflow ขั้นสูง
 
-📹 มีคอร์ส VDO **Package Claude Cowork หรือ Chat GPT Work STARTER (฿599)** สำหรับผู้ที่ต้องการเรียนทฤษฎีด้วยตนเอง
-
 👉 *ระบบรองรับการจองคิว 2 วันแบบอัตโนมัติ สามารถกดเลือกคอร์สเพื่อเลือกวันเวลาได้เลยครับ!*`;
   }
 
@@ -206,9 +199,7 @@ export function generateAdvisorResponse(userQuery: string): string {
 
 🏢 **สำหรับองค์กร (Corporate Group / In-House):**
 - วันจันทร์ - เสาร์: 09:00 - 18:00 น. (ปิดวันอาทิตย์)
-- ติดต่อประสานงานวิทยากรนอกสถานที่ Line: @zarntastic หรือโทร 061-5614269
-
-📹 **คอร์ส VDO Online:** เข้าเรียนได้ตลอด 24 ชั่วโมง ไม่มีหมดอายุ`;
+- ติดต่อประสานงานวิทยากรนอกสถานที่ Line: @zarntastic หรือโทร 061-5614269`;
   }
 
   // 8. Price / Cost / Promotion
@@ -220,14 +211,9 @@ export function generateAdvisorResponse(userQuery: string): string {
     text.includes('promotion') ||
     text.includes('price')
   ) {
-    return `💰 **สรุปราคาค่าเรียนสถาบัน Zarntastic AI:**
+    return `💰 **สรุปราคาค่าเรียนสด Live Online 1:1 (เรียนตัวต่อตัวแบบจับมือทำ):**
 
-📹 **คอร์ส VDO Online (เรียนได้ 24 ชม.):**
-• Package AI Starter 1 ชม. ➡️ **฿599** (ปกติ ฿1,500)
-• Package Claude Cowork / ChatGPT Work 1 ชม. ➡️ **฿599**
-• Package Claude Code / Codex 1 ชม. ➡️ **฿599**
-
-🎓 **คอร์สสด Live Online 1:1 (เรียนตัวต่อตัว):**
+🎓 **หลักสูตรทั้งหมดของ Zarntastic AI:**
 • คอร์สเริ่มต้น 1 ชั่วโมง (AI Starter / Marketing / Claude) ➡️ **฿1,500** (ปกติ ฿2,500)
 • คอร์สเพิ่มประสิทธิภาพ 3 ชั่วโมง (AI Productivity / Web App Antigravity) ➡️ **฿3,900** (ปกติ ฿5,900)
 • คอร์สเข้มข้น 6 ชั่วโมง / 2 วัน (Claude Code Agents / ChatGPT Codex / AI Website) ➡️ **฿7,500** (ปกติ ฿12,000)

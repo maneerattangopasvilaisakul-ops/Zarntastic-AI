@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Bell, CalendarCheck, ShieldCheck, Sparkles, User, Volume2, VolumeX, Clock, Phone, MessageCircle, Star, Search, X, Receipt } from 'lucide-react';
 import { NotificationItem } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { AuthModal } from './AuthModal';
 import { INSTRUCTOR_INFO } from '../data/courses';
 
 interface HeaderProps {

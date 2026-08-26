@@ -25,7 +25,7 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
       verified: true
     },
     tags: ['Prompt Engineering', 'ChatGPT', 'Claude 3.5', 'Gemini', 'Generative AI', 'Productivity'],
-    relatedCourseId: 'vdo-ai-starter',
+    relatedCourseId: 'live-ai-starter',
     keyTakeaways: [
       'Prompt Engineering ไม่ใช่แค่การพิมพ์คำสั่ง แต่คือการกำหนดบริบท บทบาท ข้อจำกัด และรูปแบบผลลัพธ์ที่ชัดเจน',
       'ใช้ Framework RTFC (Role, Task, Format, Constraints) ในการเขียน Prompt ทุกครั้ง',
@@ -270,7 +270,7 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
       verified: true
     },
     tags: ['Claude 3.5', 'ChatGPT', 'Gemini 1.5', 'LLM Comparison', 'AI Evaluation'],
-    relatedCourseId: 'vdo-claude-chatgpt',
+    relatedCourseId: 'live-claude-cowork-code-agents',
     keyTakeaways: [
       'Claude 3.5 Sonnet ชนะเลิศด้านการเขียนโค้ด (Coding Benchmark), ความสละสลวยของภาษาไทย และฟีเจอร์ Artifacts',
       'ChatGPT-4o โดดเด่นด้านระบบมัลติโมดอล (Advanced Voice Mode), การสร้างภาพด้วย DALL-E และ Custom GPTs',
@@ -279,7 +279,7 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
     contentHtml: `
       <h2>1. ศึกประชัน 3 ยักษ์ใหญ่แห่งวงการ LLMs ในปี 2026</h2>
       <p>การเลือกใช้งานโมเดล AI ในปัจจุบันไม่ใช่แค่เรื่องของ "ตัวไหนฉลาดกว่า" แต่เป็นเรื่องของ <strong>"ตัวไหนตอบโจทย์ Use Case เฉพาะด้านของคุณได้ดีที่สุด"</strong> บทความนี้สรุปผลการทดสอบจริงจากการใช้งานมากกว่า 1,000 ชั่วโมง</p>
-
+ 
       <h2>2. สรุปตารางเปรียบเทียบคุณสมบัติหลัก</h2>
       <table class="w-full text-left text-sm border-collapse my-4">
         <thead>
@@ -361,7 +361,7 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
       verified: true
     },
     tags: ['Automation', 'Make.com', 'Zapier', 'Webhooks', 'LINE API', 'AI Workflow'],
-    relatedCourseId: 'live-claude-workflow',
+    relatedCourseId: 'live-claude-cowork-code-agents',
     keyTakeaways: [
       'AI Workflow Automation คือการนำ AI เข้าไปเป็นสมอง (Logic Brain) ตรงกลางระหว่าง Trigger และ Action',
       'การเชื่อมต่อ Make.com กับ AI API สามารถจัดการงานตอบแชท ตรวจสอบสลิปโอนเงิน และบันทึกบัญชีอัตโนมัติได้ทันที',
@@ -417,7 +417,7 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
       verified: true
     },
     tags: ['AI Agent', 'Autonomous AI', 'Multi-Agent Systems', 'Future of Work', 'Enterprise AI'],
-    relatedCourseId: 'vdo-claude-codex',
+    relatedCourseId: 'live-chatgpt-work-codex-agents',
     keyTakeaways: [
       'ความแตกต่างสำคัญระหว่าง Chatbot ธรรมดา กับ AI Agent คือ "ความสามารถในการตัดสินใจและลงมือปฏิบัติการผ่านเครื่องมือ (Tool Use)"',
       'AI Agent ทำงานตามวงจร Perception -> Planning -> Tool Execution -> Self-Reflection',
@@ -466,7 +466,7 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
       verified: true
     },
     tags: ['Google AI Studio', 'Gemini API', 'Web Development', 'JSON Schema', 'Grounding'],
-    relatedCourseId: 'vdo-claude-codex',
+    relatedCourseId: 'live-ai-webapp-antigravity',
     keyTakeaways: [
       'Google AI Studio เป็นเครื่องมือ Prototyping และทดสอบ Prompt ที่เร็วที่สุดในโลก พร้อมแปลงเป็นโค้ด TypeScript ได้ในคลิกเดียว',
       'ฟังก์ชัน Structured Outputs (JSON Mode with Schema) ช่วยการันตีรูปแบบผลลัพธ์ 100% ป้องกันแอปพลิเคชันพังจากคำตอบไม่ตรงโครงสร้าง',

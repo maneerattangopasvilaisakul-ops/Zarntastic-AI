@@ -117,7 +117,7 @@ export function CourseSelector({
             <span>ขั้นตอนที่ 1: เลือกคอร์สเรียน AI ที่ต้องการ</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>คอร์สเรียน AI คุณภาพสูง ({COURSES.length} หลักสูตร)</span>
+            <span>คอร์สเรียน AI คุณภาพสูง ({courses.length} หลักสูตร)</span>
           </h2>
           <p className="text-sm text-slate-600 mt-1">
             สอนสดออนไลน์แบบจับมือทำ (Google Meet) โดยอาจารย์ผู้เชี่ยวชาญระดับ Verified Pro บน Fastwork

@@ -126,6 +126,26 @@ export default function App() {
     }, 5000);
   };
 
+  // Unified Course Selection Handler
+  const handleSelectCourse = (course: Course) => {
+    setSelectedCourse(course);
+    setCurrentView('student');
+    setSelectedSlots([]);
+    setBookingStep('schedule');
+
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  };
+
+  // Switch Booking Step with auto scroll
+  const handleSetBookingStep = (step: 'course' | 'schedule' | 'customer') => {
+    setBookingStep(step);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  };
+
   // Fetch Courses from Server
   const fetchCourses = useCallback(async () => {
     try {
@@ -411,11 +431,7 @@ export default function App() {
           <div className="space-y-8">
             <KnowledgeBase 
               onSelectCourse={(course) => {
-                setSelectedCourse(course);
-                setSelectedSlots([]);
-                setBookingStep('schedule');
-                setCurrentView('student');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                handleSelectCourse(course);
               }}
             />
           </div>
@@ -439,8 +455,9 @@ export default function App() {
                   <div key={s.step} className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <button
                       onClick={() => {
-                        if (s.step === 'course') setBookingStep('course');
-                        if (s.step === 'schedule' && selectedCourse) setBookingStep('schedule');
+                        if (s.step === 'course') handleSetBookingStep('course');
+                        if (s.step === 'schedule' && selectedCourse) handleSetBookingStep('schedule');
+                        if (s.step === 'customer' && selectedCourse && (selectedSlots.length > 0 || selectedCourse.durationCategory === 'vdo')) handleSetBookingStep('customer');
                       }}
                       className={`flex items-center gap-2 text-xs sm:text-sm font-bold transition-colors cursor-pointer ${
                         isActive
@@ -479,9 +496,7 @@ export default function App() {
                   globalSearchQuery={globalSearchQuery}
                   onGlobalSearchChange={setGlobalSearchQuery}
                   onSelectCourse={(course) => {
-                    setSelectedCourse(course);
-                    setSelectedSlots([]);
-                    setBookingStep('schedule');
+                    handleSelectCourse(course);
                   }}
                   onOpenDetails={(course) => {
                     setDetailCourse(course);
@@ -501,7 +516,7 @@ export default function App() {
                 bookings={bookings}
                 selectedSlots={selectedSlots}
                 onSelectSlots={(slots) => setSelectedSlots(slots)}
-                onProceedToForm={() => setBookingStep('customer')}
+                onProceedToForm={() => handleSetBookingStep('customer')}
                 userCategory={(customerInfo.clientType as UserCategory) || 'general'}
                 onUserCategoryChange={(category) => setCustomerInfo((prev) => ({ ...prev, clientType: category }))}
               />
@@ -514,7 +529,7 @@ export default function App() {
                 selectedSlots={selectedSlots}
                 customerInfo={customerInfo}
                 onUpdateCustomer={(info) => setCustomerInfo(info)}
-                onBackToSlots={() => setBookingStep('schedule')}
+                onBackToSlots={() => handleSetBookingStep('schedule')}
                 onSubmitToPayment={handleCreateBooking}
                 isLoading={isSubmittingBooking}
                 errorMessage={serverError}
@@ -570,9 +585,7 @@ export default function App() {
         course={detailCourse}
         onClose={() => setIsDetailModalOpen(false)}
         onSelectCourse={(course) => {
-          setSelectedCourse(course);
-          setSelectedSlots([]);
-          setBookingStep('schedule');
+          handleSelectCourse(course);
         }}
       />
 
@@ -591,7 +604,7 @@ export default function App() {
           booking={activeBooking}
           onClose={() => {
             setIsSuccessModalOpen(false);
-            setBookingStep('course');
+            handleSetBookingStep('course');
             setSelectedSlots([]);
           }}
           onViewAdmin={() => {
@@ -609,12 +622,8 @@ export default function App() {
         onSelectCourseById={(courseId) => {
           const found = coursesList.find((c) => c.id === courseId) || COURSES.find((c) => c.id === courseId);
           if (found) {
-            setSelectedCourse(found);
-            setSelectedSlots([]);
-            setBookingStep('schedule');
-            setCurrentView('student');
+            handleSelectCourse(found);
             setIsAIAdvisorOpen(false);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
       />

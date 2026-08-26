@@ -429,76 +429,6 @@ interface CourseItem {
 
 const defaultCourses: CourseItem[] = [
   {
-    id: 'vdo-ai-starter',
-    title: 'Package AI STARTER 1 ชั่วโมง',
-    titleEn: 'AI Starter VDO Course (1 Hour)',
-    tagline: 'เริ่มใช้ AI ให้เป็นภายใน 1 ชั่วโมง',
-    description: '“เริ่มใช้ AI ให้เป็นภายใน 1 ชั่วโมง” สำหรับ Chat GPT, Claude, Gemini, NotebookLM, Perplexity, Gamma',
-    durationCategory: 'vdo',
-    categoryGroup: 'starter',
-    totalHours: 1,
-    totalDays: 1,
-    hoursPerDay: 1,
-    price: 599,
-    originalPrice: 1500,
-    coverImage: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เหมาะกับนักเรียน นักศึกษา พนักงานรัฐและเอกชนที่ต้องการใช้ AI ช่วยให้ทำงานได้เร็วขึ้นและถูกต้อง',
-      'เรียนรู้ Chat GPT, Claude, Gemini, NotebookLM, Perplexity, Gamma',
-      'เรียนผ่าน VDO Online เรียนได้ทุกวันทุกเวลา'
-    ],
-    targetAudience: 'นักเรียน นักศึกษา พนักงานรัฐและเอกชน',
-    scheduleRuleNotice: 'VDO Online เข้าเรียนได้ตลอด 24 ชม.',
-    recommended: true,
-    isActive: true,
-  },
-  {
-    id: 'vdo-claude-chatgpt',
-    title: 'Package Claude Cowork หรือ Chat GPT Work STARTER 1 ชั่วโมง',
-    titleEn: 'Claude Cowork or Chat GPT Work Starter VDO (1 Hour)',
-    tagline: 'เริ่มใช้ Claude Cowork หรือ Chat GPT Work',
-    description: 'เริ่มใช้ Claude Cowork หรือ Chat GPT Work (เลือก 1 AI) ให้เป็นภายใน 1 ชั่วโมง สำหรับ การสั่งงานอัตโนมัติ การสร้าง ติดตั้ง SKILL.MD, connector, plug in, สร้างระบบ automation',
-    durationCategory: 'vdo',
-    categoryGroup: 'claude',
-    totalHours: 1,
-    totalDays: 1,
-    hoursPerDay: 1,
-    price: 599,
-    originalPrice: 1500,
-    coverImage: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เหมาะกับนักเรียน นักศึกษา พนักงานรัฐและเอกชนที่ต้องการใช้ Claude Cowork หรือ Chat GPT Work ช่วยสร้างระบบ automation workflow',
-      'การสั่งงานอัตโนมัติ การสร้าง ติดตั้ง SKILL.MD, connector, plug in',
-      'เรียนผ่าน VDO Online'
-    ],
-    targetAudience: 'ผู้ต้องการสร้างระบบ automation workflow',
-    scheduleRuleNotice: 'VDO Online เข้าเรียนได้ตลอด 24 ชม.',
-    isActive: true,
-  },
-  {
-    id: 'vdo-claude-codex',
-    title: 'Package Claude Code หรือ Codex STARTER 1 ชั่วโมง',
-    titleEn: 'Claude Code or Codex Starter VDO (1 Hour)',
-    tagline: 'เริ่มใช้ Claude Code หรือ Codex',
-    description: 'เริ่มใช้ Claude Code หรือ codex ให้เป็นภายใน 1 ชั่วโมง สำหรับ การสั่งงานอัตโนมัติ การสร้าง ติดตั้ง SKILL.MD, connector, plug in, สร้างระบบ web app',
-    durationCategory: 'vdo',
-    categoryGroup: 'web',
-    totalHours: 1,
-    totalDays: 1,
-    hoursPerDay: 1,
-    price: 599,
-    originalPrice: 1500,
-    coverImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เหมาะกับนักเรียน นักศึกษา พนักงานรัฐและเอกชนที่ต้องการใช้ Claude Code หรือ Codex ช่วยสร้างระบบ web app',
-      'การสั่งงานอัตโนมัติ การสร้าง ติดตั้ง SKILL.MD, connector, plug in',
-      'เรียนผ่าน VDO Online'
-    ],
-    targetAudience: 'ผู้ต้องการสร้างระบบ web app',
-    scheduleRuleNotice: 'VDO Online เข้าเรียนได้ตลอด 24 ชม.',
-    isActive: true,
-  },
-  {
     id: 'live-ai-starter',
     title: 'AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”',
     titleEn: 'AI Starter Live 1:1 (1 Hour)',
@@ -1941,21 +1871,15 @@ app.post("/api/ai/advisor", async (req, res) => {
     try {
       const prompt = `คุณคือ "AI Course Consultant & Smart Scheduler" ประจำสถาบัน Zarntastic AI LEARNING (ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล - Fastwork Verified Pro AI Specialist)
 
-รายชื่อหลักสูตรทั้งหมดของสถาบัน:
-[VDO Courses]
-1. "Package AI STARTER 1 ชั่วโมง" (1 ชม. | ฿599) - ปูพื้นฐาน ChatGPT, Claude, Gemini, NotebookLM, Perplexity, Gamma
-2. "Package Claude Cowork หรือ Chat GPT Work STARTER 1 ชั่วโมง" (1 ชม. | ฿599) - สร้างระบบ Automation & SKILL.MD
-3. "Package Claude Code หรือ Codex STARTER 1 ชั่วโมง" (1 ชม. | ฿599) - สร้างระบบ Web App ด้วย AI
-
-[Live 1:1 Courses]
-4. "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”" (1 วัน 1 ชม. | ฿1,500) - เรียนสดจับมือทำ ปูพื้นฐานเริ่มต้น
-5. "AI for Marketing: AI Starter Class" (1 วัน 1 ชม. | ฿1,500) - เริ่มต้นประยุกต์ใช้ AI กับงานการตลาด
-6. "Claude/Claude Cowork Starter: เริ่มใช้กับงานจริง" (1 วัน 1 ชม. | ฿1,500) - เริ่มต้นใช้ Claude ในการทำงาน
-7. "AI WORK PRODUCTIVITY “ใช้ AI ทำงานน่าเบื่อให้เร็วขึ้น”" (1 วัน 3 ชม. | ฿3,900) - ลดงานซ้ำซ้อน เพิ่มผลลัพธ์ด้วย AI
-8. "AI Webapp Builder with Google Antigravity" (1 วัน 3 ชม. | ฿3,900) - สร้าง Web App ด้วย Google Antigravity
-9. "Claude Cowork, Claude Code: AI Agents & Skills" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - เจาะลึกการใช้ Claude Cowork, Claude Code, AI Agents & Skills
-10. "Chat GPT Work & Codex : AI Agents & Skills" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - เจาะลึกการใช้ Chat GPT Work & Codex, AI Agents & Skills
-11. "AI Website Builder with Lovable/Codex/ClaudeCode" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - สร้างเว็บไซต์ด้วย AI Tools
+รายชื่อหลักสูตรทั้งหมดของสถาบัน (เรียนสด Online 1:1 แบบจับมือทำ):
+1. "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”" (1 วัน 1 ชม. | ฿1,500) - เรียนสดจับมือทำ ปูพื้นฐานเริ่มต้น
+2. "AI for Marketing: AI Starter Class" (1 วัน 1 ชม. | ฿1,500) - เริ่มต้นประยุกต์ใช้ AI กับงานการตลาด
+3. "Claude/Claude Cowork Starter: เริ่มใช้กับงานจริง" (1 วัน 1 ชม. | ฿1,500) - เริ่มต้นใช้ Claude ในการทำงาน
+4. "AI WORK PRODUCTIVITY “ใช้ AI ทำงานน่าเบื่อให้เร็วขึ้น”" (1 วัน 3 ชม. | ฿3,900) - ลดงานซ้ำซ้อน เพิ่มผลลัพธ์ด้วย AI
+5. "AI Webapp Builder with Google Antigravity" (1 วัน 3 ชม. | ฿3,900) - สร้าง Web App ด้วย Google Antigravity
+6. "Claude Cowork, Claude Code: AI Agents & Skills" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - เจาะลึกการใช้ Claude Cowork, Claude Code, AI Agents & Skills
+7. "Chat GPT Work & Codex : AI Agents & Skills" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - เจาะลึกการใช้ Chat GPT Work & Codex, AI Agents & Skills
+8. "AI Website Builder with Lovable/Codex/ClaudeCode" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - สร้างเว็บไซต์ด้วย AI Tools
 
 เงื่อนไขเวลาเรียน:
 - บุคคลทั่วไป: จันทร์-ศุกร์ (19.30 - 22.30 น.) และ เสาร์-อาทิตย์ (09.00 - 18.00 น.)
