@@ -92,20 +92,26 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-4 border-b border-slate-100">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-950/75 backdrop-blur-sm overflow-y-auto">
+      <div 
+        className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md my-auto max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200/80"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0">
           <h2 className="text-lg font-bold text-slate-800">
             {mode === 'login' ? 'เข้าสู่ระบบ (Login)' : 'สมัครสมาชิก (Register)'}
           </h2>
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full text-slate-400">
+          <button 
+            onClick={onClose} 
+            className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           {error && (
-            <div className="p-3 bg-rose-50 text-rose-600 text-sm rounded-lg border border-rose-100">
+            <div className="p-3 bg-rose-50 text-rose-600 text-sm rounded-xl border border-rose-100 font-medium">
               {error}
             </div>
           )}
@@ -113,25 +119,25 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
           {mode === 'register' && (
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">ชื่อ-นามสกุล</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">ชื่อ-นามสกุล</label>
                 <div className="relative">
                   <User className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                  <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none" placeholder="ชื่อของคุณ" />
+                  <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none transition-all" placeholder="ชื่อของคุณ" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">เบอร์โทรศัพท์ (เลือก)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                    <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none" placeholder="08x-xxxxxxx" />
+                    <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none transition-all" placeholder="08x-xxxxxxx" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">LINE ID (เลือก)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">LINE ID</label>
                   <div className="relative">
                     <MessageCircle className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                    <input type="text" value={lineId} onChange={e => setLineId(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none" placeholder="@yourlineid" />
+                    <input type="text" value={lineId} onChange={e => setLineId(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none transition-all" placeholder="@yourlineid" />
                   </div>
                 </div>
               </div>
@@ -139,17 +145,17 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">อีเมล</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">อีเมล</label>
             <div className="relative">
               <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none" placeholder="email@example.com" />
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none transition-all" placeholder="email@example.com" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">รหัสผ่าน</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน</label>
             <div className="relative">
               <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none" placeholder="••••••••" />
+              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none transition-all" placeholder="••••••••" />
             </div>
           </div>
 
@@ -157,11 +163,11 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
             {mode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
           </button>
           
-          <div className="text-center text-xs text-slate-500 mt-4">
+          <div className="text-center text-xs text-slate-500 mt-3 pt-2 border-t border-slate-100">
             {mode === 'login' ? (
-              <p>ยังไม่มีบัญชี? <button type="button" onClick={() => setMode('register')} className="text-cyan-600 font-bold hover:underline">สมัครสมาชิกที่นี่</button></p>
+              <p>ยังไม่มีบัญชี? <button type="button" onClick={() => setMode('register')} className="text-cyan-600 font-bold hover:underline cursor-pointer">สมัครสมาชิกที่นี่</button></p>
             ) : (
-              <p>มีบัญชีอยู่แล้ว? <button type="button" onClick={() => setMode('login')} className="text-cyan-600 font-bold hover:underline">เข้าสู่ระบบ</button></p>
+              <p>มีบัญชีอยู่แล้ว? <button type="button" onClick={() => setMode('login')} className="text-cyan-600 font-bold hover:underline cursor-pointer">เข้าสู่ระบบ</button></p>
             )}
           </div>
         </form>

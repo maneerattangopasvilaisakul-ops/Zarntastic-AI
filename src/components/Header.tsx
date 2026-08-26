@@ -15,6 +15,7 @@ interface HeaderProps {
   onToggleSound: () => void;
   onOpenAIAdvisor: () => void;
   onOpenTrackBooking?: () => void;
+  onOpenAuthModal?: () => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
 }
@@ -28,12 +29,12 @@ export function Header({
   onToggleSound,
   onOpenAIAdvisor,
   onOpenTrackBooking,
+  onOpenAuthModal,
   searchQuery = '',
   onSearchChange,
 }: HeaderProps) {
     const [logoError, setLogoError] = useState(false);
   const { user, logout, isAdmin } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shadow-lg">
@@ -225,8 +226,8 @@ export function Header({
                 </div>
               ) : (
                 <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md transition-all"
+                  onClick={onOpenAuthModal}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md transition-all cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5" />
                   <span>เข้าสู่ระบบ</span>
@@ -236,8 +237,6 @@ export function Header({
           </div>
         </div>
       </div>
-
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
     </header>
   );
 }

@@ -16,6 +16,7 @@ import { NotificationDrawer } from './components/NotificationDrawer';
 import { CourseDetailModal } from './components/CourseDetailModal';
 import { FastworkReviews } from './components/FastworkReviews';
 import { KnowledgeBase } from './components/KnowledgeBase';
+import { AuthModal } from './components/AuthModal';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -73,6 +74,7 @@ export default function App() {
   const [serverError, setServerError] = useState<string>('');
 
   // Modals
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
@@ -396,6 +398,7 @@ export default function App() {
         onToggleSound={() => setSoundEnabled((prev) => !prev)}
         onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
         onOpenTrackBooking={() => setIsTrackBookingModalOpen(true)}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
         searchQuery={globalSearchQuery}
         onSearchChange={setGlobalSearchQuery}
       />
@@ -602,16 +605,35 @@ export default function App() {
       <AICourseAdvisor
         isOpen={isAIAdvisorOpen}
         onClose={() => setIsAIAdvisorOpen(false)}
+        courses={coursesList}
         onSelectCourseById={(courseId) => {
           const found = coursesList.find((c) => c.id === courseId) || COURSES.find((c) => c.id === courseId);
           if (found) {
             setSelectedCourse(found);
             setSelectedSlots([]);
             setBookingStep('schedule');
+            setCurrentView('student');
             setIsAIAdvisorOpen(false);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
       />
+
+      {/* Floating AI Advisor Quick Launcher Button */}
+      {!isAIAdvisorOpen && (
+        <button
+          id="floating-ai-advisor-btn"
+          onClick={() => setIsAIAdvisorOpen(true)}
+          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white px-4 py-3 rounded-full shadow-xl shadow-purple-900/30 flex items-center gap-2.5 font-bold text-xs sm:text-sm border border-purple-300/40 transition-all hover:scale-105 group cursor-pointer"
+          title="ปรึกษา AI แนะนำคอร์สและรอบเวลาเรียน"
+        >
+          <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
+          </div>
+          <span>ปรึกษา AI Advisor</span>
+          <span className="hidden sm:inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+        </button>
+      )}
 
       {/* Notification Drawer */}
       <NotificationDrawer
@@ -623,6 +645,13 @@ export default function App() {
           setCurrentView('admin');
         }}
       />
+
+      {/* User Login & Register Modal */}
+      {isAuthModalOpen && (
+        <AuthModal 
+          onClose={() => setIsAuthModalOpen(false)} 
+        />
+      )}
 
     </div>
   );

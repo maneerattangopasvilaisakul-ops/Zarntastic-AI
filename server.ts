@@ -1934,38 +1934,12 @@ app.post("/api/notifications/mark-read", (req, res) => {
 // 8. AI Course & Schedule Advisor
 app.post("/api/ai/advisor", async (req, res) => {
   const { userMessage, userGoal, experienceLevel, availableDays } = req.body;
+  const rawQuery = (userMessage || userGoal || "แนะนำคอร์สที่เหมาะกับฉัน").trim();
   const ai = getAI();
 
-  if (!ai) {
-    return res.json({
-      reply: `สวัสดีครับ! ยินดีต้อนรับสู่ระบบจองคอร์ส AI อัตโนมัติ โดย อ.มณีรัตน์ (Zarntastic AI LEARNING) 🤖✨
-เรามีหลักสูตร AI คุณภาพให้เลือกเรียนทั้งรูปแบบ VDO และ Live 1:1:
-
-📹 คอร์ส VDO Online (เรียนได้ตลอด 24 ชม.):
-1. Package AI STARTER 1 ชั่วโมง (฿599) - เริ่มใช้ AI ให้เป็นภายใน 1 ชม. (Chat GPT, Claude, Gemini, NotebookLM, Perplexity, Gamma)
-2. Package Claude Cowork หรือ Chat GPT Work STARTER 1 ชั่วโมง (฿599)
-3. Package Claude Code หรือ Codex STARTER 1 ชั่วโมง (฿599)
-
-🎓 คอร์ส Live Online 1:1 (เรียนสดตัวต่อตัว):
-4. AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.” (1 ชม. - ฿1,500)
-5. AI for Marketing: AI Starter Class (1 ชม. - ฿1,500)
-6. Claude/Claude Cowork Starter: เริ่มใช้กับงานจริง (1 ชม. - ฿1,500)
-7. AI WORK PRODUCTIVITY “ใช้ AI ทำงานน่าเบื่อให้เร็วขึ้น” (3 ชม. - ฿3,900) - ลดงานซ้ำซ้อน เพิ่มผลลัพธ์ด้วย AI
-8. AI Webapp Builder with Google Antigravity (3 ชม. - ฿3,900) - สร้าง Web App ด้วย Google Antigravity
-9. Claude Cowork, Claude Code: AI Agents & Skills (6 ชม. / 2 วัน - ฿7,500) - เจาะลึกการใช้ Claude Cowork, Claude Code
-10. Chat GPT Work & Codex : AI Agents & Skills (6 ชม. / 2 วัน - ฿7,500) - เจาะลึกการใช้ Chat GPT Work & Codex
-11. AI Website Builder with Lovable/Codex/ClaudeCode (6 ชม. / 2 วัน - ฿7,500)
-
-⏰ ช่วงเวลาเปิดสอน Live 1:1:
-- บุคคลทั่วไป: จันทร์-ศุกร์ (19.30-22.30 น.) และ เสาร์-อาทิตย์ (09.00-18.00 น.)
-- องค์กร (Corporate): จันทร์-เสาร์ (09.00-18.00 น.)
-
-คุณสามารถเลือกหลักสูตรที่สนใจและเลือกวันเวลาที่สะดวกในปฏิทินเพื่อจองคิวได้ทันทีครับ!`,
-    });
-  }
-
-  try {
-    const prompt = `คุณคือ "AI Course Consultant & Smart Scheduler" ประจำสถาบัน Zarntastic AI LEARNING (ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล - Fastwork Verified Pro AI Specialist)
+  if (ai) {
+    try {
+      const prompt = `คุณคือ "AI Course Consultant & Smart Scheduler" ประจำสถาบัน Zarntastic AI LEARNING (ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล - Fastwork Verified Pro AI Specialist)
 
 รายชื่อหลักสูตรทั้งหมดของสถาบัน:
 [VDO Courses]
@@ -1987,22 +1961,31 @@ app.post("/api/ai/advisor", async (req, res) => {
 - บุคคลทั่วไป: จันทร์-ศุกร์ (19.30 - 22.30 น.) และ เสาร์-อาทิตย์ (09.00 - 18.00 น.)
 - องค์กร (Corporate): จันทร์-เสาร์ (09.00 - 18.00 น.) ปิดวันอาทิตย์
 
-คำถาม/เป้าหมายของผู้เรียน: "${userMessage || userGoal || "แนะนำคอร์สที่เหมาะกับฉัน"}"
+คำถาม/เป้าหมายของผู้เรียน: "${rawQuery}"
 ระดับพื้นฐาน: ${experienceLevel || "ไม่ระบุ"}
 เวลาที่สะดวก: ${availableDays || "ไม่ระบุ"}
 
 กรุณาตอบแนะนำคอร์สที่เหมาะสมที่สุด 1-2 คอร์ส พร้อมบอกจุดเด่น สรุปราคาและระยะเวลา และแนะนำขั้นตอนการจองคิวในระบบอย่างเป็นกันเองและสุภาพ`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: prompt,
-    });
+      const response = await ai.models.generateContent({
+        model: "gemini-3.7-flash",
+        contents: prompt,
+      });
 
-    res.json({ reply: response.text || "ขออภัย ไม่สามารถสร้างคำแนะนำได้ในขณะนี้" });
-  } catch (err: any) {
-    console.error("AI Advisor Error:", err);
-    res.status(500).json({ error: "AI error: " + err.message });
+      if (response.text && response.text.trim()) {
+        return res.json({ reply: response.text.trim() });
+      }
+    } catch (err: any) {
+      console.warn("AI Advisor Gemini API fallback triggered:", err.message);
+    }
   }
+
+  // Resilient fallback logic when Gemini is offline, key is missing, or rate limited
+  const { generateAdvisorResponse } = await import("./src/utils/aiAdvisorEngine.js").catch(() => 
+    import("./src/utils/aiAdvisorEngine")
+  );
+  const fallbackReply = generateAdvisorResponse(rawQuery);
+  res.json({ reply: fallbackReply });
 });
 
 // 9. LINE Messaging API Suite (LINE Official Account)
