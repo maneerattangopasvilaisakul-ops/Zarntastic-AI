@@ -364,31 +364,49 @@ export function CustomerForm({
               <div className="flex justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-400">รูปแบบหลักสูตร:</span>
                 <span className="font-semibold text-white">
-                  {course.totalDays === 1 ? `1 วัน (${course.totalHours} ชม.)` : `2 วัน (${course.totalHours} ชม.)`}
+                  {course.durationCategory === 'vdo'
+                    ? 'เรียนผ่าน VDO Online (เวลาอิสระ)'
+                    : course.totalDays === 1 ? `1 วัน (${course.totalHours} ชม.)` : `2 วัน (${course.totalHours} ชม.)`}
                 </span>
               </div>
 
-              {selectedSlots.map((s) => (
-                <div key={s.dayNumber} className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+              {selectedSlots && selectedSlots.length > 0 ? (
+                selectedSlots.map((s) => (
+                  <div key={s.dayNumber} className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+                    <div className="text-[11px] font-bold text-cyan-400 mb-0.5">
+                      วันที่ {s.dayNumber} ของการเรียน
+                    </div>
+                    <div className="text-sm font-bold text-white">
+                      {formatThaiDate(s.date)}
+                    </div>
+                    <div className="text-slate-300 font-medium text-xs mt-0.5">
+                      เวลา: {s.startTime} - {s.endTime} น.
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
                   <div className="text-[11px] font-bold text-cyan-400 mb-0.5">
-                    วันที่ {s.dayNumber} ของการเรียน
+                    กำหนดการเรียน
                   </div>
                   <div className="text-sm font-bold text-white">
-                    {formatThaiDate(s.date)}
+                    เรียนตามเวลาที่สะดวกได้ทันที
                   </div>
                   <div className="text-slate-300 font-medium text-xs mt-0.5">
-                    เวลา: {s.startTime} - {s.endTime} น.
+                    เข้าดูบทเรียน Google Drive VDO ได้ตลอดชีพ
                   </div>
                 </div>
-              ))}
+              )}
 
               <div className="flex justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-400">ผู้สอน:</span>
-                <span className="font-semibold text-white">{course.instructor.name}</span>
+                <span className="font-semibold text-white">{course.instructor?.name || 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล'}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-400">ช่องทางเรียน:</span>
-                <span className="font-semibold text-emerald-400">Google Meet (Live 1-on-1)</span>
+                <span className="font-semibold text-emerald-400">
+                  {course.durationCategory === 'vdo' ? 'Google Drive VDO Online' : 'Google Meet (Live 1-on-1)'}
+                </span>
               </div>
             </div>
           </div>

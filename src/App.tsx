@@ -8,7 +8,6 @@ import { SlotScheduler } from './components/SlotScheduler';
 import { CustomerForm } from './components/CustomerForm';
 import { PaymentModal } from './components/PaymentModal';
 import { BookingSuccessModal } from './components/BookingSuccessModal';
-import { TrackBookingModal } from './components/TrackBookingModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminLoginForm } from './components/AdminLoginForm';
 import { AICourseAdvisor } from './components/AICourseAdvisor';
@@ -16,12 +15,12 @@ import { NotificationDrawer } from './components/NotificationDrawer';
 import { CourseDetailModal } from './components/CourseDetailModal';
 import { FastworkReviews } from './components/FastworkReviews';
 import { KnowledgeBase } from './components/KnowledgeBase';
-import { AuthModal } from './components/AuthModal';
 import { 
   Sparkles, 
   CheckCircle2, 
   AlertTriangle, 
   ShieldAlert, 
+  ShieldCheck,
   X, 
   CalendarCheck,
   ChevronRight,
@@ -35,10 +34,7 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
   
-  // Dynamic Course List State
-  const [coursesList, setCoursesList] = useState<Course[]>(COURSES);
-
-  // Auto-fill customer info if logged in
+  // Auto-fill customer info if logged in & reset admin authentication if not admin
   useEffect(() => {
     if (user) {
       setCustomerInfo(prev => ({
@@ -48,6 +44,11 @@ export default function App() {
         phone: user.phone || prev.phone,
         lineId: user.lineId || prev.lineId,
       }));
+      if (user.role !== 'admin') {
+        setIsAdminAuthenticated(false);
+      }
+    } else {
+      setIsAdminAuthenticated(false);
     }
   }, [user]);
 
@@ -74,12 +75,10 @@ export default function App() {
   const [serverError, setServerError] = useState<string>('');
 
   // Modals
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
-  const [isTrackBookingModalOpen, setIsTrackBookingModalOpen] = useState<boolean>(false);
   const [isAIAdvisorOpen, setIsAIAdvisorOpen] = useState<boolean>(false);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState<boolean>(false);
   const [activeBooking, setActiveBooking] = useState<Booking | null>(null);
@@ -126,47 +125,6 @@ export default function App() {
     }, 5000);
   };
 
-  // Unified Course Selection Handler
-  const handleSelectCourse = (course: Course) => {
-    setSelectedCourse(course);
-    setCurrentView('student');
-    setSelectedSlots([]);
-    setBookingStep('schedule');
-
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 50);
-  };
-
-  // Switch Booking Step with auto scroll
-  const handleSetBookingStep = (step: 'course' | 'schedule' | 'customer') => {
-    setBookingStep(step);
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 50);
-  };
-
-  // Fetch Courses from Server
-  const fetchCourses = useCallback(async () => {
-    try {
-      const res = await fetch('/api/courses');
-      if (res.ok) {
-        const data: Course[] = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setCoursesList(data);
-          // Keep selectedCourse in sync if it's currently selected
-          setSelectedCourse(prev => {
-            if (!prev) return data[0];
-            const updated = data.find(c => c.id === prev.id);
-            return updated || data[0];
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Courses fetch fallback to local list:', e);
-    }
-  }, []);
-
   // Fetch Bookings & Notifications from Backend API
   const fetchBookings = useCallback(async () => {
     try {
@@ -182,8 +140,8 @@ export default function App() {
         const notifsData: NotificationItem[] = await notifsRes.json();
         setNotifications(notifsData);
 
-        // Check if new notifications arrived
-        if (prevNotifCountRef.current > 0 && notifsData.length > prevNotifCountRef.current) {
+        // Check if new notifications arrived (trigger toast only for admin)
+        if (isAdmin && prevNotifCountRef.current > 0 && notifsData.length > prevNotifCountRef.current) {
           const newest = notifsData[0];
           triggerToast(newest.title, newest.message, 'info');
         }
@@ -194,92 +152,13 @@ export default function App() {
     } finally {
       setIsLoadingBookings(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
-    fetchCourses();
     fetchBookings();
     const interval = setInterval(fetchBookings, 8000); // polling updates
     return () => clearInterval(interval);
-  }, [fetchCourses, fetchBookings]);
-
-  // Course Management Handlers
-  const handleAddCourse = async (courseData: Partial<Course>): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(courseData),
-      });
-      if (res.ok) {
-        triggerToast('เพิ่มคอร์สเรียนสำเร็จ', 'คอร์สใหม่พร้อมเปิดรับการจองแล้ว', 'success');
-        await fetchCourses();
-        return true;
-      }
-      const data = await res.json();
-      triggerToast('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถเพิ่มคอร์สได้', 'alert');
-      return false;
-    } catch (e) {
-      triggerToast('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'alert');
-      return false;
-    }
-  };
-
-  const handleEditCourse = async (courseId: string, courseData: Partial<Course>): Promise<boolean> => {
-    try {
-      const res = await fetch(`/api/courses/${courseId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(courseData),
-      });
-      if (res.ok) {
-        triggerToast('บันทึกคอร์สเรียนสำเร็จ', 'อัปเดตข้อมูลคอร์สเรียบร้อย', 'success');
-        await fetchCourses();
-        return true;
-      }
-      const data = await res.json();
-      triggerToast('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถแก้ไขคอร์สได้', 'alert');
-      return false;
-    } catch (e) {
-      triggerToast('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'alert');
-      return false;
-    }
-  };
-
-  const handleDeleteCourse = async (courseId: string): Promise<boolean> => {
-    try {
-      const res = await fetch(`/api/courses/${courseId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        triggerToast('ลบคอร์สเรียนสำเร็จ', 'นำคอร์สออกจากระบบเรียบร้อย', 'info');
-        await fetchCourses();
-        return true;
-      }
-      const data = await res.json();
-      triggerToast('เกิดข้อผิดพลาด', data.error || 'ไม่สามารถลบคอร์สได้', 'alert');
-      return false;
-    } catch (e) {
-      triggerToast('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'alert');
-      return false;
-    }
-  };
-
-  const handleResetCourses = async (): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/courses/reset', {
-        method: 'POST',
-      });
-      if (res.ok) {
-        triggerToast('รีเซ็ตหลักสูตรสำเร็จ', 'กู้คืน 7 คอร์สมาตรฐานของ Zarntastic เรียบร้อย', 'success');
-        await fetchCourses();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      return false;
-    }
-  };
+  }, [fetchBookings]);
 
   // Create Booking
   const handleCreateBooking = async () => {
@@ -417,8 +296,6 @@ export default function App() {
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled((prev) => !prev)}
         onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
-        onOpenTrackBooking={() => setIsTrackBookingModalOpen(true)}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
         searchQuery={globalSearchQuery}
         onSearchChange={setGlobalSearchQuery}
       />
@@ -429,9 +306,16 @@ export default function App() {
         
         {currentView === 'knowledge' && (
           <div className="space-y-8">
-            <KnowledgeBase 
-              onSelectCourse={(course) => {
-                handleSelectCourse(course);
+            <KnowledgeBase
+              onSelectCourseById={(courseId) => {
+                const found = COURSES.find((c) => c.id === courseId);
+                if (found) {
+                  setSelectedCourse(found);
+                  setSelectedSlots([]);
+                  setBookingStep('schedule');
+                  setCurrentView('student');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
               }}
             />
           </div>
@@ -455,9 +339,8 @@ export default function App() {
                   <div key={s.step} className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <button
                       onClick={() => {
-                        if (s.step === 'course') handleSetBookingStep('course');
-                        if (s.step === 'schedule' && selectedCourse) handleSetBookingStep('schedule');
-                        if (s.step === 'customer' && selectedCourse && (selectedSlots.length > 0 || selectedCourse.durationCategory === 'vdo')) handleSetBookingStep('customer');
+                        if (s.step === 'course') setBookingStep('course');
+                        if (s.step === 'schedule' && selectedCourse) setBookingStep('schedule');
                       }}
                       className={`flex items-center gap-2 text-xs sm:text-sm font-bold transition-colors cursor-pointer ${
                         isActive
@@ -491,12 +374,13 @@ export default function App() {
             {bookingStep === 'course' && (
               <div className="space-y-12">
                 <CourseSelector
-                  courses={coursesList}
                   selectedCourse={selectedCourse}
                   globalSearchQuery={globalSearchQuery}
                   onGlobalSearchChange={setGlobalSearchQuery}
                   onSelectCourse={(course) => {
-                    handleSelectCourse(course);
+                    setSelectedCourse(course);
+                    setSelectedSlots([]);
+                    setBookingStep('schedule');
                   }}
                   onOpenDetails={(course) => {
                     setDetailCourse(course);
@@ -516,7 +400,7 @@ export default function App() {
                 bookings={bookings}
                 selectedSlots={selectedSlots}
                 onSelectSlots={(slots) => setSelectedSlots(slots)}
-                onProceedToForm={() => handleSetBookingStep('customer')}
+                onProceedToForm={() => setBookingStep('customer')}
                 userCategory={(customerInfo.clientType as UserCategory) || 'general'}
                 onUserCategoryChange={(category) => setCustomerInfo((prev) => ({ ...prev, clientType: category }))}
               />
@@ -529,7 +413,7 @@ export default function App() {
                 selectedSlots={selectedSlots}
                 customerInfo={customerInfo}
                 onUpdateCustomer={(info) => setCustomerInfo(info)}
-                onBackToSlots={() => handleSetBookingStep('schedule')}
+                onBackToSlots={() => setBookingStep('schedule')}
                 onSubmitToPayment={handleCreateBooking}
                 isLoading={isSubmittingBooking}
                 errorMessage={serverError}
@@ -539,17 +423,12 @@ export default function App() {
           </div>
         )}
         {currentView === 'admin' && (
-          isAdminAuthenticated ? (
+          (isAdmin || isAdminAuthenticated) ? (
             /* Admin / Instructor Portal */
             <AdminDashboard
               bookings={bookings}
-              courses={coursesList}
               onUpdateBookingStatus={handleAdminUpdateStatus}
               onRefreshBookings={fetchBookings}
-              onAddCourse={handleAddCourse}
-              onEditCourse={handleEditCourse}
-              onDeleteCourse={handleDeleteCourse}
-              onResetCourses={handleResetCourses}
             />
           ) : (
             <AdminLoginForm onSuccess={() => setIsAdminAuthenticated(true)} />
@@ -559,33 +438,57 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 space-y-2">
-          <p className="font-semibold text-slate-700">
-            ZARNTASTIC AI LEARNING • Fastwork Verified AI Specialist & Corporate Trainer
-          </p>
-          <p>
-            บุคคลทั่วไป: จันทร์-ศุกร์ (19.30-22.30 น.), เสาร์-อาทิตย์ (09.00-18.00 น.) • องค์กร (Corporate In-House): จันทร์-เสาร์ (09.00-18.00 น.)
-          </p>
+      <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 mt-16 py-10 text-xs">
+        <div className="max-w-7xl mx-auto px-4 space-y-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-800">
+            <div className="text-center md:text-left">
+              <p className="font-bold text-sm text-white flex items-center justify-center md:justify-start gap-2">
+                <span>ZARNTASTIC AI LEARNING</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800">
+                  Fastwork 5.0 ★
+                </span>
+              </p>
+              <p className="text-slate-400 text-xs mt-1">
+                Turning Ideas Into Visual Experiences • ผู้เชี่ยวชาญด้าน AI และ Automation โดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล
+              </p>
+            </div>
+
+            {/* Quick Admin Access Button */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                id="footer-btn-admin-portal"
+                onClick={() => {
+                  setCurrentView('admin');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-4 py-2 bg-indigo-950 hover:bg-indigo-900 text-indigo-300 hover:text-white rounded-xl border border-indigo-700/60 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
+              >
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <span>🔐 เข้าสู่ระบบผู้ดูแล / อาจารย์ (Admin Portal)</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-slate-500 text-[11px]">
+            <p>
+              บุคคลทั่วไป: จันทร์-ศุกร์ (19.30-22.30 น.), เสาร์-อาทิตย์ (09.00-18.00 น.) • องค์กร: จันทร์-เสาร์ (09.00-18.00 น.)
+            </p>
+            <p>
+              ติดต่อ: LINE: @zarntastic | โทร: 061-5614269 | Fastwork: zarnzarn
+            </p>
+          </div>
         </div>
       </footer>
-
-      {/* Track Booking & Upload Slip Modal */}
-      <TrackBookingModal
-        isOpen={isTrackBookingModalOpen}
-        onClose={() => setIsTrackBookingModalOpen(false)}
-        onOpenPaymentForBooking={(booking) => {
-          setActiveBooking(booking);
-          setIsPaymentModalOpen(true);
-        }}
-      />
 
       {/* Course Detail Modal */}
       <CourseDetailModal
         course={detailCourse}
         onClose={() => setIsDetailModalOpen(false)}
         onSelectCourse={(course) => {
-          handleSelectCourse(course);
+          setSelectedCourse(course);
+          setSelectedSlots([]);
+          setBookingStep('schedule');
         }}
       />
 
@@ -604,7 +507,7 @@ export default function App() {
           booking={activeBooking}
           onClose={() => {
             setIsSuccessModalOpen(false);
-            handleSetBookingStep('course');
+            setBookingStep('course');
             setSelectedSlots([]);
           }}
           onViewAdmin={() => {
@@ -614,35 +517,43 @@ export default function App() {
         />
       )}
 
+      {/* Floating Gemini Chatbot Launcher Button */}
+      {!isAIAdvisorOpen && (
+        <button
+          id="btn-floating-gemini-chat"
+          type="button"
+          onClick={() => setIsAIAdvisorOpen(true)}
+          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-indigo-500 text-white p-3 sm:px-4 sm:py-3 rounded-full shadow-xl shadow-purple-900/30 border border-purple-300/40 flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95 cursor-pointer group"
+          title="ปรึกษาหลักสูตรกับ Gemini AI"
+        >
+          <div className="relative">
+            <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-purple-900 animate-ping" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-purple-900" />
+          </div>
+          <span className="hidden sm:inline font-bold text-xs sm:text-sm tracking-wide">
+            ปรึกษาคอร์ส AI
+          </span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 font-bold hidden md:inline">
+            Gemini 3.7
+          </span>
+        </button>
+      )}
+
       {/* AI Course Advisor Chat */}
       <AICourseAdvisor
         isOpen={isAIAdvisorOpen}
         onClose={() => setIsAIAdvisorOpen(false)}
-        courses={coursesList}
         onSelectCourseById={(courseId) => {
-          const found = coursesList.find((c) => c.id === courseId) || COURSES.find((c) => c.id === courseId);
+          const found = COURSES.find((c) => c.id === courseId);
           if (found) {
-            handleSelectCourse(found);
+            setSelectedCourse(found);
+            setSelectedSlots([]);
+            setBookingStep('schedule');
             setIsAIAdvisorOpen(false);
           }
         }}
       />
-
-      {/* Floating AI Advisor Quick Launcher Button */}
-      {!isAIAdvisorOpen && (
-        <button
-          id="floating-ai-advisor-btn"
-          onClick={() => setIsAIAdvisorOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white px-4 py-3 rounded-full shadow-xl shadow-purple-900/30 flex items-center gap-2.5 font-bold text-xs sm:text-sm border border-purple-300/40 transition-all hover:scale-105 group cursor-pointer"
-          title="ปรึกษา AI แนะนำคอร์สและรอบเวลาเรียน"
-        >
-          <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-            <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-          </div>
-          <span>ปรึกษา AI Advisor</span>
-          <span className="hidden sm:inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-        </button>
-      )}
 
       {/* Notification Drawer */}
       <NotificationDrawer
@@ -654,13 +565,6 @@ export default function App() {
           setCurrentView('admin');
         }}
       />
-
-      {/* User Login & Register Modal */}
-      {isAuthModalOpen && (
-        <AuthModal 
-          onClose={() => setIsAuthModalOpen(false)} 
-        />
-      )}
 
     </div>
   );

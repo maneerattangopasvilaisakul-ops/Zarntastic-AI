@@ -143,6 +143,50 @@ export function SlotScheduler({
       selectedSlots.some((s) => s.dayNumber === dNum)
     );
 
+  if (course.durationCategory === 'vdo') {
+    return (
+      <section className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <span>ขั้นตอนที่ 2: เตรียมพร้อมเรียนคอร์ส VDO</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <span>{course.title}</span>
+            </h2>
+          </div>
+        </div>
+
+        <div className="bg-indigo-50 border border-indigo-100 rounded-3xl p-8 text-center space-y-4">
+          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-2">
+            <Sparkles className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-indigo-900">คอร์สเรียนนี้เป็นรูปแบบ VDO Online</h3>
+          <p className="text-indigo-700/80 max-w-md mx-auto">
+            เรียนได้ทุกวันทุกเวลา หลังชำระเงินเรียบร้อยแล้ว Admin จะทำการตรวจสอบและลูกค้าจะได้สิทธิ์เข้าสู่ link VDO เพื่อเริ่มเรียนได้ทันที
+          </p>
+          
+          <button
+            onClick={() => {
+              // Create a mock slot for VDO to pass validation
+              onSelectSlots([{
+                date: new Date().toISOString().slice(0, 10),
+                startTime: '00:00',
+                endTime: '23:59',
+                dayNumber: 1
+              }]);
+              onProceedToForm();
+            }}
+            className="mt-6 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2 mx-auto"
+          >
+            ไปที่ขั้นตอนถัดไป (กรอกข้อมูล) <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
 
     <section className="space-y-6">
@@ -171,7 +215,7 @@ export function SlotScheduler({
           </div>
           <div className="text-slate-300 space-y-0.5">
             <div className={currentCategory === 'general' ? 'text-white font-medium' : 'text-slate-400'}>
-              • บุคคลทั่วไป: <strong className="text-cyan-300">จ.-ศ. 19:30-22:30</strong> | <strong className="text-cyan-300">ส.-อา. 09:00-18:00</strong>
+              • บุคคลทั่วไป: <strong className="text-cyan-300">จ.-ศ. 19:30-22:30</strong> | <strong className="text-cyan-300">เสาร์ 10:00-23:00</strong> | <strong className="text-cyan-300">อาทิตย์ 09:00-18:00</strong>
             </div>
             <div className={currentCategory === 'corporate' ? 'text-white font-medium' : 'text-slate-400'}>
               • องค์กร (Corporate): <strong className="text-amber-300">จ.-ส. 09:00-18:00</strong> (ปิดวันอาทิตย์)
@@ -204,7 +248,7 @@ export function SlotScheduler({
               </div>
               <div>
                 <div className="font-bold text-sm">บุคคลทั่วไป (รอบค่ำ & วันหยุด)</div>
-                <div className="text-xs text-slate-500">จ.-ศ. 19:30-22:30 น. / ส.-อา. 09:00-18:00 น.</div>
+                <div className="text-xs text-slate-500">จ.-ศ. 19:30-22:30 น. / ส. 10:00-23:00 น. / อา. 09:00-18:00 น.</div>
               </div>
             </div>
             {currentCategory === 'general' && <CheckCircle2 className="w-5 h-5 text-cyan-600" />}
@@ -301,7 +345,7 @@ export function SlotScheduler({
         <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
           <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <strong className="font-semibold">ข้อกำหนดคอร์ส 8 ชั่วโมง (บุคคลทั่วไป - วันละ 4 ชม.):</strong> เนื่องจากวันธรรมดามีช่วงเวลาสอนรอบค่ำ 19:30-22:30 น. (3 ชม.) ซึ่งไม่เพียงพอต่อเนื้อหา 4 ชม./วัน ระบบจึงเปิดให้ลงทะเบียนเฉพาะ <strong className="underline">วันเสาร์และอาทิตย์ (09:00 - 18:00 น.)</strong> หรือหากเป็นองค์กรสามารถเลือกโหมดองค์กรเพื่อเรียนวันธรรมดาได้
+            <strong className="font-semibold">ข้อกำหนดคอร์ส 8 ชั่วโมง (บุคคลทั่วไป - วันละ 4 ชม.):</strong> เนื่องจากวันธรรมดามีช่วงเวลาสอนรอบค่ำ 19:30-22:30 น. (3 ชม.) ซึ่งไม่เพียงพอต่อเนื้อหา 4 ชม./วัน ระบบจึงเปิดให้ลงทะเบียนเฉพาะ <strong className="underline">วันเสาร์ (10:00 - 23:00 น.) และวันอาทิตย์ (09:00 - 18:00 น.)</strong> หรือหากเป็นองค์กรสามารถเลือกโหมดองค์กรเพื่อเรียนวันธรรมดาได้
           </div>
         </div>
       )}

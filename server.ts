@@ -18,11 +18,6 @@ function getAI(): GoogleGenAI | null {
   if (!aiClient && process.env.GEMINI_API_KEY) {
     aiClient = new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
     });
   }
   return aiClient;
@@ -85,998 +80,41 @@ interface NotificationItem {
   bookingId?: string;
 }
 
-// Helper: dynamic initial mock bookings
-const generateInitialBookings = (): Booking[] => {
-  return [];
-};
+// Initial Mock Bookings containing existing blocked dates requested
+const initialBookings: Booking[] = [];
 
-const _unusedOldBookings: any[] = [];
-/*
-      courseId: "live-ai-starter",
-      courseTitle: "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”",
-      totalHours: 1,
-      totalDays: 1,
-      totalPrice: 1500,
-      customer: {
-        name: "กิตติพงษ์ ทวีรัตน์",
-        email: "kittipong.t@gmail.com",
-        phone: "089-123-4567",
-        lineId: "kittipong_ai",
-        notes: "ต้องการเน้นเรื่อง ChatGPT และ Claude สำหรับงานประจำวัน",
-        experienceLevel: "เริ่มต้น (Beginner)",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(0),
-          startTime: "19:30",
-          endTime: "20:30",
-          dayNumber: 1,
-        },
-      ],
-      payment: {
-        method: "promptpay",
-        amount: 1500,
-        slipUrl: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=400&q=80",
-        slipUploadedAt: getPastIsoStr(0, 3),
-        referenceNo: "BAY-9812401",
-        status: "confirmed",
-        reviewedAt: getPastIsoStr(0, 1),
-        reviewNotes: "สลิปถูกต้อง ยอดเงินตรง ฿1,500 อนุมัติคิวเรียบร้อย",
-        aiVerification: {
-          detectedAmount: 1500,
-          detectedDate: getPastDateStr(0),
-          detectedRef: "BAY-9812401",
-          confidence: 0.98,
-          statusMatch: true,
-          notes: "AI ตรวจสอบ: ยอดเงินและบัญชีปลายทางถูกต้อง 100%",
-        },
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(0, 4),
-      updatedAt: getPastIsoStr(0, 1),
-    },
-    {
-      id: "AI-20260825-4410",
-      courseId: "live-claude-fastwork",
-      courseTitle: "Claude Cowork / ChatGPT Work Automation",
-      totalHours: 6,
-      totalDays: 2,
-      totalPrice: 5500,
-      customer: {
-        name: "วรรณภา ศิริโชค",
-        email: "wannapa.s@corporate.co.th",
-        phone: "081-987-6543",
-        lineId: "wannapa_wp",
-        notes: "ต้องการสร้างระบบอัตโนมัติเชื่อมต่อ SKILL.md",
-        experienceLevel: "ปานกลาง (Intermediate)",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(0),
-          startTime: "20:30",
-          endTime: "22:30",
-          dayNumber: 1,
-        },
-        {
-          date: getPastDateStr(-1),
-          startTime: "20:30",
-          endTime: "22:30",
-          dayNumber: 2,
-        },
-      ],
-      payment: {
-        method: "promptpay",
-        amount: 5500,
-        slipUrl: "https://images.unsplash.com/photo-1554224154-26032ffc0d07?auto=format&fit=crop&w=400&q=80",
-        slipUploadedAt: getPastIsoStr(0, 1),
-        referenceNo: "SCB-4410291",
-        status: "under_review",
-        aiVerification: {
-          detectedAmount: 5500,
-          detectedDate: getPastDateStr(0),
-          detectedRef: "SCB-4410291",
-          confidence: 0.95,
-          statusMatch: true,
-          notes: "AI ตรวจสอบ: ยอดเงินตรง ฿5,500 รอ Admin ยืนยัน",
-        },
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(0, 2),
-      updatedAt: getPastIsoStr(0, 1),
-    },
-    {
-      id: "AI-20260824-3321",
-      courseId: "live-ai-marketing",
-      courseTitle: "AI for Marketing: AI Starter Class",
-      totalHours: 1,
-      totalDays: 1,
-      totalPrice: 1500,
-      customer: {
-        name: "ธนากร เจริญสุข",
-        email: "thanakorn.mkt@gmail.com",
-        phone: "086-555-1234",
-        lineId: "thanakorn_mkt",
-        notes: "อยากประยุกต์ใช้ AI ในการเขียน Content และยิงแอด",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(1),
-          startTime: "19:30",
-          endTime: "20:30",
-          dayNumber: 1,
-        },
-      ],
-      payment: {
-        method: "bank_transfer",
-        amount: 1500,
-        slipUrl: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=400&q=80",
-        status: "confirmed",
-        reviewedAt: getPastIsoStr(1, 1),
-        reviewNotes: "สลิปเรียบร้อย",
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(1, 6),
-      updatedAt: getPastIsoStr(1, 1),
-    },
-    {
-      id: "AI-20260824-8891",
-      courseId: "vdo-ai-starter",
-      courseTitle: "Package AI STARTER 1 ชั่วโมง",
-      totalHours: 1,
-      totalDays: 1,
-      totalPrice: 599,
-      customer: {
-        name: "ชลธิชา วงศ์สุวรรณ",
-        email: "chonthicha.w@outlook.com",
-        phone: "084-222-3344",
-        lineId: "chonthicha_ai",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(1),
-          startTime: "10:00",
-          endTime: "11:00",
-          dayNumber: 1,
-        },
-      ],
-      payment: {
-        method: "promptpay",
-        amount: 599,
-        status: "confirmed",
-        reviewedAt: getPastIsoStr(1, 2),
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(1, 3),
-      updatedAt: getPastIsoStr(1, 2),
-    },
-    {
-      id: "AI-20260823-1029",
-      courseId: "live-claude-fastwork",
-      courseTitle: "Claude Cowork / ChatGPT Work Automation",
-      totalHours: 6,
-      totalDays: 2,
-      totalPrice: 5500,
-      customer: {
-        name: "ปกรณ์ จันทรา",
-        email: "pakorn.j@techcorp.io",
-        phone: "092-444-9988",
-        lineId: "pakorn_dev",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(2),
-          startTime: "10:00",
-          endTime: "13:00",
-          dayNumber: 1,
-        },
-      ],
-      payment: {
-        method: "promptpay",
-        amount: 5500,
-        status: "completed",
-        reviewedAt: getPastIsoStr(2, 4),
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(2, 8),
-      updatedAt: getPastIsoStr(2, 4),
-    },
-    {
-      id: "AI-20260822-7712",
-      courseId: "live-ai-starter",
-      courseTitle: "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”",
-      totalHours: 1,
-      totalDays: 1,
-      totalPrice: 1500,
-      customer: {
-        name: "สมศักดิ์ มหาทรัพย์",
-        email: "somsak.m@gmail.com",
-        phone: "083-777-6655",
-        lineId: "somsak_biz",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(3),
-          startTime: "14:00",
-          endTime: "15:00",
-          dayNumber: 1,
-        },
-      ],
-      payment: {
-        method: "bank_transfer",
-        amount: 1500,
-        status: "confirmed",
-        reviewedAt: getPastIsoStr(3, 2),
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(3, 5),
-      updatedAt: getPastIsoStr(3, 2),
-    },
-    {
-      id: "AI-20260821-6643",
-      courseId: "vdo-claude-chatgpt",
-      courseTitle: "Package Claude Cowork หรือ Chat GPT Work STARTER 1 ชั่วโมง",
-      totalHours: 1,
-      totalDays: 1,
-      totalPrice: 599,
-      customer: {
-        name: "พิทยา ศรีทอง",
-        email: "pittaya.s@gmail.com",
-        phone: "089-888-2211",
-        lineId: "pittaya_s",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(4),
-          startTime: "20:00",
-          endTime: "21:00",
-          dayNumber: 1,
-        },
-      ],
-      payment: {
-        method: "promptpay",
-        amount: 599,
-        status: "confirmed",
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(4, 9),
-      updatedAt: getPastIsoStr(4, 3),
-    },
-    {
-      id: "AI-20260820-5519",
-      courseId: "live-claude-fastwork",
-      courseTitle: "Claude Cowork / ChatGPT Work Automation",
-      totalHours: 6,
-      totalDays: 2,
-      totalPrice: 5500,
-      customer: {
-        name: "ณัฐวุฒิ บุญมี",
-        email: "nuttawut.b@startup.th",
-        phone: "081-333-7744",
-        lineId: "nuttawut_b",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(5),
-          startTime: "19:30",
-          endTime: "22:30",
-          dayNumber: 1,
-        },
-      ],
-      payment: {
-        method: "promptpay",
-        amount: 5500,
-        status: "completed",
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(5, 7),
-      updatedAt: getPastIsoStr(5, 2),
-    },
-    {
-      id: "AI-20260819-4401",
-      courseId: "live-ai-starter",
-      courseTitle: "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”",
-      totalHours: 1,
-      totalDays: 1,
-      totalPrice: 1500,
-      customer: {
-        name: "อภิสิทธิ์ รัตนกุล",
-        email: "apisit.r@gmail.com",
-        phone: "087-654-3210",
-        lineId: "apisit_r",
-      },
-      schedule: [
-        {
-          date: getPastDateStr(6),
-          startTime: "19:30",
-          endTime: "20:30",
-          dayNumber: 1,
-        },
-      ],
-      payment: {
-        method: "promptpay",
-        amount: 1500,
-        status: "completed",
-      },
-      meetingLink: "https://meet.google.com/zar-ntas-tic",
-      createdAt: getPastIsoStr(6, 12),
-      updatedAt: getPastIsoStr(6, 4),
-    },
-  ];
-};
-*/
-
-interface CourseItem {
-  id: string;
-  title: string;
-  titleEn?: string;
-  tagline?: string;
-  description: string;
-  durationCategory?: string;
-  categoryGroup?: string;
-  totalHours: number;
-  totalDays: number;
-  hoursPerDay?: number;
-  price: number;
-  originalPrice?: number;
-  level?: string;
-  coverImage?: string;
-  keyFeatures?: string[];
-  targetAudience?: string | string[];
-  scheduleRuleNotice?: string;
-  recommended?: boolean;
-  isActive?: boolean;
-}
-
-const defaultCourses: CourseItem[] = [
+let bookings: Booking[] = [...initialBookings];
+let notifications: NotificationItem[] = [
   {
-    id: 'live-ai-starter',
-    title: 'AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”',
-    titleEn: 'AI Starter Live 1:1 (1 Hour)',
-    tagline: 'เริ่มใช้ AI ให้เป็นภายใน 1 ชม.',
-    description: 'เรียนสด Online 1:1 ปูพื้นฐานการใช้งาน AI เบื้องต้นให้ใช้งานเป็นทันที (ราคาสำหรับ วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269)',
-    durationCategory: 'live',
-    categoryGroup: 'starter',
-    totalHours: 1,
-    totalDays: 1,
-    hoursPerDay: 1,
-    price: 1500,
-    originalPrice: 2500,
-    coverImage: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เรียนสด Online 1:1 แบบจับมือทำ',
-      'ปูพื้นฐานการใช้งาน AI เบื้องต้นให้ใช้งานเป็นทันที',
-      'วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269'
-    ],
-    targetAudience: 'ผู้เริ่มต้นใช้งาน AI',
-    scheduleRuleNotice: 'จันทร์-ศุกร์ (19.30-22.30) และ เสาร์-อาทิตย์ (09.00-18.00)',
-    recommended: true,
-    isActive: true,
+    id: "notif-1",
+    title: "มีรายการจองคอร์สใหม่เข้ามา!",
+    message: "คุณวรรณภา จองคอร์ส Fullstack AI Web App (6 ชม.) วันที่ 26-27 ส.ค.",
+    type: "booking",
+    timestamp: "2026-08-25T00:40:00.000Z",
+    isRead: false,
+    bookingId: "AI-20260826-4410",
   },
   {
-    id: 'live-ai-marketing',
-    title: 'AI for Marketing: AI Starter Class',
-    titleEn: 'AI for Marketing Live 1:1 (1 Hour)',
-    tagline: 'เรียนรู้ AI เพื่องานการตลาด',
-    description: 'เรียนสด Online 1:1 เน้นการใช้งาน AI สำหรับสายงานการตลาด (ราคาสำหรับ วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269)',
-    durationCategory: 'live',
-    categoryGroup: 'marketing',
-    totalHours: 1,
-    totalDays: 1,
-    hoursPerDay: 1,
-    price: 1500,
-    originalPrice: 2500,
-    coverImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เรียนสด Online 1:1',
-      'ประยุกต์ใช้ AI กับงานการตลาด',
-      'วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269'
-    ],
-    targetAudience: 'นักการตลาดและเจ้าของธุรกิจ',
-    scheduleRuleNotice: 'จันทร์-ศุกร์ (19.30-22.30) และ เสาร์-อาทิตย์ (09.00-18.00)',
-    isActive: true,
+    id: "notif-2",
+    title: "ลูกค้าส่งสลิปโอนเงินแล้ว",
+    message: "คุณวรรณภา แนบสลิป ฿5,500 เข้ามา รอดำเนินการตรวจสอบ",
+    type: "payment",
+    timestamp: "2026-08-25T00:45:00.000Z",
+    isRead: false,
+    bookingId: "AI-20260826-4410",
   },
   {
-    id: 'live-claude-starter',
-    title: 'Claude/Claude Cowork Starter: เริ่มใช้กับงานจริง',
-    titleEn: 'Claude/Claude Cowork Starter Live 1:1 (1 Hour)',
-    tagline: 'เริ่มใช้กับงานจริง',
-    description: 'เรียนสด Online 1:1 ปูพื้นฐานการใช้งาน Claude และ Claude Cowork สำหรับการทำงานจริง (ราคาสำหรับ วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269)',
-    durationCategory: '1-day-1h',
-    categoryGroup: 'claude',
-    totalHours: 1,
-    totalDays: 1,
-    hoursPerDay: 1,
-    price: 1500,
-    originalPrice: 2500,
-    coverImage: 'https://images.unsplash.com/photo-1684369527664-d450893046f5?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เรียนสด Online 1:1',
-      'โฟกัสที่การใช้งาน Claude และ Claude Cowork',
-      'วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269'
-    ],
-    targetAudience: 'ผู้ต้องการใช้ Claude ในการทำงาน',
-    scheduleRuleNotice: 'จันทร์-ศุกร์ (19.30-22.30) และ เสาร์-อาทิตย์ (09.00-18.00)',
-    isActive: true,
-  },
-  {
-    id: 'live-ai-productivity',
-    title: 'AI WORK PRODUCTIVITY “ใช้ AI ทำงานน่าเบื่อให้เร็วขึ้น”',
-    titleEn: 'AI Work Productivity Live 1:1 (3 Hours)',
-    tagline: 'ลดงานซ้ำซ้อน เพิ่มผลลัพธ์ด้วย AI',
-    description: 'เรียนสด Online 1:1 ระยะเวลา 3 ชั่วโมง ลดงานซ้ำซ้อน เพิ่มผลลัพธ์ด้วย AI ใช้ AI ทำงานน่าเบื่อให้เร็วขึ้น (ราคาสำหรับ วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269)',
-    durationCategory: '1-day-3h',
-    categoryGroup: 'productivity',
-    totalHours: 3,
-    totalDays: 1,
-    hoursPerDay: 3,
-    price: 3900,
-    originalPrice: 5900,
-    coverImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เรียนสด Online 1:1 ระยะเวลา 3 ชั่วโมง',
-      'ลดงานซ้ำซ้อน เพิ่มผลลัพธ์ด้วย AI',
-      'วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269'
-    ],
-    targetAudience: 'พนักงานออฟฟิศ ผู้บริหาร และผู้ที่ต้องการเพิ่ม Productivity ในการทำงาน',
-    scheduleRuleNotice: 'จันทร์-ศุกร์ (19.30-22.30) และ เสาร์-อาทิตย์ (09.00-18.00)',
-    recommended: true,
-    isActive: true,
-  },
-  {
-    id: 'live-ai-webapp-antigravity',
-    title: 'AI Webapp Builder with Google Antigravity',
-    titleEn: 'AI Webapp Builder Live 1:1 (3 Hours)',
-    tagline: 'สร้าง Web App ด้วย Google Antigravity',
-    description: 'เรียนสด Online 1:1 ระยะเวลา 3 ชั่วโมง สอนสร้าง Web App ด้วย Google Antigravity (ราคาสำหรับ วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269)',
-    durationCategory: '1-day-3h',
-    categoryGroup: 'web',
-    totalHours: 3,
-    totalDays: 1,
-    hoursPerDay: 3,
-    price: 3900,
-    originalPrice: 5900,
-    coverImage: 'https://images.unsplash.com/photo-1547658719-da2b51169166?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เรียนสด Online 1:1 ระยะเวลา 3 ชั่วโมง',
-      'สร้าง Web App ด้วย Google Antigravity',
-      'วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269'
-    ],
-    targetAudience: 'นักพัฒนาหรือผู้สนใจสร้าง Web Application ด้วย AI',
-    scheduleRuleNotice: 'จันทร์-ศุกร์ (19.30-22.30) และ เสาร์-อาทิตย์ (09.00-18.00)',
-    isActive: true,
-  },
-  {
-    id: 'live-claude-cowork-code-agents',
-    title: 'Claude Cowork, Claude Code: AI Agents & Skills',
-    titleEn: 'Claude Cowork, Claude Code: AI Agents & Skills Live 1:1 (6 Hours / 2 Days)',
-    tagline: 'เจาะลึกการใช้ Claude Cowork, Claude Code',
-    description: 'เรียนสด Online 1:1 ระยะเวลา 6 ชั่วโมง (แบ่ง 2 วัน วันละ 3 ชม.) เจาะลึกการใช้ Claude Cowork, Claude Code, AI Agents & Skills (ราคาสำหรับ วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269)',
-    durationCategory: '2-day-6h',
-    categoryGroup: 'claude',
-    totalHours: 6,
-    totalDays: 2,
-    hoursPerDay: 3,
-    price: 7500,
-    originalPrice: 12000,
-    coverImage: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เรียนสด Online 1:1 ระยะเวลา 6 ชั่วโมง (2 วัน วันละ 3 ชม.)',
-      'เจาะลึกการใช้ Claude Cowork, Claude Code',
-      'สร้าง AI Agents และติดตั้ง Skills',
-      'วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269'
-    ],
-    targetAudience: 'ผู้ที่ต้องการใช้งาน Claude และ AI Agents ขั้นสูง',
-    scheduleRuleNotice: '2 วัน (วันละ 3 ชม.) จันทร์-ศุกร์ (19.30-22.30) หรือ เสาร์-อาทิตย์ (09.00-18.00)',
-    recommended: true,
-    isActive: true,
-  },
-  {
-    id: 'live-chatgpt-work-codex-agents',
-    title: 'Chat GPT Work & Codex : AI Agents & Skills',
-    titleEn: 'Chat GPT Work & Codex : AI Agents & Skills Live 1:1 (6 Hours / 2 Days)',
-    tagline: 'เจาะลึกการใช้ Chat GPT Work & Codex',
-    description: 'เรียนสด Online 1:1 ระยะเวลา 6 ชั่วโมง (แบ่ง 2 วัน วันละ 3 ชม.) เจาะลึกการใช้ Chat GPT Work & Codex, AI Agents & Skills (ราคาสำหรับ วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269)',
-    durationCategory: '2-day-6h',
-    categoryGroup: 'claude',
-    totalHours: 6,
-    totalDays: 2,
-    hoursPerDay: 3,
-    price: 7500,
-    originalPrice: 12000,
-    coverImage: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เรียนสด Online 1:1 ระยะเวลา 6 ชั่วโมง (2 วัน วันละ 3 ชม.)',
-      'เจาะลึกการใช้ Chat GPT Work & Codex',
-      'สร้าง AI Agents & Skills สำหรับระบบงาน',
-      'วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269'
-    ],
-    targetAudience: 'ผู้ที่ต้องการนำ ChatGPT Work และ OpenAI Codex มาประยุกต์ใช้ในการทำงานระดับสูง',
-    scheduleRuleNotice: '2 วัน (วันละ 3 ชม.) จันทร์-ศุกร์ (19.30-22.30) หรือ เสาร์-อาทิตย์ (09.00-18.00)',
-    isActive: true,
-  },
-  {
-    id: 'live-ai-website-lovable',
-    title: 'AI Website Builder with Lovable/Codex/ClaudeCode',
-    titleEn: 'AI Website Builder Live 1:1 (6 Hours / 2 Days)',
-    tagline: 'สร้างเว็บไซต์ด้วย Lovable, Codex, ClaudeCode',
-    description: 'เรียนสด Online 1:1 ระยะเวลา 6 ชั่วโมง (แบ่ง 2 วัน วันละ 3 ชม.) สอนสร้างเว็บไซต์ด้วยเครื่องมือ AI เช่น Lovable, Codex, ClaudeCode (ราคาสำหรับ วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269)',
-    durationCategory: '2-day-6h',
-    categoryGroup: 'web',
-    totalHours: 6,
-    totalDays: 2,
-    hoursPerDay: 3,
-    price: 7500,
-    originalPrice: 12000,
-    coverImage: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: [
-      'เรียนสด Online 1:1 ระยะเวลา 6 ชั่วโมง (2 วัน)',
-      'สร้างเว็บด้วย Lovable / Codex / ClaudeCode',
-      'วิทยากรนอกสถานที่ ติดต่อ Line:zarn หรือ 061-5614269'
-    ],
-    targetAudience: 'ผู้ต้องการสร้างเว็บไซต์ด้วย AI',
-    scheduleRuleNotice: '2 วัน (วันละ 3 ชม.) จันทร์-ศุกร์ (19.30-22.30) หรือ เสาร์-อาทิตย์ (09.00-18.00)',
-    isActive: true,
+    id: "notif-3",
+    title: "ยืนยันคิวเรียนเรียบร้อย",
+    message: "คิวของคุณกิตติพงษ์ ได้รับการอนุมัติแล้ว (วันนี้ 19:30 - 20:30 น.)",
+    type: "review",
+    timestamp: "2026-08-25T00:20:00.000Z",
+    isRead: true,
+    bookingId: "AI-20260825-9812",
   },
 ];
 
-let coursesCatalog: CourseItem[] = [...defaultCourses];
-
-// Initial Mock Bookings containing existing blocked dates requested
-const initialBookings: Booking[] = generateInitialBookings();
-
-let bookings: Booking[] = [];
-let notifications: NotificationItem[] = [];
-
-interface LineNotificationLog {
-  id: string;
-  bookingId?: string;
-  recipientName: string;
-  recipientLineId?: string;
-  targetLineUserId?: string;
-  eventType: 'booking_created' | 'slip_uploaded' | 'payment_confirmed' | 'status_changed' | 'reminder' | 'test';
-  message: string;
-  status: 'sent' | 'failed' | 'simulated';
-  deliveryMode: 'push' | 'broadcast' | 'simulated';
-  timestamp: string;
-  details?: {
-    courseTitle?: string;
-    totalPrice?: number;
-    scheduleText?: string;
-    meetingLink?: string;
-    reviewNotes?: string;
-    tokenSource?: 'environment' | 'custom' | 'sandbox';
-    flexMessageUsed?: boolean;
-    botName?: string;
-  };
-}
-
-let lineMessagingSettings = {
-  enabled: true,
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || "",
-  channelSecret: process.env.LINE_CHANNEL_SECRET || "",
-  adminLineUserId: process.env.LINE_ADMIN_USER_ID || "",
-  defaultDeliveryMode: 'auto' as 'auto' | 'push' | 'broadcast',
-  useFlexMessage: true,
-  notifyOnBookingCreated: true,
-  notifyOnSlipUploaded: true,
-  notifyOnPaymentConfirmed: true,
-  notifyOnStatusChanged: true,
-  includeMeetingLink: true,
-  botInfo: undefined as any,
-};
-
-let lineNotificationLogs: LineNotificationLog[] = [];
-
-// Helper: Build LINE Messaging API Flex Message Bubble
-function createBookingFlexBubble(params: {
-  booking: Booking;
-  eventType: 'booking_created' | 'slip_uploaded' | 'payment_confirmed' | 'status_changed' | 'reminder' | 'test';
-  customMessage?: string;
-}) {
-  const { booking, eventType, customMessage } = params;
-
-  let headerTitle = "แจ้งเตือนคอร์สเรียน AI";
-  let headerColor = "#0F172A";
-  let badgeText = "Zarntastic AI";
-
-  switch (eventType) {
-    case "payment_confirmed":
-      headerTitle = "✅ ยืนยันการชำระเงิน & นัดหมาย";
-      headerColor = "#059669"; // Emerald Green
-      badgeText = "อนุมัติแล้ว";
-      break;
-    case "slip_uploaded":
-      headerTitle = "💸 ได้รับสลิปโอนเงินใหม่";
-      headerColor = "#7C3AED"; // Purple
-      badgeText = "รอตรวจสอบ";
-      break;
-    case "booking_created":
-      headerTitle = "📝 จองคอร์สเรียน AI สำเร็จ";
-      headerColor = "#0284C7"; // Sky Blue
-      badgeText = "จองคิวใหม่";
-      break;
-    case "status_changed":
-      headerTitle = `🔄 อัปเดตสถานะ: ${booking.payment.status.toUpperCase()}`;
-      headerColor = "#334155";
-      badgeText = "สถานะคิว";
-      break;
-    case "test":
-      headerTitle = "🧪 ทดสอบระบบ LINE Messaging API";
-      headerColor = "#D97706"; // Amber
-      badgeText = "System Test";
-      break;
-  }
-
-  const scheduleSummary = booking.schedule
-    .map((s, idx) => `วันที่ ${idx + 1}: ${s.date} (${s.startTime} - ${s.endTime} น.)`)
-    .join("\n");
-
-  const statusLabel =
-    booking.payment.status === "confirmed" ? "ชำระเงินสำเร็จ (ยืนยันคิวแล้ว)" :
-    booking.payment.status === "under_review" ? "แนบสลิปแล้ว กำลังรอตรวจสอบ" :
-    booking.payment.status === "pending_slip" ? "รอชำระเงินและแนบสลิป" :
-    booking.payment.status === "rejected" ? "สลิปไม่ผ่านการตรวจสอบ" :
-    booking.payment.status === "completed" ? "เรียนจบหลักสูตรแล้ว" : booking.payment.status;
-
-  const flexBubble: any = {
-    type: "bubble",
-    size: "mega",
-    header: {
-      type: "box",
-      layout: "vertical",
-      backgroundColor: headerColor,
-      paddingTop: "16px",
-      paddingBottom: "16px",
-      paddingStart: "20px",
-      paddingEnd: "20px",
-      contents: [
-        {
-          type: "box",
-          layout: "horizontal",
-          contents: [
-            {
-              type: "text",
-              text: badgeText,
-              color: "#FFFFFF",
-              size: "xxs",
-              weight: "bold",
-              flex: 0,
-            },
-            {
-              type: "text",
-              text: "Zarntastic AI LEARNING",
-              color: "#FFFFFF88",
-              size: "xxs",
-              align: "end",
-            },
-          ],
-        },
-        {
-          type: "text",
-          text: headerTitle,
-          weight: "bold",
-          color: "#FFFFFF",
-          size: "md",
-          margin: "sm",
-          wrap: true,
-        },
-      ],
-    },
-    body: {
-      type: "box",
-      layout: "vertical",
-      spacing: "md",
-      paddingAll: "20px",
-      contents: [
-        {
-          type: "text",
-          text: booking.courseTitle,
-          weight: "bold",
-          size: "sm",
-          color: "#1E293B",
-          wrap: true,
-        },
-        {
-          type: "box",
-          layout: "vertical",
-          margin: "sm",
-          spacing: "sm",
-          contents: [
-            {
-              type: "box",
-              layout: "horizontal",
-              contents: [
-                { type: "text", text: "รหัสการจอง", size: "xs", color: "#64748B", flex: 3 },
-                { type: "text", text: booking.id, size: "xs", color: "#0F172A", weight: "bold", flex: 7 },
-              ],
-            },
-            {
-              type: "box",
-              layout: "horizontal",
-              contents: [
-                { type: "text", text: "ผู้เรียน", size: "xs", color: "#64748B", flex: 3 },
-                { type: "text", text: `คุณ${booking.customer.name}`, size: "xs", color: "#0F172A", weight: "bold", flex: 7 },
-              ],
-            },
-            {
-              type: "box",
-              layout: "horizontal",
-              contents: [
-                { type: "text", text: "ยอดเงิน", size: "xs", color: "#64748B", flex: 3 },
-                { type: "text", text: `฿${booking.totalPrice.toLocaleString()}`, size: "xs", color: "#059669", weight: "bold", flex: 7 },
-              ],
-            },
-            {
-              type: "box",
-              layout: "horizontal",
-              contents: [
-                { type: "text", text: "สถานะ", size: "xs", color: "#64748B", flex: 3 },
-                { type: "text", text: statusLabel, size: "xs", color: "#0F172A", wrap: true, flex: 7 },
-              ],
-            },
-          ],
-        },
-        {
-          type: "separator",
-          margin: "md",
-        },
-        {
-          type: "box",
-          layout: "vertical",
-          margin: "md",
-          contents: [
-            {
-              type: "text",
-              text: "🗓️ วันและเวลานัดหมายเรียนสด:",
-              size: "xs",
-              color: "#334155",
-              weight: "bold",
-            },
-            {
-              type: "text",
-              text: scheduleSummary,
-              size: "xs",
-              color: "#475569",
-              wrap: true,
-              margin: "xs",
-            },
-          ],
-        },
-      ],
-    },
-  };
-
-  // Optional Note from instructor
-  if (booking.payment.reviewNotes || customMessage) {
-    flexBubble.body.contents.push({
-      type: "box",
-      layout: "vertical",
-      margin: "md",
-      backgroundColor: "#F8FAFC",
-      paddingAll: "10px",
-      cornerRadius: "8px",
-      contents: [
-        {
-          type: "text",
-          text: `💬 ข้อความ: ${customMessage || booking.payment.reviewNotes}`,
-          size: "xxs",
-          color: "#475569",
-          wrap: true,
-        },
-      ],
-    });
-  }
-
-  // Footer Buttons
-  const footerButtons: any[] = [];
-
-  if (booking.payment.status === "confirmed" && booking.meetingLink && lineMessagingSettings.includeMeetingLink) {
-    footerButtons.push({
-      type: "button",
-      style: "primary",
-      color: "#059669",
-      height: "sm",
-      action: {
-        type: "uri",
-        label: "🎥 เข้าห้องเรียน Google Meet",
-        uri: booking.meetingLink,
-      },
-    });
-  }
-
-  footerButtons.push({
-    type: "button",
-    style: "secondary",
-    height: "sm",
-    margin: "sm",
-    action: {
-      type: "uri",
-      label: "💬 สอบถามอาจารย์ผู้สอน",
-      uri: "https://line.me/R/ti/p/@zarntastic",
-    },
-  });
-
-  flexBubble.footer = {
-    type: "box",
-    layout: "vertical",
-    spacing: "sm",
-    paddingAll: "16px",
-    contents: footerButtons,
-  };
-
-  return flexBubble;
-}
-
-async function dispatchLineNotification(params: {
-  booking: Booking;
-  eventType: 'booking_created' | 'slip_uploaded' | 'payment_confirmed' | 'status_changed' | 'reminder' | 'test';
-  customMessage?: string;
-  targetUserId?: string;
-}): Promise<LineNotificationLog> {
-  const { booking, eventType, customMessage, targetUserId } = params;
-
-  let eventHeader = '';
-  switch (eventType) {
-    case 'booking_created':
-      eventHeader = '📝 [LINE Official] มีการจองคอร์สเรียน AI เข้ามาใหม่';
-      break;
-    case 'slip_uploaded':
-      eventHeader = '💸 [LINE Official] ลูกค้าอัปโหลดสลิปชำระเงินแล้ว (รอตรวจสอบ)';
-      break;
-    case 'payment_confirmed':
-      eventHeader = '✅ [LINE Official] ยืนยันการชำระเงินและคิวนัดหมายสำเร็จ!';
-      break;
-    case 'status_changed':
-      eventHeader = `🔄 [LINE Official] การจองคอร์สเรียน (${booking.payment.status.toUpperCase()})`;
-      break;
-    case 'test':
-      eventHeader = '🧪 [LINE Messaging API] ทดสอบส่งข้อความแจ้งเตือนสำเร็จ';
-      break;
-    default:
-      eventHeader = '📢 [Zarntastic AI Notification]';
-  }
-
-  const scheduleLines = booking.schedule.map(s => `• วันที่ ${s.date} เวลา ${s.startTime} - ${s.endTime} น.`).join('\n');
-  
-  const statusLabel = 
-    booking.payment.status === 'confirmed' ? '✅ ยืนยันคิวแล้ว' :
-    booking.payment.status === 'under_review' ? '⏳ แนบสลิปแล้ว กำลังรอตรวจสอบ' :
-    booking.payment.status === 'pending_slip' ? '⚠️ รอชำระเงินและแนบสลิป' :
-    booking.payment.status === 'rejected' ? '❌ สลิปไม่ผ่านการตรวจสอบ' :
-    booking.payment.status === 'completed' ? '🎓 เรียนจบหลักสูตรแล้ว' : booking.payment.status;
-
-  let fallbackText = `
-${eventHeader}
-----------------------------------
-📌 รหัสการจอง: ${booking.id}
-👤 ชื่อผู้เรียน: คุณ${booking.customer.name}
-📱 เบอร์โทร: ${booking.customer.phone || '-'}
-💬 LINE ID: ${booking.customer.lineId || '-'}
-📚 คอร์ส: ${booking.courseTitle}
-⏱️ ระยะเวลา: ${booking.totalDays} วัน (${booking.totalHours} ชั่วโมง)
-💰 ยอดชำระ: ฿${booking.totalPrice.toLocaleString()} (${booking.payment.method === 'promptpay' ? 'พร้อมเพย์' : 'โอนผ่านธนาคาร'})
-📊 สถานะ: ${statusLabel}
-----------------------------------
-🗓️ ตารางนัดหมายเรียนสด:
-${scheduleLines}`;
-
-  if (booking.payment.status === 'confirmed' && booking.meetingLink && lineMessagingSettings.includeMeetingLink) {
-    fallbackText += `\n\n🎥 ลิงก์ห้องเรียน Google Meet:\n${booking.meetingLink}`;
-  }
-
-  if (booking.payment.reviewNotes) {
-    fallbackText += `\n💬 หมายเหตุจากผู้สอน: ${booking.payment.reviewNotes}`;
-  }
-
-  if (customMessage) {
-    fallbackText += `\n\n📢 ข้อความเพิ่มเติม:\n${customMessage}`;
-  }
-
-  fallbackText += `\n\n🌟 Zarntastic AI LEARNING - อาจารย์มณีรัตน์\nสอบถามเพิ่มเติม LINE: @zarntastic`;
-
-  const activeToken = (lineMessagingSettings.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '').trim();
-  const destinationUser = (targetUserId || lineMessagingSettings.adminLineUserId || process.env.LINE_ADMIN_USER_ID || '').trim();
-  
-  let status: 'sent' | 'failed' | 'simulated' = 'simulated';
-  let deliveryMode: 'push' | 'broadcast' | 'simulated' = 'simulated';
-  let tokenSource: 'environment' | 'custom' | 'sandbox' = 'sandbox';
-
-  if (activeToken && lineMessagingSettings.enabled) {
-    tokenSource = lineMessagingSettings.channelAccessToken ? 'custom' : 'environment';
-    
-    // Construct LINE Messaging API Messages payload
-    const messagesPayload: any[] = [];
-
-    if (lineMessagingSettings.useFlexMessage) {
-      const flexBubble = createBookingFlexBubble({ booking, eventType, customMessage });
-      messagesPayload.push({
-        type: "flex",
-        altText: `${eventHeader} - ${booking.courseTitle} (${booking.customer.name})`,
-        contents: flexBubble,
-      });
-    } else {
-      messagesPayload.push({
-        type: "text",
-        text: fallbackText.trim(),
-      });
-    }
-
-    try {
-      let endpoint = 'https://api.line.me/v2/bot/message/broadcast';
-      let requestBody: any = { messages: messagesPayload };
-
-      // Check delivery strategy: Push vs Broadcast
-      if (destinationUser && (lineMessagingSettings.defaultDeliveryMode === 'push' || lineMessagingSettings.defaultDeliveryMode === 'auto')) {
-        endpoint = 'https://api.line.me/v2/bot/message/push';
-        requestBody = {
-          to: destinationUser,
-          messages: messagesPayload,
-        };
-        deliveryMode = 'push';
-      } else {
-        endpoint = 'https://api.line.me/v2/bot/message/broadcast';
-        requestBody = {
-          messages: messagesPayload,
-        };
-        deliveryMode = 'broadcast';
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${activeToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (response.ok) {
-        status = 'sent';
-      } else {
-        const errorText = await response.text();
-        console.warn('LINE Messaging API Error:', errorText);
-        // If push failed due to user ID format, attempt fallback to broadcast or record failure
-        status = 'failed';
-      }
-    } catch (err) {
-      console.warn('Failed to call LINE Messaging API:', err);
-      status = 'failed';
-    }
-  }
-
-  const logEntry: LineNotificationLog = {
-    id: `line-msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    bookingId: booking.id,
-    recipientName: booking.customer.name,
-    recipientLineId: booking.customer.lineId,
-    targetLineUserId: destinationUser || undefined,
-    eventType,
-    message: fallbackText.trim(),
-    status,
-    deliveryMode,
-    timestamp: new Date().toISOString(),
-    details: {
-      courseTitle: booking.courseTitle,
-      totalPrice: booking.totalPrice,
-      scheduleText: scheduleLines,
-      meetingLink: booking.meetingLink,
-      reviewNotes: booking.payment.reviewNotes,
-      tokenSource,
-      flexMessageUsed: lineMessagingSettings.useFlexMessage,
-      botName: lineMessagingSettings.botInfo?.displayName || "Zarntastic Bot",
-    },
-  };
-
-  lineNotificationLogs.unshift(logEntry);
-  if (lineNotificationLogs.length > 80) {
-    lineNotificationLogs.pop();
-  }
-
-  return logEntry;
-}
-
 // Helper: Convert time HH:mm to minutes from midnight
-
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(":").map(Number);
   return h * 60 + m;
@@ -1135,14 +173,26 @@ function isValidOperatingSlot(
 
   // General:
   if (isWeekend) {
-    // Saturday - Sunday: 09:00 - 18:00 (540 - 1080 min)
-    const allowedStart = timeToMinutes("09:00");
-    const allowedEnd = timeToMinutes("18:00");
-    if (startMin < allowedStart || endMin > allowedEnd) {
-      return {
-        valid: false,
-        reason: "บุคคลทั่วไป: วันเสาร์ - อาทิตย์ เปิดให้จองเฉพาะช่วงเวลา 09:00 - 18:00 น.",
-      };
+    if (dayOfWeek === 6) {
+      // Saturday: 10:00 - 23:00 (600 - 1380 min)
+      const allowedStart = timeToMinutes("10:00");
+      const allowedEnd = timeToMinutes("23:00");
+      if (startMin < allowedStart || endMin > allowedEnd) {
+        return {
+          valid: false,
+          reason: "บุคคลทั่วไป: วันเสาร์ เปิดให้จองช่วงเวลา 10:00 - 23:00 น.",
+        };
+      }
+    } else {
+      // Sunday: 09:00 - 18:00 (540 - 1080 min)
+      const allowedStart = timeToMinutes("09:00");
+      const allowedEnd = timeToMinutes("18:00");
+      if (startMin < allowedStart || endMin > allowedEnd) {
+        return {
+          valid: false,
+          reason: "บุคคลทั่วไป: วันอาทิตย์ เปิดให้จองเฉพาะช่วงเวลา 09:00 - 18:00 น.",
+        };
+      }
     }
   } else {
     // Monday - Friday: 19:30 - 22:30 (1170 - 1350 min)
@@ -1193,200 +243,6 @@ function checkSlotConflict(
 }
 
 // --- API ROUTES ---
-
-// --- 0. AI Courses Management APIs (CRUD) ---
-// Get all active / all courses
-app.get("/api/courses", (req, res) => {
-  res.json(coursesCatalog);
-});
-
-// Add new AI Course
-app.post("/api/courses", (req, res) => {
-  const {
-    title,
-    titleEn,
-    tagline,
-    description,
-    durationCategory,
-    categoryGroup,
-    totalHours,
-    totalDays,
-    hoursPerDay,
-    price,
-    originalPrice,
-    level,
-    coverImage,
-    keyFeatures,
-    targetAudience,
-    scheduleRuleNotice,
-    recommended,
-  } = req.body;
-
-  if (!title || !description || !totalHours || !totalDays || !price) {
-    return res.status(400).json({ error: "กรุณากรอกข้อมูลคอร์สที่จำเป็นให้ครบถ้วน (ชื่อ, รายละเอียด, จำนวนวัน, ชั่วโมง, ราคา)" });
-  }
-
-  // Generate clean unique ID
-  const cleanId = `course-${Date.now().toString().slice(-6)}-${(titleEn || title).toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 20)}`;
-
-  const newCourse: CourseItem = {
-    id: cleanId,
-    title: title.trim(),
-    titleEn: titleEn?.trim() || title.trim(),
-    tagline: tagline?.trim() || title.trim(),
-    description: description.trim(),
-    durationCategory: durationCategory || (totalDays === 1 ? '1-day' : '2-day'),
-    categoryGroup: categoryGroup || 'starter',
-    totalHours: Number(totalHours) || 1,
-    totalDays: Number(totalDays) || 1,
-    hoursPerDay: Number(hoursPerDay) || Math.ceil((Number(totalHours) || 1) / (Number(totalDays) || 1)),
-    price: Number(price) || 0,
-    originalPrice: Number(originalPrice) || Number(price) * 1.5,
-    level: level || 'เริ่มต้น (Beginner)',
-    coverImage: coverImage || 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80',
-    keyFeatures: Array.isArray(keyFeatures) ? keyFeatures : [
-      `เรียนสด Online 1:1 แบบจับมือทำ (${totalDays} วัน รวม ${totalHours} ชม.)`,
-      'เอกสารประกอบการเรียนและ Prompt Template ครบชุด',
-      'ปรึกษาและซักถามได้ตลอดการเรียน'
-    ],
-    targetAudience: targetAudience || 'ผู้ที่ต้องการเรียนรู้และประยุกต์ใช้ AI ในการทำงาน',
-    scheduleRuleNotice: scheduleRuleNotice || (Number(totalHours) / Number(totalDays) > 3 
-      ? 'สำหรับบุคคลทั่วไป: ต้องเลือกเรียนวันเสาร์-อาทิตย์เท่านั้น (09.00-18.00 น.)' 
-      : 'จันทร์-ศุกร์ (19.30-22.30) และ เสาร์-อาทิตย์ (09.00-18.00)'),
-    recommended: Boolean(recommended),
-    isActive: true,
-  };
-
-  coursesCatalog.unshift(newCourse);
-
-  // Push notification about new course created
-  const now = new Date().toISOString();
-  notifications.unshift({
-    id: `notif-${Date.now()}`,
-    title: "✨ เพิ่มคอร์สเรียน AI ใหม่แล้ว",
-    message: `หลักสูตร "${newCourse.title}" (${newCourse.totalDays} วัน ${newCourse.totalHours} ชม. | ฿${newCourse.price.toLocaleString()}) ถูกเพิ่มเข้าสู่ระบบแล้ว`,
-    type: "system",
-    timestamp: now,
-    isRead: false,
-  });
-
-  res.status(201).json({
-    success: true,
-    course: newCourse,
-    message: "เพิ่มคอร์สเรียน AI ใหม่เรียบร้อยแล้ว",
-  });
-});
-
-// Edit existing AI Course
-app.put("/api/courses/:id", (req, res) => {
-  const courseId = req.params.id;
-  const courseIndex = coursesCatalog.findIndex((c) => c.id === courseId);
-
-  if (courseIndex === -1) {
-    return res.status(404).json({ error: "ไม่พบคอร์สเรียนนี้ในระบบ" });
-  }
-
-  const existing = coursesCatalog[courseIndex];
-  const {
-    title,
-    titleEn,
-    tagline,
-    description,
-    durationCategory,
-    categoryGroup,
-    totalHours,
-    totalDays,
-    hoursPerDay,
-    price,
-    originalPrice,
-    level,
-    coverImage,
-    keyFeatures,
-    targetAudience,
-    scheduleRuleNotice,
-    recommended,
-    isActive,
-  } = req.body;
-
-  const updatedCourse: CourseItem = {
-    ...existing,
-    title: title !== undefined ? title.trim() : existing.title,
-    titleEn: titleEn !== undefined ? titleEn.trim() : existing.titleEn,
-    tagline: tagline !== undefined ? tagline.trim() : existing.tagline,
-    description: description !== undefined ? description.trim() : existing.description,
-    durationCategory: durationCategory || existing.durationCategory,
-    categoryGroup: categoryGroup || existing.categoryGroup,
-    totalHours: totalHours !== undefined ? Number(totalHours) : existing.totalHours,
-    totalDays: totalDays !== undefined ? Number(totalDays) : existing.totalDays,
-    hoursPerDay: hoursPerDay !== undefined ? Number(hoursPerDay) : existing.hoursPerDay,
-    price: price !== undefined ? Number(price) : existing.price,
-    originalPrice: originalPrice !== undefined ? Number(originalPrice) : existing.originalPrice,
-    level: level || existing.level,
-    coverImage: coverImage || existing.coverImage,
-    keyFeatures: Array.isArray(keyFeatures) ? keyFeatures : existing.keyFeatures,
-    targetAudience: targetAudience || existing.targetAudience,
-    scheduleRuleNotice: scheduleRuleNotice || existing.scheduleRuleNotice,
-    recommended: recommended !== undefined ? Boolean(recommended) : existing.recommended,
-    isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
-  };
-
-  coursesCatalog[courseIndex] = updatedCourse;
-
-  // Add system notification
-  const now = new Date().toISOString();
-  notifications.unshift({
-    id: `notif-${Date.now()}`,
-    title: "✏️ อัปเดตรายละเอียดคอร์สเรียน",
-    message: `ปรับปรุงข้อมูลหลักสูตร "${updatedCourse.title}" เรียบร้อยแล้ว`,
-    type: "system",
-    timestamp: now,
-    isRead: false,
-  });
-
-  res.json({
-    success: true,
-    course: updatedCourse,
-    message: "บันทึกการแก้ไขคอร์สเรียนเรียบร้อยแล้ว",
-  });
-});
-
-// Delete AI Course
-app.delete("/api/courses/:id", (req, res) => {
-  const courseId = req.params.id;
-  const courseIndex = coursesCatalog.findIndex((c) => c.id === courseId);
-
-  if (courseIndex === -1) {
-    return res.status(404).json({ error: "ไม่พบคอร์สเรียนนี้ในระบบ" });
-  }
-
-  const deleted = coursesCatalog.splice(courseIndex, 1)[0];
-
-  const now = new Date().toISOString();
-  notifications.unshift({
-    id: `notif-${Date.now()}`,
-    title: "🗑️ ลบคอร์สเรียนออกจากระบบ",
-    message: `ลบหลักสูตร "${deleted.title}" ออกจากระบบเรียบร้อยแล้ว`,
-    type: "system",
-    timestamp: now,
-    isRead: false,
-  });
-
-  res.json({
-    success: true,
-    deletedId: courseId,
-    message: `ลบหลักสูตร "${deleted.title}" สำเร็จ`,
-  });
-});
-
-// Reset courses catalog to default
-app.post("/api/courses/reset", (req, res) => {
-  coursesCatalog = [...defaultCourses];
-  res.json({
-    success: true,
-    courses: coursesCatalog,
-    message: "รีเซ็ตรายการคอร์สเรียน AI เป็นค่าเริ่มต้นเรียบร้อยแล้ว",
-  });
-});
 
 // 1. Get all bookings (with optional filtering)
 app.get("/api/bookings", (req, res) => {
@@ -1484,26 +340,17 @@ app.post("/api/bookings", (req, res) => {
 
   bookings.unshift(newBooking);
 
-  // Push detailed notification for instructor / admin
-  const scheduleFormatted = newBooking.schedule.map(s => `วันที่ ${s.date} เวลา ${s.startTime}-${s.endTime} น.`).join(', ');
+  // Push notification for instructor / admin
   const newNotif: NotificationItem = {
     id: `notif-${Date.now()}`,
-    title: "🔔 มีการจองคิวเรียนคอร์ส AI ใหม่เข้ามา!",
-    message: `คุณ${newBooking.customer.name} (โทร: ${newBooking.customer.phone || '-'}, LINE: ${newBooking.customer.lineId || '-'}) ได้ทำการจองคอร์ส "${newBooking.courseTitle}" [${newBooking.totalDays} วัน ${newBooking.totalHours} ชม.] | รอบเรียน: ${scheduleFormatted} | ยอดชำระ ฿${newBooking.totalPrice.toLocaleString()}`,
+    title: "มีรายการจองคอร์สใหม่เข้ามา!",
+    message: `${newBooking.customer.name} จอง ${newBooking.courseTitle} (${newBooking.schedule[0].date} ${newBooking.schedule[0].startTime}น.)`,
     type: "booking",
     timestamp: now,
     isRead: false,
     bookingId: newBookingId,
   };
   notifications.unshift(newNotif);
-
-  // Auto-dispatch LINE Messaging API alert
-  if (lineMessagingSettings.enabled && lineMessagingSettings.notifyOnBookingCreated) {
-    dispatchLineNotification({
-      booking: newBooking,
-      eventType: 'booking_created',
-    }).catch(e => console.warn('Line messaging async dispatch error:', e));
-  }
 
   res.status(201).json({
     success: true,
@@ -1598,8 +445,8 @@ app.post("/api/bookings/:id/slip", async (req, res) => {
   booking.updatedAt = now;
 
   // Auto-confirm if confidence is high and amount matches, or mark under_review
-  const isAutoConfirmed = aiVerificationResult.statusMatch && aiVerificationResult.confidence >= 0.9;
-  if (isAutoConfirmed) {
+  if (aiVerificationResult.statusMatch && aiVerificationResult.confidence >= 0.9) {
+    // We keep it as under_review or confirmed
     booking.payment.status = "confirmed";
     booking.payment.reviewedAt = now;
     booking.payment.reviewNotes = "ระบบ AI ตรวจสอบยอดเงินถูกต้อง อนุมัติคิวอัตโนมัติ";
@@ -1608,28 +455,13 @@ app.post("/api/bookings/:id/slip", async (req, res) => {
   // Add Notification
   notifications.unshift({
     id: `notif-${Date.now()}`,
-    title: isAutoConfirmed ? "✅ อนุมัติสลิปและยืนยันคิวแล้ว (AI Auto-Confirm)" : "มีการส่งสลิปชำระเงินใหม่",
+    title: "มีการส่งสลิปชำระเงินใหม่",
     message: `${booking.customer.name} ส่งสลิปยอด ฿${booking.totalPrice.toLocaleString()} (คอร์ส ${booking.courseTitle})`,
     type: "payment",
     timestamp: now,
     isRead: false,
     bookingId: booking.id,
   });
-
-  // Auto-dispatch LINE Messaging API
-  if (lineMessagingSettings.enabled) {
-    if (isAutoConfirmed && lineMessagingSettings.notifyOnPaymentConfirmed) {
-      dispatchLineNotification({
-        booking,
-        eventType: 'payment_confirmed',
-      }).catch(e => console.warn('Line messaging error:', e));
-    } else if (lineMessagingSettings.notifyOnSlipUploaded) {
-      dispatchLineNotification({
-        booking,
-        eventType: 'slip_uploaded',
-      }).catch(e => console.warn('Line messaging error:', e));
-    }
-  }
 
   res.json({
     success: true,
@@ -1677,21 +509,6 @@ app.post("/api/bookings/:id/status", (req, res) => {
     isRead: false,
     bookingId: booking.id,
   });
-
-  // Send LINE Messaging API Notification on status change or payment confirmation
-  if (lineMessagingSettings.enabled) {
-    if (status === 'confirmed' && lineMessagingSettings.notifyOnPaymentConfirmed) {
-      dispatchLineNotification({
-        booking,
-        eventType: 'payment_confirmed',
-      }).catch(e => console.warn('Line messaging error:', e));
-    } else if (lineMessagingSettings.notifyOnStatusChanged) {
-      dispatchLineNotification({
-        booking,
-        eventType: 'status_changed',
-      }).catch(e => console.warn('Line messaging error:', e));
-    }
-  }
 
   res.json({ success: true, booking });
 });
@@ -1760,9 +577,9 @@ app.get("/api/slots/available", (req, res) => {
   }
 
   if (isWeekend) {
-    // 09:00 to 18:00 (every 1 hr or chunk)
-    const startHour = 9;
-    const endHour = 18;
+    // Saturday: 10:00 to 23:00, Sunday: 09:00 to 18:00
+    const startHour = dayOfWeek === 6 ? 10 : 9;
+    const endHour = dayOfWeek === 6 ? 23 : 18;
     const step = duration >= 3 ? (duration === 4 ? 4 : 2) : 1;
 
     for (let h = startHour; h <= endHour - duration; h += step) {
@@ -1846,7 +663,7 @@ app.get("/api/slots/available", (req, res) => {
   res.json({
     date: dateStr,
     isWeekend,
-    operatingHours: isWeekend ? "09:00 - 18:00" : "19:30 - 22:30",
+    operatingHours: dayOfWeek === 6 ? "10:00 - 23:00" : isWeekend ? "09:00 - 18:00" : "19:30 - 22:30",
     slots: availableSlots,
   });
 });
@@ -1861,342 +678,535 @@ app.post("/api/notifications/mark-read", (req, res) => {
   res.json({ success: true, count: notifications.length });
 });
 
-// 8. AI Course & Schedule Advisor
+// 8. Gemini Multi-Turn AI Course & Schedule Chatbot
+const COURSE_KNOWLEDGE_BASE = `
+สถาบัน: Zarntastic AI LEARNING
+ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล (Zarn / Zarntastic)
+- Fastwork Verified Pro AI Specialist (เรตติ้ง 5.0 เต็ม 5 ดาว, รีวิว 128+ รายการ, ผู้เรียน 200+ คน)
+- สโลแกน: "Turning Ideas Into Visual Experiences"
+- ติดต่อ: LINE Official: @zarntastic (https://lin.ee/Sy3xOAP), โทร: 061-5614269, Email: zarnzarn10@gmail.com
+- การชำระเงิน: ธนาคารกสิกรไทย (KBANK) 585-2-29915-2 หรือ พร้อมเพย์ 061-561-4269
+
+============================================================
+รายการหลักสูตรทั้งหมดที่มีสอนจริงในระบบ (ห้ามคิดค้นคอร์สที่ไม่มีจริง):
+============================================================
+
+[หมวด 1: คอร์สเรียนสด Online 1:1 ผ่าน Google Meet (🌟 แนะนำเป็นอันดับแรกเสมอ - เรียนสดจับมือทำ ปรึกษาโจทย์งานจริง เรียงตามราคา)]
+1. ID: "live-ai-starter"
+   - ชื่อ: "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”"
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet
+   - ระยะเวลา: 1 วัน รวม 1 ชม. | ราคา: ฿1,500 (ราคาเต็ม ฿2,500)
+   - จุดเด่น: ปูพื้นฐานการใช้งาน AI แบบจับมือทำ ใช้งานเป็นทันที ถามตอบสดกับอาจารย์
+
+2. ID: "live-ai-marketing"
+   - ชื่อ: "AI for Marketing: AI Starter Class"
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet
+   - ระยะเวลา: 1 วัน รวม 1 ชม. | ราคา: ฿1,500 (ราคาเต็ม ฿2,500)
+   - จุดเด่น: ประยุกต์ใช้ AI กับงานการตลาด เขียน Prompt ยิงแอด ทำคอนเทนต์ตรงตามธุรกิจ
+
+3. ID: "live-claude-starter"
+   - ชื่อ: "Claude/Claude Cowork Starter: เริ่มใช้กับงานจริง"
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet
+   - ระยะเวลา: 1 วัน รวม 1 ชม. | ราคา: ฿1,500 (ราคาเต็ม ฿2,500)
+   - จุดเด่น: ปูพื้นฐานการใช้งาน Claude และ Claude Cowork สำหรับการทำงานจริง
+
+4. ID: "live-ai-for-work"
+   - ชื่อ: "AI for Work: ใช้ AI ในการทำงานคล่องใน 3 ชม."
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet (จับมือทำ ปรึกษาโจทย์จริง)
+   - ระยะเวลา: 1 วัน รวม 3 ชม. | ราคา: ฿3,900 (ราคาเต็ม ฿5,900)
+   - จุดเด่น: ประยุกต์ใช้ AI ในการทำงานจริง ทั้งงานเอกสาร วิเคราะห์ข้อมูล สรุปรายงาน ร่างอีเมล พรีเซนต์ และสร้าง Workflow เพิ่มความเร็ว 10 เท่า
+
+5. ID: "live-claude-workflow"
+   - ชื่อ: "Claude Personal Workflow"
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet
+   - ระยะเวลา: 1 วัน รวม 3 ชม. | ราคา: ฿3,900 (ราคาเต็ม ฿5,900)
+   - จุดเด่น: ออกแบบ Personal Workflow การทำงานส่วนตัวเฉพาะบุคคลด้วย Claude เพิ่มประสิทธิภาพงาน 10 เท่า
+
+6. ID: "live-ai-webapp"
+   - ชื่อ: "AI Webapp Builder with Google AI Studio"
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet
+   - ระยะเวลา: 1 วัน รวม 3 ชม. | ราคา: ฿3,900 (ราคาเต็ม ฿5,900)
+   - จุดเด่น: สร้าง Web Application แบบ Full-stack ด้วย Google AI Studio ต่อ API ใช้งานได้จริง
+
+7. ID: "live-claude-cowork-skills"
+   - ชื่อ: "Claude Cowork & Skills"
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet
+   - ระยะเวลา: 2 วัน รวม 6 ชม. (วันละ 3 ชม.) | ราคา: ฿7,500 (ราคาเต็ม ฿12,000)
+   - จุดเด่น: เจาะลึกการใช้ Claude Cowork และการสร้างและติดตั้ง Custom Skills เฉพาะองค์กร
+
+8. ID: "live-ai-website-lovable"
+   - ชื่อ: "AI Website Builder with Lovable/Codex/ClaudeCode"
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet
+   - ระยะเวลา: 2 วัน รวม 6 ชม. (วันละ 3 ชม.) | ราคา: ฿7,500 (ราคาเต็ม ฿12,000)
+   - จุดเด่น: สอนสร้างเว็บไซต์และ Landing Page ด้วย Lovable, Codex, ClaudeCode
+
+9. ID: "live-landing-page"
+   - ชื่อ: "สร้าง Landing Page ด้วย Claude Cowork / Codex / Lovable"
+   - รูปแบบ: เรียนสด Online 1:1 ผ่าน Google Meet
+   - ระยะเวลา: 2 วัน รวม 6 ชม. (วันละ 3 ชม.) | ราคา: ฿7,500 (ราคาเต็ม ฿12,000)
+   - จุดเด่น: เจาะลึกการสร้าง Landing Page เพื่อเพิ่มยอดขายธุรกิจ ออกแบบและเขียนโค้ดจริง
+
+[หมวด 2: คอร์สเรียนผ่าน VDO Online (Coming Soon - เร็วๆ นี้)]
+9. ID: "vdo-starter"
+   - ชื่อ: "เรียนผ่าน VDO Online - Package STARTER (Coming Soon)"
+   - ราคา: ฿399 (ราคาเต็ม ฿799)
+   - สถานะ: Coming Soon (เร็วๆ นี้)
+
+10. ID: "vdo-intermediate"
+    - ชื่อ: "เรียนผ่าน VDO Online - Package INTERMEDIATE (Coming Soon)"
+    - ราคา: ฿499 (ราคาเต็ม ฿999)
+    - สถานะ: Coming Soon (เร็วๆ นี้)
+
+11. ID: "vdo-advance-1"
+    - ชื่อ: "เรียนผ่าน VDO Online - Package Advance 1 (Coming Soon)"
+    - ราคา: ฿599 (ราคาเต็ม ฿1,599)
+    - สถานะ: Coming Soon (เร็วๆ นี้)
+
+12. ID: "vdo-advance-2"
+    - ชื่อ: "เรียนผ่าน VDO Online - Package Advance 2 (Coming Soon)"
+    - ราคา: ฿1,099 (ราคาเต็ม ฿2,599)
+    - สถานะ: Coming Soon (เร็วๆ นี้)
+
+13. ID: "vdo-ai-starter"
+    - ชื่อ: "Package AI STARTER 1 ชั่วโมง (VDO Online - Coming Soon)"
+    - ราคา: ฿599 (ราคาเต็ม ฿1,500)
+    - สถานะ: Coming Soon (เร็วๆ นี้)
+
+14. ID: "vdo-claude-chatgpt"
+    - ชื่อ: "Package Claude Cowork หรือ ChatGPT Work STARTER (VDO Online - Coming Soon)"
+    - ราคา: ฿599 (ราคาเต็ม ฿1,500)
+    - สถานะ: Coming Soon (เร็วๆ นี้)
+
+15. ID: "vdo-claude-codex"
+    - ชื่อ: "Package Claude Code หรือ Codex STARTER (VDO Online - Coming Soon)"
+    - ราคา: ฿599 (ราคาเต็ม ฿1,500)
+    - สถานะ: Coming Soon (เร็วๆ นี้)
+
+============================================================
+เงื่อนไขเวลาเรียน & การให้บริการ:
+============================================================
+- คอร์สสด 1:1 (Google Meet) บุคคลทั่วไป:
+  • วันจันทร์ - ศุกร์: รอบค่ำ 19:30 - 22:30 น. (รอบละ 1 ชม. หรือ 3 ชม.)
+  • วันเสาร์: 10:00 - 23:00 น. (เปิดให้เลือกได้ตลอดวัน)
+  • วันอาทิตย์: 09:00 - 18:00 น.
+- คอร์สสดสำหรับองค์กร (Corporate):
+  • วันจันทร์ - เสาร์: 09:00 - 18:00 น. (ปิดวันอาทิตย์)
+  • มีบริการจัดอบรมนอกสถานที่ / วิทยากรบรรยาย ติดต่อผ่าน LINE: @zarntastic
+- คอร์ส VDO Online: อยู่ในสถานะ Coming Soon กำลังเตรียมเปิดให้เข้าเรียนในเร็วๆ นี้
+`;
+
+// Helper function to sanitize and format conversation history for Gemini API
+function formatGeminiContents(messages: any[], userMessage?: string) {
+  const rawList: Array<{ role: "user" | "model"; text: string }> = [];
+
+  if (Array.isArray(messages) && messages.length > 0) {
+    for (const m of messages) {
+      const text = String(m?.content || "").trim();
+      if (!text) continue;
+      const role = m.role === "assistant" || m.role === "model" ? "model" : "user";
+      rawList.push({ role, text });
+    }
+  }
+
+  // Ensure latest user query is captured if provided
+  if (userMessage && userMessage.trim()) {
+    const trimmed = userMessage.trim();
+    if (rawList.length === 0 || rawList[rawList.length - 1].text !== trimmed) {
+      rawList.push({ role: "user", text: trimmed });
+    }
+  }
+
+  if (rawList.length === 0) {
+    return [{ role: "user" as const, parts: [{ text: "สวัสดีครับ แนะนำคอร์ส AI หน่อยครับ" }] }];
+  }
+
+  // Drop leading model/assistant messages because Gemini requires contents to start with 'user'
+  let startIndex = 0;
+  while (startIndex < rawList.length && rawList[startIndex].role === "model") {
+    startIndex++;
+  }
+
+  const validRaw = startIndex < rawList.length ? rawList.slice(startIndex) : rawList;
+
+  // Merge consecutive messages with the same role
+  const contents: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }> = [];
+
+  for (const item of validRaw) {
+    if (contents.length > 0 && contents[contents.length - 1].role === item.role) {
+      contents[contents.length - 1].parts[0].text += "\n" + item.text;
+    } else {
+      contents.push({
+        role: item.role,
+        parts: [{ text: item.text }],
+      });
+    }
+  }
+
+  // Ensure the contents array starts with a user role
+  if (contents.length === 0 || contents[0].role !== "user") {
+    contents.unshift({ role: "user", parts: [{ text: userMessage || "สวัสดีครับ แนะนำคอร์ส AI หน่อยครับ" }] });
+  }
+
+  return contents;
+}
+
+// Comprehensive rule-based advisor fallback for 100% reliable responses
+function generateCourseAdvisorFallback(query: string, persona: string): { reply: string; suggestedCourseIds: string[] } {
+  const q = (query || "").toLowerCase().trim();
+
+  // 1. Specific Web App Builder / Google AI Studio query
+  if (q.includes("webapp") || q.includes("web app") || q.includes("สร้าง web app") || q.includes("สร้างเว็บแอป") || q.includes("google ai studio")) {
+    return {
+      reply: `🚀 **หลักสูตรแนะนำสำหรับการสร้าง Web Application ด้วย AI:**
+      
+1. ⚡ **AI Webapp Builder with Google AI Studio (เรียนสด Online 1:1)**
+   - **รูปแบบ**: เรียนสดตัวต่อตัวผ่าน Google Meet (จับมือทำ)
+   - **ระยะเวลา**: 1 วัน รวม 3 ชม. | **ราคา**: ฿3,900 (ราคาเต็ม ฿5,900)
+   - **เนื้อหาที่ได้เรียนรู้**:
+     • วางโครงสร้าง Full-Stack Web App ด้วย React + Vite + Tailwind CSS
+     • เชื่อมต่อ Google GenAI SDK (Gemini 2.5 / 3.7 Flash) ผ่าน Secure Backend
+     • ออกแบบ Dynamic UI, Structured JSON Output และระบบจัดการ State
+     • วิธี Deploy ขึ้น Cloud Run / Vercel พร้อมเปิดให้ผู้ใช้งานจริงเข้าถึง
+   
+2. 🌐 **AI Website Builder with Lovable / Codex / ClaudeCode (เรียนสด 1:1 6 ชม.)**
+   - **ระยะเวลา**: 2 วัน รวม 6 ชม. (วันละ 3 ชม.) | **ราคา**: ฿7,500 (ราคาเต็ม ฿12,000)
+   - สร้างโปรเจกต์ขนาดใหญ่และระบบ Automation แบบบูรณาการ
+
+💡 คุณสามารถคลิกปุ่ม **"เลือกจองคอร์สนี้"** ด้านล่างเพื่อดูปฏิทินรอบเวลาว่างและลงทะเบียนเรียนได้ทันทีครับ!`,
+      suggestedCourseIds: ["live-ai-webapp", "live-ai-website-lovable"],
+    };
+  }
+
+  // 1.5 Specific AI for Work query
+  if (q.includes("ai for work") || q.includes("ทำงาน") || q.includes("คล่อง") || q.includes("productivity") || q.includes("งานเอกสาร") || q.includes("รายงาน") || q.includes("วิเคราะห์ข้อมูล") || q.includes("3 ชม") || q.includes("3 ชั่วโมง")) {
+    return {
+      reply: `💼 **หลักสูตรแนะนำ: AI for Work ใช้ AI ในการทำงานคล่องใน 3 ชม.**
+      
+🌟 **AI for Work: ใช้ AI ในการทำงานคล่องใน 3 ชม. (เรียนสด Online 1:1)**
+- **รูปแบบ**: เรียนสดตัวต่อตัวผ่าน Google Meet (จับมือทำ ปรึกษาโจทย์จริง)
+- **ระยะเวลา**: 1 วัน รวม 3 ชม. | **ราคา**: ฿3,900 (ราคาเต็ม ฿5,900)
+- **เนื้อหาที่จะได้เรียนรู้แบบจับมือทำ**:
+  • เทคนิคเลือกใช้ AI ให้ตรงกับประเภทงาน (ChatGPT, Claude, Gemini, Perplexity, NotebookLM)
+  • Prompt Engineering สำหรับคนทำงาน: สั่งครั้งเดียวได้ผลงานคุณภาพพร้อมส่ง
+  • สรุปเอกสาร PDF หนาๆ, ถอดบทความ และร่างบันทึกข้อความแบบมืออาชีพ
+  • วิเคราะห์ข้อมูล Excel/CSV และสร้างตารางสรุป Insight อัตโนมัติ
+  • ร่างอีเมลธุรกิจภาษาไทย-อังกฤษ และสร้าง Slide พรีเซนต์ใน 5 นาที
+  • เวิร์กช็อปแก้ปัญหาและงานจริงของผู้เรียนแบบ 1:1 กับ อ.มณีรัตน์
+
+💡 เหมาะสำหรับพนักงานประจำ ฟรีแลนซ์ ผู้บริหาร และเจ้าของธุรกิจที่ต้องการประหยัดเวลาทำงานวันละ 2-3 ชั่วโมงครับ!`,
+      suggestedCourseIds: ["live-ai-for-work", "live-claude-workflow", "live-ai-starter"],
+    };
+  }
+
+  // 2. Specific Landing Page query
+  if (q.includes("landing page") || q.includes("หน้าขาย") || q.includes("ยอดขาย") || q.includes("เซลเพจ") || q.includes("เพิ่มยอดขาย")) {
+    return {
+      reply: `🎯 **หลักสูตรสร้าง Landing Page เพิ่มยอดขายธุรกิจด้วย AI:**
+
+🌟 **สร้าง Landing Page ด้วย Claude Cowork / Codex / Lovable (เรียนสด 1:1)**
+- **รูปแบบ**: เรียนสด Online 1:1 ผ่าน Google Meet (จับมือทำ ปรึกษาธุรกิจจริง)
+- **ระยะเวลา**: 2 วัน รวม 6 ชม. (แบ่งเรียนวันละ 3 ชม.) | **ราคา**: ฿7,500 (ราคาเต็ม ฿12,000)
+- **สิ่งที่คุณจะได้รับแบบจับมือทำ**:
+  • วางโครงสร้าง Copywriting ตามจิตวิทยาการขาย (AIDA + High Conversion Hooks)
+  • สร้างหน้าเว็บ Responsive ด้วย AI tools (Lovable, Codex, Claude Code)
+  • ฝังแบบฟอร์มรับลูกค้า ชำระเงิน และระบบแจ้งเตือนเข้า LINE Notify อัตโนมัติ
+  • ปรับแต่ง SEO & GEO ให้ติดอันดับบน Google และ AI Search Engines
+
+💡 เหมาะสำหรับเจ้าของธุรกิจ ผู้ประกอบการ นักการตลาด และฟรีแลนซ์ที่ต้องการเพิ่มยอดขายอย่างรวดเร็วครับ!`,
+      suggestedCourseIds: ["live-landing-page", "live-ai-website-lovable"],
+    };
+  }
+
+  // 3. Specific Claude Cowork & Custom Skills query
+  if (q.includes("skill") || q.includes("skills") || q.includes("cowork") || q.includes("custom skill") || q.includes("claude cowork")) {
+    return {
+      reply: `🛠️ **หลักสูตรเจาะลึก Claude Cowork & Custom Skills (ระดับ Advanced):**
+
+🌟 **Claude Cowork & Skills (เรียนสด 1:1 ผ่าน Google Meet)**
+- **ระยะเวลา**: 2 วัน รวม 6 ชม. (แบ่งเรียนวันละ 3 ชม.) | **ราคา**: ฿7,500 (ราคาเต็ม ฿12,000)
+- **เนื้อหาการเรียนรู้**:
+  • เจาะลึกการใช้งาน Claude Projects, Artifacts และ Context Window ขั้นสูง
+  • การเขียนและติดตั้ง Custom Skills (SKILL.md) ให้ Claude รันงานเฉพาะทาง
+  • เชื่อมต่อ Claude กับ External Tools, APIs และฐานข้อมูล
+  • ออกแบบ Autonomous AI Agent ช่วยคัดกรอง สรุปงาน และตอบกลับลูกค้า
+
+💡 เหมาะสำหรับผู้ที่ต้องการสร้าง AI Assistant ส่วนตัวที่ทำงานเฉพาะทางได้แบบอัตโนมัติ 100%!`,
+      suggestedCourseIds: ["live-claude-cowork-skills", "live-claude-workflow"],
+    };
+  }
+
+  // 4. Specific Claude Personal Workflow query
+  if (q.includes("workflow") || q.includes("personal workflow") || q.includes("โฟลว์") || q.includes("เวิร์กโฟลว์") || q.includes("claude workflow")) {
+    return {
+      reply: `🚀 **หลักสูตรออกแบบ Personal Workflow ด้วย Claude (ยอดนิยมอันดับ 1):**
+
+🌟 **Claude Personal Workflow (เรียนสด 1:1 ผ่าน Google Meet)**
+- **รูปแบบ**: เรียนสดตัวต่อตัว 1:1 ถามตอบและแก้โจทย์งานของคุณโดยตรง
+- **ระยะเวลา**: 1 วัน รวม 3 ชม. | **ราคา**: ฿3,900 (ราคาเต็ม ฿5,900)
+- **ไฮไลท์ของหลักสูตร**:
+  • วางระบบ Workflow การทำงานส่วนบุคคลให้ตรงกับเนื้องานจริง
+  • ออกแบบ Prompt Blueprint และ System Instruction ประจำตำแหน่ง
+  • ลดภาระงานซ้ำซ้อน งานเอกสาร รายงาน และการวิเคราะห์ข้อมูล เพิ่มความเร็ว 10x
+  • เทคนิคการใช้งาน Claude ร่วมกับเครื่องมือประจำวัน
+
+💡 กดปุ่ม **"เลือกจองคอร์สนี้"** ด้านล่างเพื่อเลือกรอบวันและเวลาเรียนที่สะดวกได้ทันทีครับ!`,
+      suggestedCourseIds: ["live-claude-workflow", "live-claude-cowork-skills"],
+    };
+  }
+
+  // 5. Specific Marketing query
+  if (q.includes("marketing") || q.includes("การตลาด") || q.includes("คอนเทนต์") || q.includes("ยิงแอด") || q.includes("ยิง ads")) {
+    return {
+      reply: `📈 **หลักสูตร AI สำหรับงานการตลาดและการทำคอนเทนต์:**
+
+🌟 **AI for Marketing: AI Starter Class (เรียนสด 1:1)**
+- **รูปแบบ**: เรียนสด Online 1:1 ผ่าน Google Meet
+- **ระยะเวลา**: 1 วัน รวม 1 ชม. | **ราคา**: ฿1,500 (ราคาเต็ม ฿2,500)
+- **สิ่งที่จะได้เรียนรู้**:
+  • ประยุกต์ใช้ AI คิด Content Plan, เขียนแคปชั่น และร่าง Script วิดีโอ
+  • วิเคราะห์กลุ่มเป้าหมาย ออกแบบคำโฆษณา (Ad Copy) ยิงโฆษณา Facebook & TikTok
+  • ออกแบบภาพและ Artwork กราฟิกด้วย AI tools ได้อย่างรวดเร็ว
+
+💡 หากต้องการต่อยอดสร้าง Landing Page ปิดการขาย สามารถเลือกเรียนต่อคอร์ส Landing Page ได้เช่นกันครับ!`,
+      suggestedCourseIds: ["live-ai-marketing", "live-landing-page", "live-ai-starter"],
+    };
+  }
+
+  // 6. Schedule & Timing query
+  if (q.includes("เวลา") || q.includes("รอบ") || q.includes("ตาราง") || q.includes("กี่โมง") || q.includes("วันธรรมดา") || q.includes("เสาร์") || q.includes("อาทิตย์")) {
+    return {
+      reply: `📅 **ตารางเวลาสำหรับการเรียนสด Online 1:1 (ผ่าน Google Meet):**
+
+• **สำหรับบุคคลทั่วไป / นักเรียนเดี่ยว (Individual Learners):**
+  - **วันจันทร์ - ศุกร์**: รอบค่ำ **19:30 - 22:30 น.** (มีรอบ 1 ชม. และ 3 ชม.)
+  - **วันเสาร์**: **10:00 - 23:00 น.** (เปิดให้เลือกรอบได้ตลอดวันและรอบค่ำ)
+  - **วันอาทิตย์**: **09:00 - 18:00 น.**
+
+• **สำหรับองค์กร / ทีมงาน (Corporate Training):**
+  - **วันจันทร์ - เสาร์**: 09:00 - 18:00 น. (ปิดวันอาทิตย์)
+  - มีบริการจัดอบรมนอกสถานที่ (On-site) และ Online ทั่วประเทศ
+
+💡 **ขั้นตอนการจอง:** คุณสามารถคลิกเลือกคอร์สที่สนใจ จากนั้นระบบจะแสดงปฏิทินพร้อมช่องเวลาว่างจริงให้คุณกดเลือกได้ทันทีครับ!`,
+      suggestedCourseIds: ["live-ai-starter", "live-claude-workflow", "live-ai-webapp"],
+    };
+  }
+
+  // 7. Corporate & Onsite Speaker query
+  if (q.includes("วิทยากร") || q.includes("องค์กร") || q.includes("บรรยาย") || q.includes("นอกสถานที่") || q.includes("corporate") || q.includes("in-house")) {
+    return {
+      reply: `🏢 **บริการวิทยากรบรรยาย และจัดอบรม AI ในองค์กร (Zarntastic AI LEARNING)**
+
+โดย **อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล** (Fastwork Verified Pro AI Specialist):
+- ออกแบบหลักสูตรเฉพาะทางให้ตรงกับธุรกิจของคุณ (Finance, Real Estate, Retail, Tech, Healthcare)
+- เน้นการปฏิบัติจริง (Hands-on Workshop) ให้พนักงานนำเครื่องมือไปเพิ่มผลงานได้ทันที
+- ให้บริการทั้งแบบ Online ผ่าน Meet/Zoom และ On-site นอกสถานที่ทั่วประเทศ
+
+📞 **ติดต่อขอใบเสนอราคา / ออกใบกำกับภาษี:**
+• **LINE Official**: [@zarntastic](https://lin.ee/Sy3xOAP)
+• **โทรศัพท์**: 061-5614269
+• **อีเมล**: zarnzarn10@gmail.com`,
+      suggestedCourseIds: ["live-ai-starter", "live-claude-cowork-skills"],
+    };
+  }
+
+  // 8. VDO Online Status query
+  if (q.includes("vdo") || q.includes("วิดีโอ") || q.includes("online course") || q.includes("คลิป")) {
+    return {
+      reply: `🎬 **เกี่ยวกับหลักสูตรเรียนผ่าน VDO Online:**
+
+ขณะนี้คอร์สเรียนผ่าน VDO Online ทุกแพ็กเกจ (Starter ฿399, Intermediate ฿499, Advance 1 & 2) กำลังอยู่ในสถานะ **Coming Soon (เร็วๆ นี้)** เนื่องจากทางสถาบันกำลังอัปเดตบทเรียนใหม่ล่าสุดประจำปี 2026 ครับ
+
+🌟 **แนะนำคอร์สเรียนสด Online 1:1 ในระหว่างนี้:**
+หากต้องการเริ่มใช้งาน AI ทันที ขอแนะนำ **AI STARTER (1 ชม. ฿1,500)** หรือ **Claude Personal Workflow (3 ชม. ฿3,900)** ซึ่งได้เรียนสดตัวต่อตัวกับ อ.มณีรัตน์ ถามตอบแก้โจทย์งานจริงได้ทันทีครับ!`,
+      suggestedCourseIds: ["live-ai-starter", "live-claude-workflow"],
+    };
+  }
+
+  // 9. Pricing & Promotion query
+  if (q.includes("ราคา") || q.includes("โปรโมชั่น") || q.includes("ค่าเรียน") || q.includes("กี่บาท") || q.includes("promotion")) {
+    return {
+      reply: `💰 **สรุปอัตราค่าเรียนคอร์สเรียนสด Online 1:1 (ราคาโปรโมชั่นพิเศษ):**
+
+1. 💻 **AI STARTER (1 ชม.)**: **฿1,500** (ราคาเต็ม ฿2,500)
+2. 💻 **AI for Marketing (1 ชม.)**: **฿1,500** (ราคาเต็ม ฿2,500)
+3. 💻 **AI for Work: ใช้ AI ในการทำงานคล่อง (3 ชม.)**: **฿3,900** (ราคาเต็ม ฿5,900)
+4. 💻 **Claude Starter (1 ชม.)**: **฿1,500** (ราคาเต็ม ฿2,500)
+5. 💻 **Claude Personal Workflow (3 ชม.)**: **฿3,900** (ราคาเต็ม ฿5,900)
+6. 💻 **AI Webapp Builder with Google AI Studio (3 ชม.)**: **฿3,900** (ราคาเต็ม ฿5,900)
+7. 💻 **Claude Cowork & Skills (6 ชม. / 2 วัน)**: **฿7,500** (ราคาเต็ม ฿12,000)
+8. 💻 **สร้าง Landing Page ด้วย AI (6 ชม. / 2 วัน)**: **฿7,500** (ราคาเต็ม ฿12,000)
+
+💡 ทุกคอร์สเรียนสด 1:1 มีเอกสารประกอบและคลิปบันทึกย้อนหลังให้ทบทวนครับ!`,
+      suggestedCourseIds: ["live-ai-for-work", "live-ai-starter", "live-claude-workflow"],
+    };
+  }
+
+  // 10. Starter / Beginner query
+  if (q.includes("starter") || q.includes("เริ่มต้น") || q.includes("มือใหม่") || q.includes("ไม่เคยใช้") || q.includes("พื้นฐาน") || q.includes("1 ชม")) {
+    return {
+      reply: `🌟 **หลักสูตรแนะนำสำหรับผู้เริ่มต้นใช้งาน AI (เรียนสด Online 1:1):**
+
+💡 **AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”**
+- **รูปแบบ**: เรียนสดตัวต่อตัว 1:1 ผ่าน Google Meet (จับมือทำ)
+- **ระยะเวลา**: 1 วัน รวม 1 ชม. | **ราคา**: ฿1,500 (ราคาเต็ม ฿2,500)
+- **สิ่งที่คุณจะได้เรียนรู้**:
+  • ปูพื้นฐานการใช้งานเครื่องมือ AI ตัวท็อป (ChatGPT, Claude, Gemini, Perplexity)
+  • เทคนิคการเขียน Prompt สั่งงานให้ได้คำตอบที่ถูกต้องแม่นยำ ไม่เพี้ยน
+  • ปรึกษาโจทย์งานจริงของคุณโดยตรงกับ อ.มณีรัตน์ (Fastwork 5.0 ★)
+  • จบแล้วใช้งานเป็นทันที พร้อมนำไปปรับใช้กับชีวิตประจำวันและการทำงาน
+
+กดปุ่ม **"เลือกจองคอร์สนี้"** ด้านล่างเพื่อเลือกรอบวันเวลาที่สะดวกได้เลยครับ!`,
+      suggestedCourseIds: ["live-ai-starter", "live-ai-for-work"],
+    };
+  }
+
+  // Default general overview
+  return {
+    reply: `สวัสดีครับ! สถาบัน **Zarntastic AI LEARNING** (โดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล) ขอแนะนำ **หลักสูตรเรียนสด Online 1:1 ผ่าน Google Meet (จับมือทำ ปรึกษาโจทย์งานจริง)**:
+
+• 💼 **AI for Work: ใช้ AI ในการทำงานคล่อง (3 ชม. ฿3,900)**: ทำงานเอกสาร รายงาน วิเคราะห์ข้อมูลเร็วขึ้น 10 เท่า
+• 🌟 **AI STARTER (1 ชม. ฿1,500)**: ปูพื้นฐาน AI ให้ใช้งานเป็นทันทีแบบจับมือทำ
+• 🚀 **Claude Personal Workflow (3 ชม. ฿3,900)**: ออกแบบ Workflow ส่วนตัว เพิ่มความเร็ว 10 เท่า
+• ⚡ **AI Webapp Builder with Google AI Studio (3 ชม. ฿3,900)**: สร้าง Web App ต่อ API ใช้งานได้จริง
+• 🛠️ **Claude Cowork & Skills (6 ชม. ฿7,500)**: เจาะลึก Claude และสร้าง Skills อัตโนมัติ
+• 🎯 **สร้าง Landing Page ด้วย AI (6 ชม. ฿7,500)**: ออกแบบและเขียนโค้ดหน้าขายสินค้าเพิ่มยอดขาย
+
+💡 คุณสามารถพิมพ์บอกความต้องการ หรือเลือกคำถามด่วนด้านล่างเพื่อรับคำแนะนำเจาะลึกได้ทันทีครับ!`,
+    suggestedCourseIds: ["live-ai-for-work", "live-ai-starter", "live-claude-workflow"],
+  };
+}
+
 app.post("/api/ai/advisor", async (req, res) => {
-  const { userMessage, userGoal, experienceLevel, availableDays } = req.body;
-  const rawQuery = (userMessage || userGoal || "แนะนำคอร์สที่เหมาะกับฉัน").trim();
+  const { messages, userMessage, model = "gemini-3.7-flash", persona = "advisor" } = req.body;
   const ai = getAI();
 
-  if (ai) {
-    try {
-      const prompt = `คุณคือ "AI Course Consultant & Smart Scheduler" ประจำสถาบัน Zarntastic AI LEARNING (ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล - Fastwork Verified Pro AI Specialist)
+  const queryText = userMessage || (Array.isArray(messages) && messages.length > 0 ? messages[messages.length - 1]?.content : "") || "";
 
-รายชื่อหลักสูตรทั้งหมดของสถาบัน (เรียนสด Online 1:1 แบบจับมือทำ):
-1. "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”" (1 วัน 1 ชม. | ฿1,500) - เรียนสดจับมือทำ ปูพื้นฐานเริ่มต้น
-2. "AI for Marketing: AI Starter Class" (1 วัน 1 ชม. | ฿1,500) - เริ่มต้นประยุกต์ใช้ AI กับงานการตลาด
-3. "Claude/Claude Cowork Starter: เริ่มใช้กับงานจริง" (1 วัน 1 ชม. | ฿1,500) - เริ่มต้นใช้ Claude ในการทำงาน
-4. "AI WORK PRODUCTIVITY “ใช้ AI ทำงานน่าเบื่อให้เร็วขึ้น”" (1 วัน 3 ชม. | ฿3,900) - ลดงานซ้ำซ้อน เพิ่มผลลัพธ์ด้วย AI
-5. "AI Webapp Builder with Google Antigravity" (1 วัน 3 ชม. | ฿3,900) - สร้าง Web App ด้วย Google Antigravity
-6. "Claude Cowork, Claude Code: AI Agents & Skills" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - เจาะลึกการใช้ Claude Cowork, Claude Code, AI Agents & Skills
-7. "Chat GPT Work & Codex : AI Agents & Skills" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - เจาะลึกการใช้ Chat GPT Work & Codex, AI Agents & Skills
-8. "AI Website Builder with Lovable/Codex/ClaudeCode" (2 วัน รวม 6 ชม. วันละ 3 ชม. | ฿7,500) - สร้างเว็บไซต์ด้วย AI Tools
-
-เงื่อนไขเวลาเรียน:
-- บุคคลทั่วไป: จันทร์-ศุกร์ (19.30 - 22.30 น.) และ เสาร์-อาทิตย์ (09.00 - 18.00 น.)
-- องค์กร (Corporate): จันทร์-เสาร์ (09.00 - 18.00 น.) ปิดวันอาทิตย์
-
-คำถาม/เป้าหมายของผู้เรียน: "${rawQuery}"
-ระดับพื้นฐาน: ${experienceLevel || "ไม่ระบุ"}
-เวลาที่สะดวก: ${availableDays || "ไม่ระบุ"}
-
-กรุณาตอบแนะนำคอร์สที่เหมาะสมที่สุด 1-2 คอร์ส พร้อมบอกจุดเด่น สรุปราคาและระยะเวลา และแนะนำขั้นตอนการจองคิวในระบบอย่างเป็นกันเองและสุภาพ`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3.7-flash",
-        contents: prompt,
-      });
-
-      if (response.text && response.text.trim()) {
-        return res.json({ reply: response.text.trim() });
-      }
-    } catch (err: any) {
-      console.warn("AI Advisor Gemini API fallback triggered:", err.message);
-    }
-  }
-
-  // Resilient fallback logic when Gemini is offline, key is missing, or rate limited
-  const { generateAdvisorResponse } = await import("./src/utils/aiAdvisorEngine.js").catch(() => 
-    import("./src/utils/aiAdvisorEngine")
-  );
-  const fallbackReply = generateAdvisorResponse(rawQuery);
-  res.json({ reply: fallbackReply });
-});
-
-// 9. LINE Messaging API Suite (LINE Official Account)
-// 9.1 Get LINE Messaging logs
-app.get("/api/line/logs", (req, res) => {
-  res.json({
-    success: true,
-    logs: lineNotificationLogs,
-    settings: {
-      ...lineMessagingSettings,
-      hasEnvToken: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
-      tokenConfigured: Boolean((lineMessagingSettings.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '').trim()),
-    },
-  });
-});
-
-// 9.2 Clear LINE Messaging logs
-app.post("/api/line/logs/clear", (req, res) => {
-  lineNotificationLogs = [];
-  res.json({ success: true, message: "ล้างประวัติการแจ้งเตือน LINE Messaging API เรียบร้อยแล้ว" });
-});
-
-// 9.3 Get current LINE Messaging settings & verify bot
-app.get("/api/line/settings", async (req, res) => {
-  const activeToken = (lineMessagingSettings.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || "").trim();
-  
-  if (activeToken && !lineMessagingSettings.botInfo) {
-    try {
-      const botRes = await fetch("https://api.line.me/v2/bot/info", {
-        headers: { Authorization: `Bearer ${activeToken}` },
-      });
-      if (botRes.ok) {
-        lineMessagingSettings.botInfo = await botRes.json();
-      }
-    } catch (e) {
-      console.warn("Failed to fetch LINE Bot info:", e);
-    }
-  }
-
-  res.json({
-    success: true,
-    settings: {
-      ...lineMessagingSettings,
-      hasEnvToken: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
-      tokenConfigured: Boolean(activeToken),
-    },
-  });
-});
-
-// 9.4 Update LINE Messaging settings
-app.post("/api/line/settings", async (req, res) => {
-  const {
-    enabled,
-    channelAccessToken,
-    channelSecret,
-    adminLineUserId,
-    defaultDeliveryMode,
-    useFlexMessage,
-    notifyOnBookingCreated,
-    notifyOnSlipUploaded,
-    notifyOnPaymentConfirmed,
-    notifyOnStatusChanged,
-    includeMeetingLink,
-  } = req.body;
-
-  if (typeof enabled === 'boolean') lineMessagingSettings.enabled = enabled;
-  if (typeof channelAccessToken === 'string') lineMessagingSettings.channelAccessToken = channelAccessToken.trim();
-  if (typeof channelSecret === 'string') lineMessagingSettings.channelSecret = channelSecret.trim();
-  if (typeof adminLineUserId === 'string') lineMessagingSettings.adminLineUserId = adminLineUserId.trim();
-  if (defaultDeliveryMode && ['auto', 'push', 'broadcast'].includes(defaultDeliveryMode)) {
-    lineMessagingSettings.defaultDeliveryMode = defaultDeliveryMode;
-  }
-  if (typeof useFlexMessage === 'boolean') lineMessagingSettings.useFlexMessage = useFlexMessage;
-  if (typeof notifyOnBookingCreated === 'boolean') lineMessagingSettings.notifyOnBookingCreated = notifyOnBookingCreated;
-  if (typeof notifyOnSlipUploaded === 'boolean') lineMessagingSettings.notifyOnSlipUploaded = notifyOnSlipUploaded;
-  if (typeof notifyOnPaymentConfirmed === 'boolean') lineMessagingSettings.notifyOnPaymentConfirmed = notifyOnPaymentConfirmed;
-  if (typeof notifyOnStatusChanged === 'boolean') lineMessagingSettings.notifyOnStatusChanged = notifyOnStatusChanged;
-  if (typeof includeMeetingLink === 'boolean') lineMessagingSettings.includeMeetingLink = includeMeetingLink;
-
-  // Attempt to refresh bot info if token is provided
-  const activeToken = (lineMessagingSettings.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || "").trim();
-  if (activeToken) {
-    try {
-      const botRes = await fetch("https://api.line.me/v2/bot/info", {
-        headers: { Authorization: `Bearer ${activeToken}` },
-      });
-      if (botRes.ok) {
-        lineMessagingSettings.botInfo = await botRes.json();
-      }
-    } catch (e) {
-      console.warn("Could not verify LINE Bot info:", e);
-    }
-  }
-
-  res.json({
-    success: true,
-    settings: {
-      ...lineMessagingSettings,
-      hasEnvToken: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
-      tokenConfigured: Boolean(activeToken),
-    },
-    message: "บันทึกการตั้งค่า LINE Messaging API สำเร็จ",
-  });
-});
-
-// 9.5 Get LINE Bot info directly
-app.get("/api/line/bot-info", async (req, res) => {
-  const activeToken = (lineMessagingSettings.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || "").trim();
-  if (!activeToken) {
-    return res.status(400).json({ error: "ยังไม่ได้ระบุ Channel Access Token" });
+  // If AI instance is unavailable, deliver instant accurate rule-based response
+  if (!ai) {
+    const fallback = generateCourseAdvisorFallback(queryText, persona);
+    return res.json({
+      reply: fallback.reply,
+      modelUsed: "Zarntastic-Advisor-Engine",
+      suggestedCourseIds: fallback.suggestedCourseIds,
+    });
   }
 
   try {
-    const botRes = await fetch("https://api.line.me/v2/bot/info", {
-      headers: { Authorization: `Bearer ${activeToken}` },
-    });
-    if (!botRes.ok) {
-      const err = await botRes.text();
-      return res.status(botRes.status).json({ error: "LINE API Error: " + err });
+    const validModels = [
+      "gemini-3.7-flash",
+      "gemini-3.5-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-3.1-pro-preview",
+    ];
+    const selectedModel = validModels.includes(model) ? model : "gemini-3.7-flash";
+
+    let roleDescription = "คุณคือ 'AI Course Consultant & Smart Scheduler' ที่ปรึกษาผู้เชี่ยวชาญประจำสถาบัน Zarntastic AI LEARNING";
+    if (persona === "scheduler") {
+      roleDescription = "คุณคือ 'Smart Schedule Assistant' ผู้เชี่ยวชาญการจัดตารางเวลาเรียนและตรวจรอบเวลาว่างของสถาบัน Zarntastic AI LEARNING";
+    } else if (persona === "corporate") {
+      roleDescription = "คุณคือ 'Corporate AI Training Specialist' ที่ปรึกษาการจัดอบรม AI องค์กรและ Upskill ทีมงานของ Zarntastic AI LEARNING";
     }
-    const data = await botRes.json();
-    lineMessagingSettings.botInfo = data;
-    res.json({ success: true, bot: data });
-  } catch (err: any) {
-    res.status(500).json({ error: "ไม่สามารถเชื่อมต่อ LINE API: " + err.message });
-  }
-});
 
-// 9.6 Manually trigger LINE Messaging notification for a booking
-app.post("/api/line/notify", async (req, res) => {
-  const { bookingId, eventType = "payment_confirmed", customMessage, targetUserId } = req.body;
+    const systemInstruction = `${roleDescription}
 
-  const booking = bookings.find((b) => b.id === bookingId);
-  if (!booking) {
-    return res.status(404).json({ error: "ไม่พบข้อมูลการจองนี้" });
-  }
+ฐานข้อมูลหลักสูตรและข้อมูลสถาบัน:
+${COURSE_KNOWLEDGE_BASE}
 
-  try {
-    const log = await dispatchLineNotification({
-      booking,
-      eventType: eventType as any,
-      customMessage,
-      targetUserId,
-    });
+🚨 กฎเหล็กสำคัญที่สุดในการแนะนำคอร์ส (Must Follow):
+1. **ให้แนะนำ 'คอร์สเรียนสด Online 1:1 ผ่าน Google Meet' เสมอเป็นอันดับแรก** (เช่น AI Starter 1 ชม. ฿1,500, Claude Personal Workflow 3 ชม. ฿3,900, AI Webapp Builder 3 ชม. ฿3,900, Claude Cowork & Skills 6 ชม. ฿7,500, สร้าง Landing Page 6 ชม. ฿7,500)
+2. อธิบายจุดเด่นของคอร์สเรียนสดเสมอ เช่น เป็นการเรียนแบบจับมือทำ ปรึกษาโจทย์และปัญหาในงานจริงกับ อ.มณีรัตน์ โดยตรง ถามตอบสดตัวต่อตัว และได้คะแนนรีวิว 5.0 เต็มบน Fastwork
+3. สำหรับคอร์ส VDO Online ให้แจ้งสั้นๆ ว่าเป็นหลักสูตร Coming Soon (เร็วๆ นี้)
+4. ตอบเป็นภาษาไทยที่สุภาพ เป็นมิตร กระชับ น่าเชื่อถือ
+5. หากผู้เรียนถามเรื่องตารางเวลาเรียนสด 1:1:
+   - บุคคลทั่วไป: วันธรรมดา 19:30-22:30 น. (รอบค่ำ), เสาร์ 10:00-23:00 น., อาทิตย์ 09:00-18:00 น.
+   - องค์กร: จันทร์-เสาร์ 09:00-18:00 น.
+   - มีบริการวิทยากรนอกสถานที่ (ติดต่อ LINE: @zarntastic หรือ โทร 061-5614269)
+6. จัดรูปแบบคำตอบด้วย Markdown ให้อ่านง่าย มี bullet และตัวหนา`;
 
-    res.json({
-      success: true,
-      log,
-      message: `ส่งข้อความแจ้งเตือนสถานะ (${eventType}) ผ่าน LINE Messaging API สำเร็จ`,
-    });
-  } catch (err: any) {
-    console.error("Line Messaging API manual trigger error:", err);
-    res.status(500).json({ error: "เกิดข้อผิดพลาดในการส่ง LINE Message: " + err.message });
-  }
-});
+    // Construct cleanly formatted conversation history for multi-turn chat
+    const contentsPayload = formatGeminiContents(messages, userMessage);
 
-// 9.7 Send Test LINE Message
-app.post("/api/line/test", async (req, res) => {
-  const { testToken, testTargetUserId, message, deliveryMode } = req.body;
-
-  const tokenToUse = (testToken || lineMessagingSettings.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '').trim();
-  const targetUserToUse = (testTargetUserId || lineMessagingSettings.adminLineUserId || process.env.LINE_ADMIN_USER_ID || '').trim();
-  
-  const sampleBooking: Booking = bookings[0] || {
-    id: "AI-TEST-2026",
-    courseId: "live-ai-starter",
-    courseTitle: "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”",
-    totalHours: 1,
-    totalDays: 1,
-    totalPrice: 1500,
-    customer: {
-      name: "ผู้เรียนทดสอบระบบ",
-      email: "test@ai-academy.com",
-      phone: "089-999-8888",
-      lineId: "test_student",
-    },
-    schedule: [
-      {
-        date: new Date().toISOString().slice(0, 10),
-        startTime: "19:30",
-        endTime: "20:30",
-        dayNumber: 1,
+    const response = await ai.models.generateContent({
+      model: selectedModel,
+      contents: contentsPayload,
+      config: {
+        systemInstruction,
+        temperature: 0.7,
       },
-    ],
-    payment: {
-      method: "promptpay",
-      amount: 1500,
-      status: "confirmed",
-      reviewNotes: "ทดสอบการเชื่อมต่อ LINE Messaging API (Flex Message)",
-    },
-    meetingLink: "https://meet.google.com/zar-ntas-tic",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  try {
-    const log = await dispatchLineNotification({
-      booking: sampleBooking,
-      eventType: "test",
-      customMessage: message || "ทดสอบการส่งการแจ้งเตือนรูปแบบ Flex Message ผ่าน LINE Messaging API",
-      targetUserId: targetUserToUse || undefined,
     });
 
-    res.json({
-      success: true,
-      log,
-      tokenUsed: Boolean(tokenToUse),
-      status: log.status,
-      deliveryMode: log.deliveryMode,
-      message: log.status === 'sent' 
-        ? `ส่งข้อความผ่าน LINE Messaging API สำเร็จ (${log.deliveryMode === 'push' ? 'Push Message ไปยัง ' + (targetUserToUse || 'User') : 'Broadcast Message'})!`
-        : log.status === 'simulated'
-        ? "บันทึกในระบบจำลองการส่ง LINE Messaging API เรียบร้อย (ใส่ Channel Access Token เพื่อส่งเข้า LINE OA จริง)"
-        : "ส่งข้อความไม่สำเร็จ กรุณาตรวจสอบ Channel Access Token หรือ Target User ID",
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: "Test error: " + err.message });
-  }
-});
+    const replyText = response.text || "";
 
-// 9.8 LINE Official Account Webhook Endpoint
-app.post("/api/line/webhook", async (req, res) => {
-  const events = req.body.events || [];
-  console.log(`[LINE Webhook] Received ${events.length} event(s)`);
+    if (!replyText.trim()) {
+      const fallback = generateCourseAdvisorFallback(queryText, persona);
+      return res.json({
+        reply: fallback.reply,
+        modelUsed: selectedModel,
+        suggestedCourseIds: fallback.suggestedCourseIds,
+      });
+    }
 
-  const activeToken = (lineMessagingSettings.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || "").trim();
+    // Detect matched course IDs for quick UI interaction buttons
+    const matchedIds: string[] = [];
+    const idList = [
+      "vdo-starter",
+      "vdo-intermediate",
+      "vdo-advance-1",
+      "vdo-advance-2",
+      "vdo-ai-starter",
+      "vdo-claude-chatgpt",
+      "vdo-claude-codex",
+      "live-ai-starter",
+      "live-ai-marketing",
+      "live-claude-starter",
+      "live-claude-workflow",
+      "live-ai-webapp",
+      "live-claude-cowork-skills",
+      "live-ai-website-lovable",
+      "live-landing-page",
+    ];
 
-  for (const event of events) {
-    if (event.type === "message" && event.message?.type === "text" && event.replyToken && activeToken) {
-      const userText = (event.message.text || "").trim();
-      const replyToken = event.replyToken;
-
-      let replyMessage: any = {
-        type: "text",
-        text: `สวัสดีครับ! ยินดีต้อนรับสู่สถาบันสอน AI คุณสามารถตรวจสอบคิวเรียนหรือจองคอร์ส AI ได้ผ่านระบบเว็บไซต์ของเราได้ตลอด 24 ชม. ครับ 😊`,
-      };
-
-      // If user is inquiring about booking code (e.g., AI-2026...)
-      const matchBooking = userText.match(/AI-\d+-\d+/i);
-      if (matchBooking) {
-        const found = bookings.find(b => b.id.toLowerCase() === matchBooking[0].toLowerCase());
-        if (found) {
-          replyMessage = {
-            type: "flex",
-            altText: `ผลการค้นหาการจอง: ${found.id}`,
-            contents: createBookingFlexBubble({
-              booking: found,
-              eventType: found.payment.status === 'confirmed' ? 'payment_confirmed' : 'status_changed',
-              customMessage: "ค้นหาข้อมูลการจองผ่าน LINE Official Account สำเร็จ",
-            }),
-          };
-        }
-      }
-
-      try {
-        await fetch("https://api.line.me/v2/bot/message/reply", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${activeToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            replyToken,
-            messages: [replyMessage],
-          }),
-        });
-      } catch (err) {
-        console.warn("LINE webhook reply error:", err);
+    for (const cid of idList) {
+      if (replyText.toLowerCase().includes(cid.toLowerCase())) {
+        matchedIds.push(cid);
       }
     }
-  }
 
-  res.status(200).send("OK");
+    // If no course IDs detected in reply, match from query as well
+    if (matchedIds.length === 0) {
+      const fallback = generateCourseAdvisorFallback(queryText, persona);
+      matchedIds.push(...fallback.suggestedCourseIds);
+    }
+
+    res.json({
+      reply: replyText,
+      modelUsed: selectedModel,
+      suggestedCourseIds: matchedIds,
+    });
+  } catch (err: any) {
+    console.error("AI Advisor Error:", err);
+    // On any Gemini API or network error, safely return the high-quality fallback instead of 500 failure
+    const fallback = generateCourseAdvisorFallback(queryText, persona);
+    res.json({
+      reply: fallback.reply,
+      modelUsed: "Zarntastic-Advisor-Engine",
+      suggestedCourseIds: fallback.suggestedCourseIds,
+    });
+  }
 });
 
-// 10. Simulated Webhook / General Test
+// 9. Simulated Webhook / Line Notification Test
 app.post("/api/notifications/test-webhook", (req, res) => {
   const { channel, recipient, message } = req.body;
   res.json({
     success: true,
     sentAt: new Date().toISOString(),
-    channel: channel || "LINE Messaging API",
+    channel: channel || "LINE Notify",
     recipient: recipient || "Admin Channel",
     previewMessage: `[🔔 แจ้งเตือนคิวนัดหมาย AI Course] ${message || "มีการจองคอร์สใหม่ในระบบ"}`,
   });
 });
-
 
 // Vite Middleware Integration
 async function startServer() {

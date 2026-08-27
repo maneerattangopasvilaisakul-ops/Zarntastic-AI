@@ -22,14 +22,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem('app_user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {}
+        const parsed = JSON.parse(storedUser);
+        // Do not auto-remember or restore Admin session (Must re-login freshly every time)
+        if (parsed?.role !== 'admin') {
+          setUser(parsed);
+        } else {
+          localStorage.removeItem('app_user');
+          setUser(null);
+        }
+      } catch (e) {
+        localStorage.removeItem('app_user');
+      }
     }
   }, []);
 
   const login = (newUser: UserProfile) => {
     setUser(newUser);
-    localStorage.setItem('app_user', JSON.stringify(newUser));
+    // If Admin role, do NOT persist to localStorage so credentials are required freshly next time
+    if (newUser.role !== 'admin') {
+      localStorage.setItem('app_user', JSON.stringify(newUser));
+    } else {
+      localStorage.removeItem('app_user');
+    }
   };
 
   const logout = () => {

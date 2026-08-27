@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Booking } from '../types';
+import { COURSES } from '../data/courses';
 import { formatThaiDate, formatCurrency } from '../utils/scheduleUtils';
 import { 
   CheckCircle2, 
@@ -13,7 +14,9 @@ import {
   MessageSquare, 
   Clock, 
   Share2,
-  FileCheck
+  FileCheck,
+  PlayCircle,
+  FolderOpen
 } from 'lucide-react';
 
 interface BookingSuccessModalProps {
@@ -27,6 +30,8 @@ export function BookingSuccessModal({
   onClose,
   onViewAdmin,
 }: BookingSuccessModalProps) {
+  const isVdoCourse = (booking.courseId && booking.courseId.startsWith('vdo-')) || (booking.schedule && booking.schedule.length === 0);
+  const courseData = COURSES.find(c => c.id === booking.courseId);
   
   useEffect(() => {
     // Fire celebratory confetti
@@ -94,10 +99,12 @@ END:VCALENDAR`;
             <CheckCircle2 className="w-10 h-10 text-white" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            จองคอร์สเรียนสำเร็จแล้ว!
+            {isVdoCourse ? 'สมัครเรียนคอร์ส VDO สำเร็จแล้ว!' : 'จองคอร์สเรียนสำเร็จแล้ว!'}
           </h2>
           <p className="text-emerald-100 text-xs sm:text-sm mt-1 max-w-md mx-auto">
-            ระบบได้บันทึกคิวและส่งข้อมูลยืนยันไปยังอีเมลและ LINE ของคุณเรียบร้อย
+            {isVdoCourse 
+              ? 'ระบบได้บันทึกการสมัครและพร้อมส่งลิงก์เข้าเรียน Google Drive ให้คุณทันที'
+              : 'ระบบได้บันทึกคิวและส่งข้อมูลยืนยันไปยังอีเมลและ LINE ของคุณเรียบร้อย'}
           </p>
 
           <div className="mt-4 inline-flex items-center gap-2 bg-slate-900/30 px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-mono">
@@ -115,7 +122,7 @@ END:VCALENDAR`;
               <Sparkles className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div className="text-xs text-emerald-900">
                 <div className="font-bold text-sm text-emerald-950 flex items-center gap-2">
-                  <span>สถานะ: {booking.payment.status === 'confirmed' ? 'อนุมัติคิวทันที (AI Verified)' : 'กำลังรอแอดมินยืนยัน'}</span>
+                  <span>สถานะ: {booking.payment.status === 'confirmed' ? 'อนุมัติเรียบร้อย (AI Verified)' : 'กำลังรอแอดมินยืนยัน'}</span>
                   <span className="px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-800 text-[10px] font-bold">
                     ความแม่นยำ {(booking.payment.aiVerification.confidence ? booking.payment.aiVerification.confidence * 100 : 98).toFixed(0)}%
                   </span>
@@ -127,75 +134,131 @@ END:VCALENDAR`;
             </div>
           )}
 
-          {/* Schedule Summary Box */}
-          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-cyan-600" />
-              <span>กำหนดการเรียน: {booking.courseTitle}</span>
-            </h3>
-
-            <div className="space-y-2 text-xs">
-              {booking.schedule.map((s) => (
-                <div key={s.dayNumber} className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
-                  <div>
-                    <span className="font-bold text-cyan-800 block text-xs">วันที่ {s.dayNumber}</span>
-                    <span className="text-slate-900 font-semibold text-sm">{formatThaiDate(s.date)}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-slate-500 block text-[10px]">เวลาเรียน</span>
-                    <span className="font-bold text-slate-800 text-sm">{s.startTime} - {s.endTime} น.</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Meeting Link */}
-            <div className="bg-cyan-50/80 p-3.5 rounded-xl border border-cyan-200 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center shrink-0">
-                  <Video className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-cyan-700 font-semibold uppercase">ลิงก์ห้องเรียนออนไลน์ (Google Meet)</div>
-                  <div className="text-xs font-mono font-bold text-cyan-950 truncate max-w-[240px] sm:max-w-xs">
-                    {booking.meetingLink}
-                  </div>
-                </div>
+          {isVdoCourse ? (
+            /* VDO Course Box */
+            <div className="bg-indigo-50/70 rounded-2xl p-5 border border-indigo-200 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <PlayCircle className="w-5 h-5 text-indigo-600" />
+                  <span>คอร์สเรียน: {booking.courseTitle}</span>
+                </h3>
+                <span className="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-bold">
+                  เรียนเวลาอิสระ
+                </span>
               </div>
 
+              <div className="bg-white p-4 rounded-xl border border-indigo-100 text-xs space-y-2">
+                <div className="font-bold text-indigo-950 flex items-center gap-1.5">
+                  <FolderOpen className="w-4 h-4 text-indigo-600" />
+                  <span>ช่องทางการรับชมบทเรียน (Google Drive VDO)</span>
+                </div>
+                <p className="text-slate-600">
+                  คุณสามารถเข้าดูบทเรียนทั้งหมดได้ทันทีผ่านไอคอนกระดิ่ง <strong>การแจ้งเตือน</strong> หรือคลิกลิงก์ด้านล่างนี้:
+                </p>
+
+                {courseData?.vdoLinks && courseData.vdoLinks.length > 0 ? (
+                  <div className="space-y-1.5 pt-2">
+                    {courseData.vdoLinks.map((v, idx) => (
+                      <a
+                        key={idx}
+                        href={v.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-indigo-50 rounded-lg border border-slate-200 hover:border-indigo-300 transition-colors group"
+                      >
+                        <span className="font-semibold text-slate-800 group-hover:text-indigo-700">{v.title}</span>
+                        <span className="text-[10px] text-indigo-600 font-bold flex items-center gap-1">
+                          เปิดดู VDO <ExternalLink className="w-3 h-3" />
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <a
+                    href={booking.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-500 transition-colors"
+                  >
+                    <span>เปิดโฟลเดอร์ Google Drive คอร์สเรียน</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Live Course Schedule Summary Box */
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-cyan-600" />
+                <span>กำหนดการเรียน: {booking.courseTitle}</span>
+              </h3>
+
+              <div className="space-y-2 text-xs">
+                {booking.schedule.map((s) => (
+                  <div key={s.dayNumber} className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-cyan-800 block text-xs">วันที่ {s.dayNumber}</span>
+                      <span className="text-slate-900 font-semibold text-sm">{formatThaiDate(s.date)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-500 block text-[10px]">เวลาเรียน</span>
+                      <span className="font-bold text-slate-800 text-sm">{s.startTime} - {s.endTime} น.</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Meeting Link */}
+              <div className="bg-cyan-50/80 p-3.5 rounded-xl border border-cyan-200 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center shrink-0">
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-cyan-700 font-semibold uppercase">ลิงก์ห้องเรียนออนไลน์ (Google Meet)</div>
+                    <div className="text-xs font-mono font-bold text-cyan-950 truncate max-w-[240px] sm:max-w-xs">
+                      {booking.meetingLink}
+                    </div>
+                  </div>
+                </div>
+
+                <a
+                  href={booking.meetingLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                >
+                  <span>เข้าห้องเรียน</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+            </div>
+          )}
+
+          {/* Export to Calendar actions (only for Live courses) */}
+          {!isVdoCourse && (
+            <div className="flex flex-wrap gap-2">
               <a
-                href={booking.meetingLink}
+                href={getGoogleCalendarUrl()}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
               >
-                <span>เข้าห้องเรียน</span>
-                <ExternalLink className="w-3 h-3" />
+                <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                <span>เพิ่มเข้า Google Calendar</span>
               </a>
+              
+              <button
+                onClick={handleDownloadICS}
+                className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-600" />
+                <span>ดาวน์โหลดไฟล์ .ICS</span>
+              </button>
             </div>
-
-          </div>
-
-          {/* Export to Calendar actions */}
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={getGoogleCalendarUrl()}
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-            >
-              <Calendar className="w-3.5 h-3.5 text-blue-600" />
-              <span>เพิ่มเข้า Google Calendar</span>
-            </a>
-            
-            <button
-              onClick={handleDownloadICS}
-              className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-slate-600" />
-              <span>ดาวน์โหลดไฟล์ .ICS</span>
-            </button>
-          </div>
+          )}
 
           {/* Modal Footer */}
           <div className="border-t border-slate-200 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">

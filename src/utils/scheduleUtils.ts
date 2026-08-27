@@ -49,7 +49,13 @@ export function getOperatingHours(dateStr: string, userCategory: 'general' | 'co
     return '09:00 - 18:00 น. (รอบองค์กร จันทร์-เสาร์)';
   }
 
-  return (day === 0 || day === 6) ? '09:00 - 18:00 น. (เสาร์-อาทิตย์)' : '19:30 - 22:30 น. (จันทร์-ศุกร์ รอบค่ำ)';
+  if (day === 6) {
+    return '10:00 - 23:00 น. (วันเสาร์)';
+  }
+  if (day === 0) {
+    return '09:00 - 18:00 น. (วันอาทิตย์)';
+  }
+  return '19:30 - 22:30 น. (จันทร์-ศุกร์ รอบค่ำ)';
 }
 
 export function formatThaiDate(dateStr: string, includeYear = true): string {
@@ -100,8 +106,8 @@ export function getValidNextDates(count = 21): Array<{ dateStr: string; isWeeken
 
 export function generateSlotsForDate(
   dateStr: string,
-  durationHours: number,
-  existingBookings: Booking[],
+  durationHours: number = 3,
+  existingBookings: Booking[] = [],
   excludeBookingId?: string,
   userCategory: 'general' | 'corporate' = 'general'
 ): Array<{
@@ -231,9 +237,9 @@ export function generateSlotsForDate(
       });
     }
   } else {
-    // Weekend: 09:00 - 18:00 (540 to 1080 min)
-    const startHour = 9;
-    const endHour = 18;
+    // Weekend: Saturday 10:00 - 23:00, Sunday 09:00 - 18:00
+    const startHour = day === 6 ? 10 : 9;
+    const endHour = day === 6 ? 23 : 18; // Saturday up to 23:00, Sunday up to 18:00
     const step = durationHours >= 3 ? (durationHours === 4 ? 4 : 2) : 1;
 
     for (let h = startHour; h <= endHour - durationHours; h += step) {

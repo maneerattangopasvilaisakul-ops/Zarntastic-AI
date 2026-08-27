@@ -98,9 +98,9 @@ export function PaymentModal({
       // Details
       ctx.fillStyle = '#64748b';
       ctx.font = '12px sans-serif';
-      ctx.fillText('จาก: ' + booking.customer.name, 20, 210);
-      ctx.fillText('ถึง: AI ACADEMY (THAILAND) CO., LTD.', 20, 240);
-      ctx.fillText('พร้อมเพย์: 089-123-4567', 20, 270);
+      ctx.fillText('จาก: ' + (booking.customer?.name || 'ผู้เรียน AI Course'), 20, 210);
+      ctx.fillText('ถึง: มณีรัตน์ ตั้งโอภาสวิไลสกุล', 20, 240);
+      ctx.fillText('พร้อมเพย์: 061-561-4269 (KBANK: 585-2-29915-2)', 20, 270);
       ctx.fillText(`วันเวลา: 2026-08-25 08:30 น.`, 20, 300);
       
       const sampleRef = `KBANK${Date.now().toString().slice(-8)}`;
