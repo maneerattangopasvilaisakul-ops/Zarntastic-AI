@@ -167,13 +167,20 @@ export function AdminDashboard({
 
   // Export CSV
   const handleExportCSV = () => {
+  const sanitizeCSV = (val: string) => {
+    if (val && /^[=+-@]/.test(val)) {
+      return "'" + val;
+    }
+    return val;
+  };
+
     const headers = ['Booking ID', 'Customer Name', 'Phone', 'Email', 'LINE ID', 'Course', 'Price', 'Status', 'Dates & Times', 'Created At'];
     const rows = bookings.map((b) => [
       b.id,
-      `"${b.customer.name}"`,
-      `"${b.customer.phone}"`,
-      `"${b.customer.email}"`,
-      `"${b.customer.lineId}"`,
+      `"${sanitizeCSV(b.customer.name)}"`,
+      `"${sanitizeCSV(b.customer.phone)}"`,
+      `"${sanitizeCSV(b.customer.email)}"`,
+      `"${sanitizeCSV(b.customer.lineId || "")}"`,
       `"${b.courseTitle}"`,
       b.totalPrice,
       b.payment.status,

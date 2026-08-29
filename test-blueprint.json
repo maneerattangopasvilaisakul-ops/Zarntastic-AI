@@ -1,0 +1,12 @@
+{
+  "collections": [
+    {
+      "name": "bookings",
+      "access": "public_read_write",
+      "schema": {
+        "id": "string",
+        "courseId": "string"
+      }
+    }
+  ]
+}

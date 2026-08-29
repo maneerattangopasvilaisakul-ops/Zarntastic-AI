@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Lock, Shield, User, ArrowRight, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
+
+
 interface AdminLoginFormProps {
   onSuccess: () => void;
 }
@@ -13,19 +15,23 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const doAdminLogin = (emailVal: string, passVal: string) => {
+  const doAdminLogin = async (emailVal: string, passVal: string) => {
     const cleanEmail = emailVal.trim().toLowerCase();
     const cleanPass = passVal.trim();
-
     if (!cleanEmail || !cleanPass) {
       setError('กรุณากรอกอีเมลและรหัสผ่านผู้ดูแลระบบ');
       return;
     }
-
-    if (
-      (cleanEmail === 'zarnzarn10@gmail.com' || cleanEmail === 'admin@zarntastic.com') && 
-      (cleanPass === 'Enter10!' || cleanPass === 'admin123')
-    ) {
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password: cleanPass })
+      });
+      if (!res.ok) {
+        throw new Error('Invalid credentials');
+      }
+      const data = await res.json();
       setError('');
       login({
         id: 'admin_001',
@@ -33,10 +39,11 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
         email: cleanEmail,
         phone: '061-5614269',
         lineId: '@zarntastic',
-        role: 'admin'
-      });
+        role: 'admin',
+        token: data.token
+      } as any);
       onSuccess();
-    } else {
+    } catch (err: any) {
       setError('อีเมลหรือรหัสผ่านผู้ดูแลระบบไม่ถูกต้อง');
     }
   };

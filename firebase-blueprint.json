@@ -1,0 +1,42 @@
+{
+  "collections": [
+    {
+      "name": "bookings",
+      "access": "public_read_write",
+      "schema": {
+        "id": "string",
+        "courseId": "string",
+        "courseTitle": "string",
+        "totalHours": "number",
+        "totalDays": "number",
+        "totalPrice": "number",
+        "customer": {
+          "type": "map",
+          "properties": {
+            "name": "string",
+            "email": "string",
+            "phone": "string",
+            "lineId": "string"
+          }
+        },
+        "payment": {
+          "type": "map",
+          "properties": {
+            "status": "string",
+            "amount": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "notifications",
+      "access": "public_read_write",
+      "schema": {
+        "title": "string",
+        "message": "string",
+        "type": "string",
+        "timestamp": "string"
+      }
+    }
+  ]
+}

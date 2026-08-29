@@ -128,9 +128,13 @@ export default function App() {
   // Fetch Bookings & Notifications from Backend API
   const fetchBookings = useCallback(async () => {
     try {
+      const headers: Record<string, string> = {};
+      if (user?.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+      }
       const [bookingsRes, notifsRes] = await Promise.all([
-        fetch('/api/bookings'),
-        fetch('/api/notifications'),
+        fetch('/api/bookings', { headers }),
+        fetch('/api/notifications', { headers }),
       ]);
       if (bookingsRes.ok) {
         const bookingsData: Booking[] = await bookingsRes.json();
@@ -234,7 +238,10 @@ export default function App() {
     try {
       const res = await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
         body: JSON.stringify({ status, reviewNotes }),
       });
       if (res.ok) {
