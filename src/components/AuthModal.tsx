@@ -106,7 +106,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
     }, 600);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
@@ -126,21 +126,27 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
     // 1. Admin Master Check (always validates password strictly)
     const isAdminEmail = cleanEmail === 'zarnzarn10@gmail.com' || cleanEmail === 'admin@zarntastic.com';
     if (isAdminEmail || mode === 'admin') {
-      if (
-        (cleanEmail === 'zarnzarn10@gmail.com' || cleanEmail === 'admin@zarntastic.com') && 
-        (cleanPassword === 'Enter10!' || cleanPassword === 'admin123')
-      ) {
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
+        });
+        if (!res.ok) throw new Error('Invalid credentials');
+        const data = await res.json();
+        
         login({
           id: 'admin_001',
           name: 'อาจารย์ซาน (Administrator)',
           email: cleanEmail,
           phone: '061-5614269',
           lineId: '@zarntastic',
-          role: 'admin'
+          role: 'admin',
+          token: data.token
         });
         onClose();
         return;
-      } else {
+      } catch (err) {
         setError('รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง กรุณากรอกรหัสผ่านใหม่อีกครั้ง');
         return;
       }
