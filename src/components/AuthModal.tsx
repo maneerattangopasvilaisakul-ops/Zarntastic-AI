@@ -64,7 +64,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
           },
           {
             id: 'admin_001',
-            name: 'อาจารย์ซาร์น (Admin)',
+            name: 'อาจารย์ซาน (Admin)',
             email: 'zarnzarn10@gmail.com',
             password: 'Enter10!',
             phone: '061-5614269',
@@ -132,7 +132,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
       ) {
         login({
           id: 'admin_001',
-          name: 'อาจารย์ซาร์น (Administrator)',
+          name: 'อาจารย์ซาน (Administrator)',
           email: cleanEmail,
           phone: '061-5614269',
           lineId: '@zarntastic',
@@ -291,7 +291,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
                   : 'กู้คืนรหัสผ่าน (Forgot Password)'}
               </h2>
               <p className="text-[11px] text-slate-400">
-                {mode === 'admin' ? 'สำหรับอาจารย์ซาร์น จัดการคิวและสลิป' : 'ZARNTASTIC AI LEARNING Portal'}
+                {mode === 'admin' ? 'สำหรับอาจารย์ซาน จัดการคิวและสลิป' : 'ZARNTASTIC AI LEARNING Portal'}
               </p>
             </div>
           </div>
@@ -438,7 +438,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
                     หากต้องการเข้าเรียนหรือใช้งานทันที สามารถแจ้งอาจารย์ผ่าน LINE Official ได้ตลอดเวลา
                   </p>
                   <a
-                    href="https://lin.ee/Sy3xOAP"
+                    href="https://lin.ee/NE2vFcZ"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#06C755] hover:bg-[#05b34c] text-white rounded-xl font-bold text-[11px] transition-colors"

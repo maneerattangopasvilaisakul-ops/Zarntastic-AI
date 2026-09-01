@@ -19,7 +19,9 @@ import {
   PlayCircle, 
   Video, 
   Clock,
-  ArrowRight
+  ArrowRight,
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { COURSES } from '../data/courses';
@@ -223,6 +225,17 @@ export function AICourseAdvisor({
 
             {/* Top Right Controls */}
             <div className="flex items-center gap-1.5">
+              <a
+                href="https://lin.ee/NE2vFcZ"
+                target="_blank"
+                rel="noreferrer"
+                className="px-2.5 py-1.5 bg-[#06C755] hover:bg-[#05b34c] text-white rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm"
+                title="ติดต่อ Admin ทาง LINE @zarntastic"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ติดต่อ Admin</span>
+              </a>
+
               <button
                 id="btn-reset-chat"
                 onClick={handleResetChat}
@@ -423,14 +436,28 @@ export function AICourseAdvisor({
                     </div>
                   )}
 
-                  {/* Timestamp & Info */}
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-1 px-1">
-                    <span>{m.timestamp}</span>
-                    {!isUser && m.modelUsed && (
-                      <>
-                        <span>•</span>
-                        <span className="text-purple-600 font-medium">{m.modelUsed}</span>
-                      </>
+                  {/* Assistant Footer Actions & Timestamp */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400 mt-1.5 px-1">
+                    <div className="flex items-center gap-1.5">
+                      <span>{m.timestamp}</span>
+                      {!isUser && m.modelUsed && (
+                        <>
+                          <span>•</span>
+                          <span className="text-purple-600 font-medium">{m.modelUsed}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {!isUser && (
+                      <a
+                        href="https://lin.ee/NE2vFcZ"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#06C755] hover:text-[#05b34c] bg-[#06C755]/10 hover:bg-[#06C755]/20 px-2 py-0.5 rounded-md transition-colors"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        <span>ติดต่อ Admin ทาง LINE</span>
+                      </a>
                     )}
                   </div>
 

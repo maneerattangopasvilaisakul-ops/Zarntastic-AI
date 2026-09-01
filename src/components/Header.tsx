@@ -169,7 +169,7 @@ export function Header({
           {/* Desktop Contact Badges (>= xl) */}
           <div className="hidden xl:flex items-center gap-2">
             <a
-              href="https://lin.ee/Sy3xOAP"
+              href="https://lin.ee/NE2vFcZ"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800 text-emerald-400 text-xs font-semibold hover:bg-emerald-900/60 transition-colors"
@@ -399,7 +399,7 @@ export function Header({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <a
-                href="https://lin.ee/Sy3xOAP"
+                href="https://lin.ee/NE2vFcZ"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-emerald-950/70 border border-emerald-800 text-emerald-400 font-semibold min-h-[40px]"

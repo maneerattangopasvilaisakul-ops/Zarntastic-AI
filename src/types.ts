@@ -164,4 +164,5 @@ export interface UserProfile {
   phone: string;
   lineId: string;
   role: 'student' | 'admin';
+  token?: string;
 }

@@ -346,15 +346,15 @@ export function PaymentModal({
                     </>
                   )}
                 </button>
-                <div className="mt-4 text-center">
+                <div className="mt-4 flex flex-col items-center gap-2 text-center">
                   <a 
-                    href="https://lin.ee/Sy3xOAP" 
+                    href="https://lin.ee/NE2vFcZ" 
                     target="_blank" 
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-green-600 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#06C755]/10 hover:bg-[#06C755]/20 text-[#06C755] border border-[#06C755]/30 rounded-xl text-xs font-bold transition-colors"
                   >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    <span>มีปัญหาการชำระเงิน? ติดต่อ Admin</span>
+                    <MessageCircle className="w-4 h-4" />
+                    <span>แจ้งชำระเงินหรือส่งสลิปผ่าน LINE: @zarntastic</span>
                   </a>
                 </div>
               </div>

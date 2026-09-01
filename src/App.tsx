@@ -34,7 +34,7 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
   
-  // Auto-fill customer info if logged in & reset admin authentication if not admin
+  // Auto-fill customer info if logged in & set admin authentication
   useEffect(() => {
     if (user) {
       setCustomerInfo(prev => ({
@@ -44,7 +44,9 @@ export default function App() {
         phone: user.phone || prev.phone,
         lineId: user.lineId || prev.lineId,
       }));
-      if (user.role !== 'admin') {
+      if (user.role === 'admin') {
+        setIsAdminAuthenticated(true);
+      } else {
         setIsAdminAuthenticated(false);
       }
     } else {
@@ -129,8 +131,9 @@ export default function App() {
   const fetchBookings = useCallback(async () => {
     try {
       const headers: Record<string, string> = {};
-      if (user?.token) {
-        headers['Authorization'] = `Bearer ${user.token}`;
+      const authToken = user?.token;
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
       }
       const [bookingsRes, notifsRes] = await Promise.all([
         fetch('/api/bookings', { headers }),
@@ -156,7 +159,7 @@ export default function App() {
     } finally {
       setIsLoadingBookings(false);
     }
-  }, [isAdmin]);
+  }, [user, isAdmin]);
 
   useEffect(() => {
     fetchBookings();
@@ -236,17 +239,41 @@ export default function App() {
   // Admin Update Status
   const handleAdminUpdateStatus = async (bookingId: string, status: BookingStatus, reviewNotes?: string) => {
     try {
+      const token = user?.token;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`
-        },
+        headers,
         body: JSON.stringify({ status, reviewNotes }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         triggerToast('อัปเดตสถานะสำเร็จ', `เปลี่ยนสถานะคิวเป็น ${status.toUpperCase()}`, 'success');
+        // Instantly update local state
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.id === bookingId
+              ? {
+                  ...b,
+                  payment: {
+                    ...b.payment,
+                    status,
+                    reviewedAt: new Date().toISOString(),
+                    reviewNotes: reviewNotes || b.payment.reviewNotes,
+                  },
+                }
+              : b
+          )
+        );
         fetchBookings();
+      } else {
+        triggerToast('ไม่สามารถอัปเดตสถานะได้', data.error || 'กรุณาเข้าสู่ระบบ Admin ใหม่อีกครั้ง', 'alert');
       }
     } catch (e) {
       triggerToast('เกิดข้อผิดพลาด', 'ไม่สามารถอัปเดตสถานะได้', 'alert');

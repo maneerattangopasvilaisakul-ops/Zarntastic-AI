@@ -21,7 +21,7 @@ export const ACADEMY_PAYMENT_INFO: PromptPayDetails = {
   bankName: 'ธนาคารกสิกรไทย (KBANK)',
   bankBranch: 'สาขาโลตัส ศรีนครินทร์',
   accountNumber: '585-2-29915-2',
-  contactLine: 'https://lin.ee/Sy3xOAP',
+  contactLine: 'https://lin.ee/NE2vFcZ',
   contactEmail: 'zarnzarn10@gmail.com',
   contactPhone: '061-5614269',
 };

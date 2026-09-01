@@ -607,6 +607,8 @@ app.post("/api/bookings/:id/status", requireAdmin, async (req, res) => {
     bookingId: booking.id,
   });
 
+  await saveBooking(booking);
+
   res.json({ success: true, booking });
 });
 
@@ -781,7 +783,7 @@ const COURSE_KNOWLEDGE_BASE = `
 ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล (Zarn / Zarntastic)
 - Fastwork Verified Pro AI Specialist (เรตติ้ง 5.0 เต็ม 5 ดาว, รีวิว 128+ รายการ, ผู้เรียน 200+ คน)
 - สโลแกน: "Turning Ideas Into Visual Experiences"
-- ติดต่อ: LINE Official: @zarntastic (https://lin.ee/Sy3xOAP), โทร: 061-5614269, Email: zarnzarn10@gmail.com
+- ติดต่อ: LINE Official: @zarntastic (https://lin.ee/NE2vFcZ), โทร: 061-5614269, Email: zarnzarn10@gmail.com
 - การชำระเงิน: ธนาคารกสิกรไทย (KBANK) 585-2-29915-2 หรือ พร้อมเพย์ 061-561-4269
 
 ============================================================
@@ -1099,7 +1101,7 @@ function generateCourseAdvisorFallback(query: string, persona: string): { reply:
 - ให้บริการทั้งแบบ Online ผ่าน Meet/Zoom และ On-site นอกสถานที่ทั่วประเทศ
 
 📞 **ติดต่อขอใบเสนอราคา / ออกใบกำกับภาษี:**
-• **LINE Official**: [@zarntastic](https://lin.ee/Sy3xOAP)
+• **LINE Official**: [@zarntastic](https://lin.ee/NE2vFcZ)
 • **โทรศัพท์**: 061-5614269
 • **อีเมล**: zarnzarn10@gmail.com`,
       suggestedCourseIds: ["live-ai-starter", "live-claude-cowork-skills"],

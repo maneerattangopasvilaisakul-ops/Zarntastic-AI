@@ -16,39 +16,37 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('app_user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        // Do not auto-remember or restore Admin session (Must re-login freshly every time)
-        if (parsed?.role !== 'admin') {
-          setUser(parsed);
-        } else {
-          localStorage.removeItem('app_user');
-          setUser(null);
-        }
-      } catch (e) {
-        localStorage.removeItem('app_user');
-      }
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('app_user') || localStorage.getItem('app_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
     }
-  }, []);
+  });
 
   const login = (newUser: UserProfile) => {
     setUser(newUser);
-    // If Admin role, do NOT persist to localStorage so credentials are required freshly next time
-    if (newUser.role !== 'admin') {
-      localStorage.setItem('app_user', JSON.stringify(newUser));
-    } else {
-      localStorage.removeItem('app_user');
+    try {
+      if (newUser.role === 'admin') {
+        sessionStorage.setItem('app_user', JSON.stringify(newUser));
+        localStorage.setItem('app_user', JSON.stringify(newUser));
+      } else {
+        localStorage.setItem('app_user', JSON.stringify(newUser));
+      }
+    } catch (e) {
+      console.error('Failed to store auth state:', e);
     }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('app_user');
+    try {
+      localStorage.removeItem('app_user');
+      sessionStorage.removeItem('app_user');
+    } catch (e) {
+      console.error('Failed to clear auth state:', e);
+    }
   };
 
   const isAdmin = user?.role === 'admin';

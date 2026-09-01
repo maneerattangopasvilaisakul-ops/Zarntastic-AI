@@ -149,7 +149,7 @@ export function FastworkReviews() {
           </div>
 
           <a
-            href="https://lin.ee/Sy3xOAP"
+            href="https://lin.ee/NE2vFcZ"
             target="_blank"
             rel="noopener noreferrer"
             className="text-cyan-400 hover:text-cyan-300 font-bold underline shrink-0 cursor-pointer"

@@ -35,7 +35,7 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
       setError('');
       login({
         id: 'admin_001',
-        name: 'อาจารย์ซาร์น (Administrator)',
+        name: 'อาจารย์ซาน (Administrator)',
         email: cleanEmail,
         phone: '061-5614269',
         lineId: '@zarntastic',

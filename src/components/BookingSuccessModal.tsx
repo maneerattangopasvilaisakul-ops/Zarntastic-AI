@@ -260,16 +260,44 @@ END:VCALENDAR`;
             </div>
           )}
 
+          {/* Line Notification / Send to Line Official Box */}
+          <div className="bg-[#06C755]/10 border border-[#06C755]/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#06C755] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <div className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
+                  <span>แจ้งการจองผ่าน LINE Official</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#06C755] text-white font-bold">@zarntastic</span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  ส่งหลักฐานการจองเพื่อให้อาจารย์ล็อกคิวและเตรียมห้องเรียนทันที
+                </p>
+              </div>
+            </div>
+
+            <a
+              href="https://lin.ee/NE2vFcZ"
+              target="_blank"
+              rel="noreferrer"
+              className="w-full sm:w-auto px-4 py-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
+            >
+              <span>ส่งข้อมูลเข้า LINE</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
           {/* Modal Footer */}
           <div className="border-t border-slate-200 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <a
-              href="https://lin.ee/Sy3xOAP"
+              href="https://lin.ee/NE2vFcZ"
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-green-600 hover:text-green-800 font-semibold flex items-center gap-1.5 cursor-pointer bg-green-50 px-4 py-2.5 rounded-xl border border-green-200 transition-colors"
+              className="text-xs text-[#06C755] hover:text-[#05b34c] font-bold flex items-center gap-1.5 cursor-pointer bg-[#06C755]/10 px-4 py-2.5 rounded-xl border border-[#06C755]/20 transition-colors"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>ติดต่อ Admin (LINE)</span>
+              <span>ติดต่อ Admin / อาจารย์ (@zarntastic)</span>
             </a>
 
             <button
