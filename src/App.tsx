@@ -273,6 +273,12 @@ export default function App() {
         );
         fetchBookings();
       } else {
+        if (res.status === 401 || res.status === 403) {
+           localStorage.removeItem('app_user');
+           sessionStorage.removeItem('app_user');
+           window.location.reload();
+           return;
+        }
         triggerToast('ไม่สามารถอัปเดตสถานะได้', data.error || 'กรุณาเข้าสู่ระบบ Admin ใหม่อีกครั้ง', 'alert');
       }
     } catch (e) {

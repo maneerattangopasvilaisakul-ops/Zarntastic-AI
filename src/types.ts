@@ -30,6 +30,7 @@ export interface FastworkReview {
   courseTitle: string;
   date: string;
   verified: boolean;
+  reviewUrl?: string;
 }
 
 export interface Course {

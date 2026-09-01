@@ -19,7 +19,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(() => {
     try {
       const stored = sessionStorage.getItem('app_user') || localStorage.getItem('app_user');
-      return stored ? JSON.parse(stored) : null;
+      if (stored) {
+        const parsedUser = JSON.parse(stored);
+        if (parsedUser?.role === 'admin' && !parsedUser?.token) {
+          // Force re-login for admin if token is missing
+          localStorage.removeItem('app_user');
+          sessionStorage.removeItem('app_user');
+          return null;
+        }
+        return parsedUser;
+      }
+      return null;
     } catch {
       return null;
     }

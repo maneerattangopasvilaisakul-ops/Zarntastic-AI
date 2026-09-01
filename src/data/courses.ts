@@ -416,6 +416,46 @@ export const COURSES: Course[] = [
 
 export const FASTWORK_REVIEWS: FastworkReview[] = [
   {
+    id: 'rev-fw-1',
+    author: 'ผู้รับบริการ/ผู้เรียน',
+    rating: 5.0,
+    comment: 'สอนเข้าใจง่ายและสนุกมากครับ ได้เทคนิคการใช้ AI ทำงานจริงที่ช่วยให้ประหยัดเวลาการทำงานไปได้เยอะ แนะนำเลยครับสำหรับคนที่อยากอัพสกิลให้ทันยุค',
+    courseTitle: 'คอร์สเรียน AI และการประยุกต์ใช้',
+    date: '2026-08',
+    verified: true,
+    reviewUrl: 'https://fastwork.co/user/zarnzarn/ai-course-10045157?source=seller-center_my-service#review'
+  },
+  {
+    id: 'rev-fw-2',
+    author: 'ผู้รับบริการ/ผู้เรียน',
+    rating: 5.0,
+    comment: 'ให้คำปรึกษาและวางระบบ AI สำหรับองค์กรได้ดีมาก อาจารย์ช่วยวิเคราะห์ตั้งแต่โจทย์ปัญหาของธุรกิจจนถึงการเลือกใช้เครื่องมือ AI ที่เหมาะสมและคุ้มค่าที่สุด ประทับใจความเป็นมืออาชีพครับ',
+    courseTitle: 'ที่ปรึกษา AI (AI Consultant)',
+    date: '2026-08',
+    verified: true,
+    reviewUrl: 'https://fastwork.co/user/zarnzarn/ai-consultant-22242477?source=seller-center_my-service#review'
+  },
+  {
+    id: 'rev-fw-3',
+    author: 'ผู้รับบริการ/ผู้เรียน',
+    rating: 5.0,
+    comment: 'เนื้อหาอัดแน่น จัดเต็มมากครับ อาจารย์สอนเป็นลำดับขั้นตอนทำให้ทำตามได้ง่าย แม้จะยังไม่เคยมีพื้นฐานมาก่อนก็สามารถนำความรู้ไปสร้างผลงานต่อยอดได้จริง คุ้มค่ามากๆ',
+    courseTitle: 'คอร์สเรียน AI เชิงปฏิบัติ',
+    date: '2026-08',
+    verified: true,
+    reviewUrl: 'https://fastwork.co/user/zarnzarn/ai-course-33980761?source=seller-center_my-service#review'
+  },
+  {
+    id: 'rev-fw-4',
+    author: 'ผู้รับบริการ/ผู้เรียน',
+    rating: 5.0,
+    comment: 'การเป็นวิทยากรอบรมทำได้ยอดเยี่ยมมากครับ อาจารย์ยกตัวอย่าง Use Case จริงที่ทีมงานสามารถนำไปใช้ประโยชน์ในงานได้ทันที ถ่ายทอดเรื่องเทคนิคซับซ้อนให้เข้าใจง่าย เป็นกันเองสุดๆ',
+    courseTitle: 'วิทยากรอบรม AI องค์กร / คอร์สเรียน AI',
+    date: '2026-08',
+    verified: true,
+    reviewUrl: 'https://fastwork.co/user/zarnzarn/ai-course-56609981?source=seller-center_my-service#review'
+  },
+  {
     id: 'rev-work',
     author: 'นักเรียนจาก Fastwork',
     rating: 5.0,

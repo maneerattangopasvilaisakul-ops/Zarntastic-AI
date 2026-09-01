@@ -5,12 +5,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import fs from "fs";
 import dotenv from "dotenv";
 
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, doc, setDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import { initializeApp, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 
 
 import jwt from "jsonwebtoken";
+
+dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "SUPER_SECRET_ZARNTASTIC_KEY_12345";
 
@@ -34,15 +36,12 @@ const requireAdmin = async (req: any, res: any, next: any) => {
 
 let db: any = null;
 try {
+  initializeApp({ credential: applicationDefault() });
   const config = JSON.parse(fs.readFileSync('./firebase-applet-config.json', 'utf8'));
-  const app = initializeApp(config);
-  db = getFirestore(app, config.firestoreDatabaseId);
+  db = getFirestore(config.firestoreDatabaseId);
 } catch (e) {
   console.error("Firebase init failed:", e);
 }
-
-
-dotenv.config();
 
 const app = express();
 
@@ -57,10 +56,10 @@ app.post("/api/admin/login", (req, res) => {
   const cleanEmail = (email || "").trim().toLowerCase();
   const cleanPass = (password || "").trim();
   
-  if (
-    (cleanEmail === 'zarnzarn10@gmail.com' || cleanEmail === 'admin@zarntastic.com') && 
-    (cleanPass === 'Enter10!' || cleanPass === 'admin123')
-  ) {
+  const expectedEmail = (process.env.ADMIN_EMAIL || "admin@zarntastic.com").trim().toLowerCase();
+  const expectedPass = (process.env.ADMIN_PASSWORD || "admin123").trim();
+
+  if (cleanEmail === expectedEmail && cleanPass === expectedPass) {
     const token = jwt.sign({ role: 'admin', email: cleanEmail }, JWT_SECRET, { expiresIn: '8h' });
     return res.json({ token });
   } else {
@@ -141,9 +140,9 @@ const initialBookings: Booking[] = [];
 
 let bookings: Booking[] = [...initialBookings];
 if (db) {
-  onSnapshot(collection(db, "bookings"), (snapshot) => {
+  db.collection("bookings").onSnapshot((snapshot: any) => {
     const loadedBookings: Booking[] = [];
-    snapshot.forEach(doc => {
+    snapshot.forEach((doc: any) => {
       loadedBookings.push(doc.data() as Booking);
     });
     bookings = loadedBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -154,7 +153,7 @@ if (db) {
 async function saveBooking(booking: Booking) {
   if (db) {
     try {
-      await setDoc(doc(db, "bookings", booking.id), booking);
+      await db.collection("bookings").doc(booking.id).set(booking);
     } catch (e) {
       console.error("Failed to save booking to Firestore:", e);
     }
@@ -163,9 +162,9 @@ async function saveBooking(booking: Booking) {
 
 let notifications: NotificationItem[] = [];
 if (db) {
-  onSnapshot(collection(db, "notifications"), (snapshot) => {
+  db.collection("notifications").onSnapshot((snapshot: any) => {
     const loaded: NotificationItem[] = [];
-    snapshot.forEach(doc => {
+    snapshot.forEach((doc: any) => {
       loaded.push(doc.data() as NotificationItem);
     });
     notifications = loaded.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -175,7 +174,7 @@ if (db) {
 async function saveNotification(notif: NotificationItem) {
   if (db) {
     try {
-      await setDoc(doc(db, "notifications", notif.id), notif);
+      await db.collection("notifications").doc(notif.id).set(notif);
     } catch (e) {
       console.error("Failed to save notification:", e);
     }
@@ -336,7 +335,11 @@ app.get("/api/bookings", async (req, res) => {
     result = result.map(b => ({
       ...b,
       customer: { ...b.customer, name: "***", phone: "***", lineId: "***", email: "***" },
-      meetingLink: "***"
+      meetingLink: "***",
+      payment: {
+        ...b.payment,
+        slipUrl: undefined // Remove Base64 string from public API
+      }
     }));
   }
 
@@ -345,10 +348,34 @@ app.get("/api/bookings", async (req, res) => {
 
 // 2. Get single booking details
 app.get("/api/bookings/:id", (req, res) => {
+  const authHeader = req.headers.authorization;
+  let isAdmin = false;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    try {
+      jwt.verify(token, JWT_SECRET);
+      isAdmin = true;
+    } catch (e) { }
+  }
+
   const booking = bookings.find((b) => b.id === req.params.id);
   if (!booking) {
     return res.status(404).json({ error: "ไม่พบข้อมูลการจองนี้" });
   }
+  
+  if (!isAdmin) {
+    const scrubbedBooking = {
+      ...booking,
+      customer: { ...booking.customer, name: "***", phone: "***", lineId: "***", email: "***" },
+      meetingLink: "***",
+      payment: {
+        ...booking.payment,
+        slipUrl: undefined
+      }
+    };
+    return res.json(scrubbedBooking);
+  }
+
   res.json(booking);
 });
 

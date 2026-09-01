@@ -120,8 +120,13 @@ export function FastworkReviews() {
               {/* Author & Course Details */}
               <div className="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
                 <div>
-                  <div className="font-bold text-white group-hover:text-cyan-300 transition-colors">
+                  <div className="font-bold text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1.5">
                     {review.author || 'ผู้เรียนผ่าน Fastwork'}
+                    {review.reviewUrl && (
+                      <a href={review.reviewUrl} target="_blank" rel="noopener noreferrer" className="inline-block p-1 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors text-cyan-400 hover:text-cyan-300" title="ดูรีวิวฉบับเต็มบน Fastwork">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
                   </div>
                   {review.role && (
                     <div className="text-[11px] text-slate-400">
