@@ -45,8 +45,8 @@ export function getOperatingHours(dateStr: string, userCategory: 'general' | 'co
   const day = date.getDay(); // 0: Sun, 6: Sat
 
   if (userCategory === 'corporate') {
-    if (day === 0) return 'ปิดทำการ (องค์กรเปิด จันทร์-เสาร์ 09:00-18:00 น.)';
-    return '09:00 - 18:00 น. (รอบองค์กร จันทร์-เสาร์)';
+    if (day === 0) return 'ปิดทำการ (องค์กรเปิด จันทร์-เสาร์ 09:00-20:00 น.)';
+    return '09:00 - 20:00 น. (รอบองค์กร จันทร์-เสาร์)';
   }
 
   if (day === 6) {
@@ -130,14 +130,14 @@ export function generateSlotsForDate(
     reasonNotAllowed?: string;
   }> = [];
 
-  // Corporate: Mon - Sat (09:00 - 18:00), Sun is closed
+  // Corporate: Mon - Sat (09:00 - 20:00), Sun is closed
   if (userCategory === 'corporate') {
     if (day === 0) {
       return []; // Sunday closed for corporate
     }
     const startHour = 9;
-    const endHour = 18;
-    const step = durationHours >= 3 ? (durationHours === 4 ? 4 : 2) : 1;
+    const endHour = 20;
+    const step = durationHours;
 
     for (let h = startHour; h <= endHour - durationHours; h += step) {
       const sMin = h * 60;
@@ -240,7 +240,7 @@ export function generateSlotsForDate(
     // Weekend: Saturday 10:00 - 23:00, Sunday 09:00 - 18:00
     const startHour = day === 6 ? 10 : 9;
     const endHour = day === 6 ? 23 : 18; // Saturday up to 23:00, Sunday up to 18:00
-    const step = durationHours >= 3 ? (durationHours === 4 ? 4 : 2) : 1;
+    const step = durationHours;
 
     for (let h = startHour; h <= endHour - durationHours; h += step) {
       const sMin = h * 60;

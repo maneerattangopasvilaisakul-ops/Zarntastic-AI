@@ -9,7 +9,8 @@ import {
   Calendar, 
   Award, 
   ArrowRight,
-  Sparkles 
+  Sparkles,
+  MessageCircle 
 } from 'lucide-react';
 
 interface CourseDetailModalProps {
@@ -26,15 +27,15 @@ export function CourseDetailModal({
   if (!course) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
       
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-2xl w-full overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header Banner */}
-        <div className="bg-slate-900 text-white p-6 relative border-b border-slate-800">
+        <div className="bg-stone-900 text-white p-6 relative border-b border-stone-800">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors"
+            className="absolute top-5 right-5 p-1.5 text-stone-400 hover:text-white rounded-full hover:bg-stone-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -46,7 +47,7 @@ export function CourseDetailModal({
                 Coming Soon (เร็วๆ นี้) - คอร์ส VDO Online
               </span>
             ) : (
-              <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-orange-950 text-orange-400 border border-orange-800 text-xs font-bold">
                 {course.totalDays && course.totalHours
                   ? course.totalDays === 1
                     ? `💻 คอร์สเรียนสด 1 วัน (${course.totalHours} ชม.)`
@@ -54,7 +55,7 @@ export function CourseDetailModal({
                   : '💻 คอร์สเรียนสด Online 1:1'}
               </span>
             )}
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-xs text-stone-400 font-medium">
               {course.level}
             </span>
             {course.fastworkRating && (
@@ -67,20 +68,20 @@ export function CourseDetailModal({
           <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight">
             {course.title}
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-stone-400 mt-1">
             {course.titleEn || ''}
           </p>
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-6 overflow-y-auto space-y-6 text-sm text-slate-700">
+        <div className="p-6 overflow-y-auto space-y-6 text-sm text-stone-700">
           
           {/* Description */}
           <div>
-            <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-2 text-cyan-800">
+            <h3 className="font-bold text-stone-900 text-xs uppercase tracking-wider mb-2 text-orange-800">
               รายละเอียดหลักสูตร
             </h3>
-            <p className="text-slate-600 leading-relaxed">
+            <p className="text-stone-600 leading-relaxed">
               {course.description}
             </p>
           </div>
@@ -88,16 +89,16 @@ export function CourseDetailModal({
           {/* Topics / Syllabus / VDO Lessons */}
           {course.vdoLinks && course.vdoLinks.length > 0 ? (
             <div>
-              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 text-indigo-700">
+              <h3 className="font-bold text-stone-900 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 text-indigo-700">
                 <BookOpen className="w-4 h-4 text-indigo-600" />
                 <span>บทเรียนในแพ็กเกจ VDO ({course.vdoLinks.length} หัวข้อ)</span>
               </h3>
               <div className="space-y-2 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
                 {course.vdoLinks.map((vdo, idx) => (
-                  <div key={idx} className="flex items-center justify-between gap-2.5 text-xs text-slate-800 bg-white p-2.5 rounded-xl border border-indigo-50">
+                  <div key={idx} className="flex items-center justify-between gap-2.5 text-xs text-stone-800 bg-white p-2.5 rounded-xl border border-indigo-50">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                      <span className="font-semibold text-slate-900">{vdo.title}</span>
+                      <span className="font-semibold text-stone-900">{vdo.title}</span>
                     </div>
                     <span className="text-[10px] text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50">Google Drive VDO</span>
                   </div>
@@ -106,13 +107,13 @@ export function CourseDetailModal({
             </div>
           ) : (course.topics && course.topics.length > 0) ? (
             <div>
-              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-cyan-600" />
+              <h3 className="font-bold text-stone-900 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-orange-600" />
                 <span>หัวข้อการเรียนรู้ (Syllabus & Workshops)</span>
               </h3>
-              <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <div className="space-y-2 bg-stone-50 p-4 rounded-2xl border border-stone-200">
                 {course.topics.map((topic, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700">
+                  <div key={idx} className="flex items-start gap-2.5 text-xs text-stone-700">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span className="leading-snug">{topic}</span>
                   </div>
@@ -121,13 +122,13 @@ export function CourseDetailModal({
             </div>
           ) : course.keyFeatures && course.keyFeatures.length > 0 ? (
             <div>
-              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-cyan-600" />
+              <h3 className="font-bold text-stone-900 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-orange-600" />
                 <span>จุดเด่นของหลักสูตร (Key Features)</span>
               </h3>
-              <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <div className="space-y-2 bg-stone-50 p-4 rounded-2xl border border-stone-200">
                 {course.keyFeatures.map((feat, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700">
+                  <div key={idx} className="flex items-start gap-2.5 text-xs text-stone-700">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span className="leading-snug">{feat}</span>
                   </div>
@@ -155,11 +156,11 @@ export function CourseDetailModal({
 
           {/* Who is this for & Prerequisites */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200">
+              <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-blue-600" /> เหมาะสำหรับ
               </h4>
-              <ul className="text-xs text-slate-600 space-y-1">
+              <ul className="text-xs text-stone-600 space-y-1">
                 {Array.isArray(course.targetAudience) ? (
                   course.targetAudience.map((item, idx) => (
                     <li key={idx}>• {item}</li>
@@ -174,11 +175,11 @@ export function CourseDetailModal({
               </ul>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200">
+              <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Award className="w-3.5 h-3.5 text-amber-600" /> ความรู้พื้นฐานที่ต้องมี
               </h4>
-              <ul className="text-xs text-slate-600 space-y-1">
+              <ul className="text-xs text-stone-600 space-y-1">
                 {course.prerequisites && course.prerequisites.length > 0 ? (
                   course.prerequisites.map((item, idx) => (
                     <li key={idx}>• {item}</li>
@@ -192,33 +193,67 @@ export function CourseDetailModal({
 
           {/* Instructor Bio */}
           {course.instructor && (
-            <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+            <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-200">
               <img
                 src={course.instructor.avatar}
                 alt={course.instructor.name}
                 className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
               />
               <div>
-                <div className="font-bold text-slate-900 text-sm">{course.instructor.name}</div>
-                <div className="text-xs text-cyan-700 font-semibold">{course.instructor.role || 'Fastwork Verified Pro AI Specialist'}</div>
-                <p className="text-[11px] text-slate-500 mt-0.5">{course.instructor.bio}</p>
+                <div className="font-bold text-stone-900 text-sm">{course.instructor.name}</div>
+                <div className="text-xs text-orange-700 font-semibold">{course.instructor.role || 'Fastwork Verified Pro AI Specialist'}</div>
+                <p className="text-[11px] text-stone-500 mt-0.5">{course.instructor.bio}</p>
               </div>
             </div>
           )}
 
+          {/* FAQ Section */}
+          <div className="bg-stone-50 p-4 sm:p-5 rounded-2xl border border-stone-200">
+            <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-4">
+              <MessageCircle className="w-4 h-4 text-orange-600" />
+              คำถามที่พบบ่อย (FAQ)
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <h5 className="text-xs font-bold text-stone-800">Q: ไม่มีพื้นฐานทางด้าน IT หรือเขียนโปรแกรมเลย สามารถเรียนได้ไหม?</h5>
+                <p className="text-xs text-stone-600 mt-1">
+                  A: สามารถเรียนได้แน่นอนครับ หลักสูตรถูกออกแบบมาให้เข้าใจง่าย เน้นการใช้งานจริง ไม่จำเป็นต้องเขียนโค้ดเป็น
+                </p>
+              </div>
+              <div>
+                <h5 className="text-xs font-bold text-stone-800">Q: รูปแบบการเรียนการสอนเป็นอย่างไร?</h5>
+                <p className="text-xs text-stone-600 mt-1">
+                  A: ขึ้นอยู่กับหลักสูตรที่เลือก มีทั้งแบบ VDO Online ที่สามารถดูทบทวนได้ตลอดชีพ และแบบ Live 1-on-1 ผ่าน Google Meet
+                </p>
+              </div>
+              <div>
+                <h5 className="text-xs font-bold text-stone-800">Q: หากเรียนแล้วมีข้อสงสัย สามารถสอบถามได้ไหม?</h5>
+                <p className="text-xs text-stone-600 mt-1">
+                  A: สามารถสอบถามผู้สอนได้โดยตรงผ่านทางแชท LINE กลุ่ม หรือ Fastwork ตลอดระยะเวลาที่กำหนดในแต่ละคอร์ส
+                </p>
+              </div>
+              <div>
+                <h5 className="text-xs font-bold text-stone-800">Q: นิติบุคคลสามารถขอใบเสร็จรับเงิน/ใบกำกับภาษีได้หรือไม่?</h5>
+                <p className="text-xs text-stone-600 mt-1">
+                  A: สามารถออกใบเสร็จและใบกำกับภาษีได้ โดยระบุข้อมูลนิติบุคคลในขั้นตอนการกรอกข้อมูลผู้เรียน
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Schedule Rules */}
-          <div className="bg-cyan-50/70 p-3.5 rounded-xl border border-cyan-200 text-xs text-cyan-900 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-cyan-600 shrink-0" />
+          <div className="bg-orange-50/70 p-3.5 rounded-xl border border-orange-200 text-xs text-orange-900 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
             <span>{course.durationCategory === 'vdo' ? 'เข้าเรียนได้ทันทีหลังชำระเงินและ Admin อนุมัติสลิป ดูย้อนหลังได้ตลอดชีพ' : (course.scheduleRuleNotice || 'บุคคลทั่วไป: จันทร์-ศุกร์ (19.30-22.30) และ เสาร์-อาทิตย์ (09.00-18.00)')}</span>
           </div>
 
         </div>
 
         {/* Footer CTA */}
-        <div className="p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
+        <div className="p-5 border-t border-stone-200 bg-stone-50 flex items-center justify-between gap-4">
           <div>
-            <div className="text-xs text-slate-500 font-medium">ค่าลงทะเบียนพิเศษ</div>
-            <div className="text-2xl font-black text-slate-900">
+            <div className="text-xs text-stone-500 font-medium">ค่าลงทะเบียนพิเศษ</div>
+            <div className="text-2xl font-black text-stone-900">
               {formatCurrency(course.price)}
             </div>
           </div>
@@ -228,7 +263,7 @@ export function CourseDetailModal({
               onSelectCourse(course);
               onClose();
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-cyan-600/25 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-600/25 transition-all cursor-pointer"
           >
             <span>จองคิวเรียนคอร์สนี้</span>
             <ArrowRight className="w-4 h-4" />

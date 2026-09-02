@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { Booking, BookingStatus, Course } from '../types';
 import { COURSES } from '../data/courses';
 import { formatThaiDate, formatCurrency, getValidNextDates } from '../utils/scheduleUtils';
@@ -36,7 +37,12 @@ import {
   RefreshCw,
   ExternalLink,
   ListFilter,
-  CalendarDays
+  CalendarDays,
+  Database,
+  Flame,
+  Check,
+  Layers,
+  SearchX
 } from 'lucide-react';
 import { AdminCalendarView } from './AdminCalendarView';
 
@@ -51,6 +57,7 @@ export function AdminDashboard({
   onUpdateBookingStatus,
   onRefreshBookings,
 }: AdminDashboardProps) {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
@@ -59,6 +66,104 @@ export function AdminDashboard({
   const [reviewNoteInput, setReviewNoteInput] = useState<string>('');
   const [isSubmittingReview, setIsSubmittingReview] = useState<boolean>(false);
   const [lineTestResult, setLineTestResult] = useState<string | null>(null);
+
+  // Firebase Live & Test Data States
+  const [firebaseStatus, setFirebaseStatus] = useState<{
+    connected: boolean;
+    databaseId?: string;
+    totalBookings?: number;
+    totalNotifications?: number;
+    lastSync?: string;
+  }>({ connected: true, databaseId: 'ai-studio-aicourseautomate-400e85bf-1dd8-4e3e-9058-c49bff12aee0' });
+  const [isSeeding, setIsSeeding] = useState<boolean>(false);
+  const [isClearing, setIsClearing] = useState<boolean>(false);
+  const [seedNotice, setSeedNotice] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
+  // Fetch Firebase Status
+  const fetchFirebaseStatus = async () => {
+    try {
+      const res = await fetch('/api/firebase/status');
+      if (res.ok) {
+        const data = await res.json();
+        setFirebaseStatus(data);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchFirebaseStatus();
+    const interval = setInterval(fetchFirebaseStatus, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle Seed Test Data to Firebase
+  const handleSeedTestData = async () => {
+    setIsSeeding(true);
+    setSeedNotice(null);
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (user?.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+      }
+      const res = await fetch('/api/admin/seed-test-data', {
+        method: 'POST',
+        headers,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSeedNotice(data.message || 'สร้างชุดข้อมูลทดสอบใน Firebase สำเร็จแล้ว!');
+        onRefreshBookings();
+        fetchFirebaseStatus();
+      } else {
+        setSeedNotice(data.error || 'เกิดข้อผิดพลาดในการสร้างข้อมูลทดสอบ');
+      }
+    } catch (err: any) {
+      setSeedNotice(`ข้อผิดพลาด: ${err.message}`);
+    } finally {
+      setIsSeeding(false);
+      setTimeout(() => setSeedNotice(null), 8000);
+    }
+  };
+
+  // Handle Clear Test Data from Firebase
+  const handleClearTestData = async () => {
+    if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลการจองทั้งหมดออกจาก Firebase?')) {
+      return;
+    }
+    setIsClearing(true);
+    setSeedNotice(null);
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (user?.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+      }
+      const res = await fetch('/api/admin/clear-test-data', {
+        method: 'POST',
+        headers,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSeedNotice(data.message || 'ล้างข้อมูลใน Firebase Firestore เรียบร้อยแล้ว');
+        onRefreshBookings();
+        fetchFirebaseStatus();
+      } else {
+        setSeedNotice(data.error || 'เกิดข้อผิดพลาดในการล้างข้อมูล');
+      }
+    } catch (err: any) {
+      setSeedNotice(`ข้อผิดพลาด: ${err.message}`);
+    } finally {
+      setIsClearing(false);
+      setTimeout(() => setSeedNotice(null), 8000);
+    }
+  };
 
   // Filtered bookings
   const filteredBookings = useMemo(() => {
@@ -92,6 +197,13 @@ export function AdminDashboard({
       return matchSearch && matchStatus && matchDate;
     });
   }, [bookings, searchTerm, statusFilter, dateFilter]);
+
+  const paginatedBookings = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredBookings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredBookings, currentPage]);
+
+  const totalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE);
 
   // KPI Metrics
   const metrics = useMemo(() => {
@@ -247,13 +359,13 @@ export function AdminDashboard({
       case 'under_review':
         return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold animate-pulse"><Clock className="w-3.5 h-3.5" /> รอตรวจสลิป</span>;
       case 'pending_slip':
-        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold"><Clock className="w-3.5 h-3.5" /> รอลูกค้าแนบสลิป</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-stone-100 text-stone-600 border border-stone-200 text-xs font-bold"><Clock className="w-3.5 h-3.5" /> รอลูกค้าแนบสลิป</span>;
       case 'rejected':
         return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold"><XCircle className="w-3.5 h-3.5" /> ปฏิเสธสลิป</span>;
       case 'completed':
         return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold"><FileCheck className="w-3.5 h-3.5" /> เรียนเสร็จสิ้น</span>;
       case 'cancelled':
-        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-medium">ยกเลิกแล้ว</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-stone-100 text-stone-500 text-xs font-medium">ยกเลิกแล้ว</span>;
       default:
         return null;
     }
@@ -263,27 +375,30 @@ export function AdminDashboard({
     <div className="space-y-6">
       
       {/* Dashboard Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold mb-2">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
             <span>โหมดผู้ดูแลระบบ / อาจารย์ผู้สอน (Admin Portal)</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
             ระบบจัดการคิวและตรวจสอบสลิปการจอง
           </h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-stone-600 mt-1">
             ตรวจสถานะการชำระเงิน, สลิปโอนเงิน, ป้องกันเวลาชนกัน, และจัดการตารางสอนแบบ Real-time
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={onRefreshBookings}
-            className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
+            onClick={() => {
+              onRefreshBookings();
+              fetchFirebaseStatus();
+            }}
+            className="p-2.5 bg-white hover:bg-stone-50 border border-stone-200 rounded-xl text-stone-700 text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
             title="รีเฟรชข้อมูลคิวล่าสุด"
           >
-            <RefreshCw className="w-4 h-4 text-slate-500" />
+            <RefreshCw className="w-4 h-4 text-stone-500" />
             <span>รีเฟรช</span>
           </button>
 
@@ -298,12 +413,80 @@ export function AdminDashboard({
 
           <button
             onClick={handleExportCSV}
-            className="p-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
+            className="p-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>Export CSV</span>
           </button>
         </div>
+      </div>
+
+      {/* Firebase Live Database & Test Data Control Panel */}
+      <div className="bg-gradient-to-r from-stone-900 via-indigo-950 to-stone-900 text-white p-4 sm:p-5 rounded-2xl border border-indigo-800/40 shadow-md">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Firebase Firestore Connected
+              </span>
+              <span className="text-xs text-indigo-300 font-mono bg-indigo-900/60 px-2.5 py-0.5 rounded-md border border-indigo-700/50">
+                DB ID: {firebaseStatus.databaseId || 'ai-studio-aicourseautomate-400e85bf-1dd8-4e3e-9058-c49bff12aee0'}
+              </span>
+              <span className="text-xs text-stone-300">
+                ({bookings.length} รายการจองบนคลาวด์)
+              </span>
+            </div>
+            <p className="text-xs text-stone-300">
+              ฐานข้อมูลคลาวด์ Real-time: ทุกการจอง การอัปโหลดสลิป และการเปลี่ยนสถานะจะบันทึกตรงเข้า Firestore อัตโนมัติ
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleSeedTestData}
+              disabled={isSeeding}
+              className="px-3.5 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isSeeding ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>กำลังสร้างข้อมูลทดสอบ...</span>
+                </>
+              ) : (
+                <>
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>🌱 สร้างชุดข้อมูลทดสอบ (Seed Test Data)</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleClearTestData}
+              disabled={isClearing}
+              className="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isClearing ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>กำลังล้าง...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span>🧹 ล้างข้อมูลทั้งหมด</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {seedNotice && (
+          <div className="mt-3 p-3 rounded-xl bg-indigo-900/80 border border-indigo-500/40 text-xs text-indigo-100 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{seedNotice}</span>
+          </div>
+        )}
       </div>
 
       {lineTestResult && (
@@ -316,12 +499,12 @@ export function AdminDashboard({
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+          <div className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
             คิวทั้งหมดในระบบ
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-            {metrics.total} <span className="text-sm font-normal text-slate-500">รายการ</span>
+          <div className="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1">
+            {metrics.total} <span className="text-sm font-normal text-stone-500">รายการ</span>
           </div>
         </div>
 
@@ -343,11 +526,11 @@ export function AdminDashboard({
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+          <div className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
             ยอดเงินที่อนุมัติแล้ว
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-cyan-600 mt-1">
+          <div className="text-2xl sm:text-3xl font-extrabold text-orange-600 mt-1">
             {formatCurrency(metrics.totalRevenue)}
           </div>
         </div>
@@ -355,13 +538,13 @@ export function AdminDashboard({
       </div>
 
       {/* Chart Section */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6 mb-6">
+      <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm mt-6 mb-6">
         <div className="mb-4">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-indigo-600" />
             ยอดจองคอร์สเรียน (ตามช่วงเวลาที่กรองด้านล่าง)
           </h3>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-stone-500">
             กราฟแสดงความต้องการ (Demand) ของคอร์สต่างๆ เพื่อช่วยวิเคราะห์การเปิดคิวเพิ่มเติม
           </p>
         </div>
@@ -402,14 +585,14 @@ export function AdminDashboard({
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-[180px] flex items-center justify-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
+          <div className="h-[180px] flex items-center justify-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-xl">
             ยังไม่มีข้อมูลการจองในช่วงเวลาที่เลือก
           </div>
         )}
       </div>
 
       {/* View Mode Navigation Tabs */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+      <div className="flex items-center justify-between border-b border-stone-200 pb-1">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -417,13 +600,13 @@ export function AdminDashboard({
             onClick={() => setViewMode('list')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               viewMode === 'list'
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-stone-900 text-white shadow-sm'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
             }`}
           >
             <ListFilter className="w-4 h-4" />
             <span>รายการคิวทั้งหมด (List View)</span>
-            <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-700 text-slate-200">
+            <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-stone-700 text-stone-200">
               {filteredBookings.length}
             </span>
           </button>
@@ -435,7 +618,7 @@ export function AdminDashboard({
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               viewMode === 'calendar'
                 ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
             }`}
           >
             <CalendarDays className="w-4 h-4" />
@@ -456,17 +639,17 @@ export function AdminDashboard({
       ) : (
         <>
           {/* Filter and Search Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
+          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
             
             {/* Search */}
             <div className="relative w-full xl:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
               <input
                 type="text"
                 placeholder="ค้นหาชื่อ, เบอร์, คอร์ส, รหัสจอง..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
@@ -476,8 +659,8 @@ export function AdminDashboard({
               <div className="w-full sm:w-auto">
                 <select
                   value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  onChange={(e) => { setDateFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-full sm:w-auto px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold text-stone-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                 >
                   <option value="all">📅 ทุกช่วงเวลา</option>
                   <option value="today">วันนี้</option>
@@ -501,7 +684,7 @@ export function AdminDashboard({
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                       statusFilter === st.value
                         ? 'bg-indigo-600 text-white font-semibold shadow-sm'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                     }`}
                   >
                     {st.label}
@@ -513,12 +696,12 @@ export function AdminDashboard({
           </div>
 
           {/* Bookings List Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
             
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
+                  <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-wider text-[11px] font-bold">
                     <th className="py-3.5 px-4">รหัส / ผู้เรียน</th>
                     <th className="py-3.5 px-4">คอร์สเรียน</th>
                     <th className="py-3.5 px-4">วันและเวลานัดหมาย</th>
@@ -528,26 +711,34 @@ export function AdminDashboard({
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-stone-100">
                   {filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400">
-                        ไม่พบรายการจองที่ตรงกับเงื่อนไขการค้นหา
+                      <td colSpan={6} className="py-20 text-center">
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center">
+                            <SearchX className="w-8 h-8 text-stone-300" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-stone-700">ไม่พบรายการจอง</h4>
+                            <p className="text-xs text-stone-500 mt-1">ลองเปลี่ยนเงื่อนไขการค้นหาหรือสถานะ เพื่อดูคิวอื่น ๆ</p>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   ) : (
-                    filteredBookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
+                    paginatedBookings.map((b) => (
+                      <tr key={b.id} className="hover:bg-stone-50/80 transition-colors">
                         
                         {/* ID & Customer */}
                         <td className="py-3.5 px-4">
-                          <div className="font-mono text-xs font-bold text-slate-900">
+                          <div className="font-mono text-xs font-bold text-stone-900">
                             {b.id}
                           </div>
-                          <div className="font-semibold text-slate-800 text-sm mt-0.5">
+                          <div className="font-semibold text-stone-800 text-sm mt-0.5">
                             {b.customer.name}
                           </div>
-                          <div className="text-slate-500 text-xs flex items-center gap-2 mt-0.5">
+                          <div className="text-stone-500 text-xs flex items-center gap-2 mt-0.5">
                             <span>📞 {b.customer.phone}</span>
                             {b.customer.lineId && <span>💬 LINE: {b.customer.lineId}</span>}
                           </div>
@@ -555,10 +746,10 @@ export function AdminDashboard({
 
                         {/* Course */}
                         <td className="py-3.5 px-4">
-                          <div className="font-bold text-slate-900 max-w-xs truncate">
+                          <div className="font-bold text-stone-900 max-w-xs truncate">
                             {b.courseTitle}
                           </div>
-                          <div className="text-slate-500 text-xs">
+                          <div className="text-stone-500 text-xs">
                             {b.totalDays} วัน ({b.totalHours} ชม.)
                           </div>
                         </td>
@@ -567,7 +758,7 @@ export function AdminDashboard({
                         <td className="py-3.5 px-4">
                           <div className="space-y-1">
                             {b.schedule.map((s) => (
-                              <div key={s.dayNumber} className="text-xs bg-slate-100/80 px-2 py-1 rounded-md text-slate-700">
+                              <div key={s.dayNumber} className="text-xs bg-stone-100/80 px-2 py-1 rounded-md text-stone-700">
                                 <span className="font-semibold text-indigo-700">D{s.dayNumber}:</span> {formatThaiDate(s.date, false)} ({s.startTime}-{s.endTime} น.)
                               </div>
                             ))}
@@ -575,7 +766,7 @@ export function AdminDashboard({
                         </td>
 
                         {/* Price */}
-                        <td className="py-3.5 px-4 font-bold text-slate-900">
+                        <td className="py-3.5 px-4 font-bold text-stone-900">
                           {formatCurrency(b.totalPrice)}
                         </td>
 
@@ -596,7 +787,7 @@ export function AdminDashboard({
                             {/* Inspect Slip Button */}
                             <button
                               onClick={() => setInspectingBooking(b)}
-                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                               title="ดูสลิปและข้อมูลการจอง"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -620,9 +811,72 @@ export function AdminDashboard({
                       </tr>
                     ))
                   )}
+
                 </tbody>
               </table>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-stone-200">
+                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm text-stone-700">
+                        แสดง <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> ถึง <span className="font-medium">{Math.min(currentPage * ITEMS_PER_PAGE, filteredBookings.length)}</span> จาก <span className="font-medium">{filteredBookings.length}</span> รายการ
+                      </p>
+                    </div>
+                    <div>
+                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <button
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-stone-300 bg-white text-sm font-medium text-stone-500 hover:bg-stone-50 disabled:bg-stone-100 disabled:text-stone-400"
+                        >
+                          <span className="sr-only">Previous</span>
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        {[...Array(totalPages)].map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setCurrentPage(i + 1)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === i + 1 ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'bg-white border-stone-300 text-stone-500 hover:bg-stone-50'}`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-stone-300 bg-white text-sm font-medium text-stone-500 hover:bg-stone-50 disabled:bg-stone-100 disabled:text-stone-400"
+                        >
+                          <span className="sr-only">Next</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </nav>
+                    </div>
+                  </div>
+                  
+                  {/* Mobile Pagination */}
+                  <div className="flex items-center justify-between sm:hidden w-full">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:bg-stone-100"
+                    >
+                      ก่อนหน้า
+                    </button>
+                    <span className="text-sm text-stone-700">หน้า {currentPage} จาก {totalPages}</span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 disabled:bg-stone-100"
+                    >
+                      ถัดไป
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+
 
           </div>
         </>
@@ -630,13 +884,13 @@ export function AdminDashboard({
 
       {/* Slip Inspector & Audit Modal */}
       {inspectingBooking && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-3xl w-full overflow-hidden max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
+          <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-3xl w-full overflow-hidden max-h-[92vh] flex flex-col">
             
             {/* Header */}
-            <div className="bg-slate-900 text-white p-5 flex items-center justify-between border-b border-slate-800">
+            <div className="bg-stone-900 text-white p-5 flex items-center justify-between border-b border-stone-800">
               <div>
-                <span className="text-xs text-cyan-400 font-mono font-bold">
+                <span className="text-xs text-orange-400 font-mono font-bold">
                   {inspectingBooking.id}
                 </span>
                 <h3 className="text-lg font-bold text-white">
@@ -646,7 +900,7 @@ export function AdminDashboard({
 
               <button
                 onClick={() => setInspectingBooking(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors"
+                className="p-1.5 text-stone-400 hover:text-white rounded-full hover:bg-stone-800 transition-colors"
               >
                 ✕
               </button>
@@ -658,21 +912,21 @@ export function AdminDashboard({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Left: Slip Image */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center min-h-[300px]">
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex flex-col items-center justify-center text-center min-h-[300px]">
                   {inspectingBooking.payment.slipUrl ? (
                     <div className="space-y-2 w-full">
                       <img
                         src={inspectingBooking.payment.slipUrl}
                         alt="สลิปที่ลูกค้าแนบ"
-                        className="max-h-72 mx-auto rounded-xl shadow-sm border border-slate-200 object-contain"
+                        className="max-h-72 mx-auto rounded-xl shadow-sm border border-stone-200 object-contain"
                       />
-                      <div className="text-xs text-slate-500 font-mono">
+                      <div className="text-xs text-stone-500 font-mono">
                         รหัสอ้างอิง: {inspectingBooking.payment.referenceNo || 'ไม่ระบุ'}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-slate-400 text-sm space-y-2">
-                      <AlertCircle className="w-8 h-8 text-slate-300 mx-auto" />
+                    <div className="text-stone-400 text-sm space-y-2">
+                      <AlertCircle className="w-8 h-8 text-stone-300 mx-auto" />
                       <p>ยังไม่มีการแนบรูปสลิปเข้ามา</p>
                     </div>
                   )}
@@ -707,14 +961,14 @@ export function AdminDashboard({
                       </p>
                     </div>
                   ) : (
-                    <div className="bg-slate-100 p-3 rounded-xl text-slate-600 text-xs">
+                    <div className="bg-stone-100 p-3 rounded-xl text-stone-600 text-xs">
                       ไม่มีข้อมูลการวิเคราะห์สลิปอัตโนมัติ
                     </div>
                   )}
 
                   {/* Booking Details List */}
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-slate-700">
-                    <div className="font-bold text-slate-900 text-xs border-b border-slate-200 pb-1">
+                  <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2 text-stone-700">
+                    <div className="font-bold text-stone-900 text-xs border-b border-stone-200 pb-1">
                       รายละเอียดคอร์สและผู้เรียน
                     </div>
                     <div><strong>คอร์ส:</strong> {inspectingBooking.courseTitle}</div>
@@ -729,7 +983,7 @@ export function AdminDashboard({
 
                   {/* Review Note Input */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
                       บันทึกข้อความถึงผู้เรียน / เหตุผลการอนุมัติหรือปฏิเสธ:
                     </label>
                     <textarea
@@ -737,7 +991,7 @@ export function AdminDashboard({
                       placeholder="เช่น ได้รับสลิปถูกต้องแล้ว ยืนยันการลงเรียน"
                       value={reviewNoteInput}
                       onChange={(e) => setReviewNoteInput(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
 
@@ -748,7 +1002,7 @@ export function AdminDashboard({
             </div>
 
             {/* Actions Bottom Bar */}
-            <div className="p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+            <div className="p-5 border-t border-stone-200 bg-stone-50 flex items-center justify-between gap-3">
               <button
                 disabled={isSubmittingReview}
                 onClick={() => handleRejectSlip(inspectingBooking)}

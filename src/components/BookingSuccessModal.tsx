@@ -90,11 +90,11 @@ END:VCALENDAR`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
+      <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-2xl w-full overflow-hidden">
         
         {/* Top Celebration Banner */}
-        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white p-6 sm:p-8 text-center relative">
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-orange-600 text-white p-6 sm:p-8 text-center relative">
           <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mx-auto mb-3 ring-4 ring-white/30 shadow-lg">
             <CheckCircle2 className="w-10 h-10 text-white" />
           </div>
@@ -107,7 +107,7 @@ END:VCALENDAR`;
               : 'ระบบได้บันทึกคิวและส่งข้อมูลยืนยันไปยังอีเมลและ LINE ของคุณเรียบร้อย'}
           </p>
 
-          <div className="mt-4 inline-flex items-center gap-2 bg-slate-900/30 px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-mono">
+          <div className="mt-4 inline-flex items-center gap-2 bg-stone-900/30 px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-mono">
             <span>รหัสการจอง:</span>
             <strong className="text-yellow-300 font-bold">{booking.id}</strong>
           </div>
@@ -138,7 +138,7 @@ END:VCALENDAR`;
             /* VDO Course Box */
             <div className="bg-indigo-50/70 rounded-2xl p-5 border border-indigo-200 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <h3 className="font-bold text-stone-900 text-sm flex items-center gap-2">
                   <PlayCircle className="w-5 h-5 text-indigo-600" />
                   <span>คอร์สเรียน: {booking.courseTitle}</span>
                 </h3>
@@ -152,7 +152,7 @@ END:VCALENDAR`;
                   <FolderOpen className="w-4 h-4 text-indigo-600" />
                   <span>ช่องทางการรับชมบทเรียน (Google Drive VDO)</span>
                 </div>
-                <p className="text-slate-600">
+                <p className="text-stone-600">
                   คุณสามารถเข้าดูบทเรียนทั้งหมดได้ทันทีผ่านไอคอนกระดิ่ง <strong>การแจ้งเตือน</strong> หรือคลิกลิงก์ด้านล่างนี้:
                 </p>
 
@@ -164,9 +164,9 @@ END:VCALENDAR`;
                         href={v.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-indigo-50 rounded-lg border border-slate-200 hover:border-indigo-300 transition-colors group"
+                        className="flex items-center justify-between p-2.5 bg-stone-50 hover:bg-indigo-50 rounded-lg border border-stone-200 hover:border-indigo-300 transition-colors group"
                       >
-                        <span className="font-semibold text-slate-800 group-hover:text-indigo-700">{v.title}</span>
+                        <span className="font-semibold text-stone-800 group-hover:text-indigo-700">{v.title}</span>
                         <span className="text-[10px] text-indigo-600 font-bold flex items-center gap-1">
                           เปิดดู VDO <ExternalLink className="w-3 h-3" />
                         </span>
@@ -188,36 +188,36 @@ END:VCALENDAR`;
             </div>
           ) : (
             /* Live Course Schedule Summary Box */
-            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
-              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-cyan-600" />
+            <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 space-y-3">
+              <h3 className="font-bold text-stone-900 text-sm flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-orange-600" />
                 <span>กำหนดการเรียน: {booking.courseTitle}</span>
               </h3>
 
               <div className="space-y-2 text-xs">
                 {booking.schedule.map((s) => (
-                  <div key={s.dayNumber} className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div key={s.dayNumber} className="bg-white p-3 rounded-xl border border-stone-200 flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-cyan-800 block text-xs">วันที่ {s.dayNumber}</span>
-                      <span className="text-slate-900 font-semibold text-sm">{formatThaiDate(s.date)}</span>
+                      <span className="font-bold text-orange-800 block text-xs">วันที่ {s.dayNumber}</span>
+                      <span className="text-stone-900 font-semibold text-sm">{formatThaiDate(s.date)}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-slate-500 block text-[10px]">เวลาเรียน</span>
-                      <span className="font-bold text-slate-800 text-sm">{s.startTime} - {s.endTime} น.</span>
+                      <span className="text-stone-500 block text-[10px]">เวลาเรียน</span>
+                      <span className="font-bold text-stone-800 text-sm">{s.startTime} - {s.endTime} น.</span>
                     </div>
                   </div>
                 ))}
               </div>
 
               {/* Meeting Link */}
-              <div className="bg-cyan-50/80 p-3.5 rounded-xl border border-cyan-200 flex items-center justify-between gap-3">
+              <div className="bg-orange-50/80 p-3.5 rounded-xl border border-orange-200 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-orange-600 text-white flex items-center justify-center shrink-0">
                     <Video className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-[10px] text-cyan-700 font-semibold uppercase">ลิงก์ห้องเรียนออนไลน์ (Google Meet)</div>
-                    <div className="text-xs font-mono font-bold text-cyan-950 truncate max-w-[240px] sm:max-w-xs">
+                    <div className="text-[10px] text-orange-700 font-semibold uppercase">ลิงก์ห้องเรียนออนไลน์ (Google Meet)</div>
+                    <div className="text-xs font-mono font-bold text-orange-950 truncate max-w-[240px] sm:max-w-xs">
                       {booking.meetingLink}
                     </div>
                   </div>
@@ -227,7 +227,7 @@ END:VCALENDAR`;
                   href={booking.meetingLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                  className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0"
                 >
                   <span>เข้าห้องเรียน</span>
                   <ExternalLink className="w-3 h-3" />
@@ -244,7 +244,7 @@ END:VCALENDAR`;
                 href={getGoogleCalendarUrl()}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                className="flex-1 py-2.5 px-3 bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
               >
                 <Calendar className="w-3.5 h-3.5 text-blue-600" />
                 <span>เพิ่มเข้า Google Calendar</span>
@@ -252,9 +252,9 @@ END:VCALENDAR`;
               
               <button
                 onClick={handleDownloadICS}
-                className="flex-1 py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                className="flex-1 py-2.5 px-3 bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-slate-600" />
+                <Download className="w-3.5 h-3.5 text-stone-600" />
                 <span>ดาวน์โหลดไฟล์ .ICS</span>
               </button>
             </div>
@@ -267,18 +267,17 @@ END:VCALENDAR`;
                 <MessageSquare className="w-5 h-5" />
               </div>
               <div className="text-left">
-                <div className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
-                  <span>แจ้งการจองผ่าน LINE Official</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#06C755] text-white font-bold">@zarntastic</span>
+                <div className="font-bold text-xs sm:text-sm text-stone-900 flex items-center gap-1.5">
+                  <span>แจ้งการจองผ่าน LINE</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#06C755] text-white font-bold">ID: zarn</span>
                 </div>
-                <p className="text-[11px] text-slate-600 mt-0.5">
+                <p className="text-[11px] text-stone-600 mt-0.5">
                   ส่งหลักฐานการจองเพื่อให้อาจารย์ล็อกคิวและเตรียมห้องเรียนทันที
                 </p>
               </div>
             </div>
-
             <a
-              href="https://lin.ee/NE2vFcZ"
+              href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
               target="_blank"
               rel="noreferrer"
               className="w-full sm:w-auto px-4 py-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
@@ -289,21 +288,21 @@ END:VCALENDAR`;
           </div>
 
           {/* Modal Footer */}
-          <div className="border-t border-slate-200 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="border-t border-stone-200 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <a
-              href="https://lin.ee/NE2vFcZ"
+              href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
               target="_blank"
               rel="noreferrer"
               className="text-xs text-[#06C755] hover:text-[#05b34c] font-bold flex items-center gap-1.5 cursor-pointer bg-[#06C755]/10 px-4 py-2.5 rounded-xl border border-[#06C755]/20 transition-colors"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>ติดต่อ Admin / อาจารย์ (@zarntastic)</span>
+              <span>ติดต่อ Admin / อาจารย์ (LINE ID: zarn)</span>
             </a>
 
             <button
               id="btn-close-success-modal"
               onClick={onClose}
-              className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-6 py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
             >
               เสร็จสิ้นและกลับหน้าหลัก
             </button>

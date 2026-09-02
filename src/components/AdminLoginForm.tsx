@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Shield, User, ArrowRight, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-hot-toast';
 
 
 
@@ -55,19 +56,19 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
 
   return (
     <div className="flex items-center justify-center min-h-[65vh] py-8 sm:py-12 px-3">
-      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200 w-full max-w-md relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-slate-900 via-indigo-600 to-cyan-600"></div>
+      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-stone-200 w-full max-w-md relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-stone-900 via-indigo-600 to-orange-600"></div>
         
         <div className="flex justify-center mb-5 mt-2">
-          <div className="w-16 h-16 bg-slate-900 text-cyan-400 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-900/20 border border-slate-700">
+          <div className="w-16 h-16 bg-stone-900 text-orange-400 rounded-2xl flex items-center justify-center shadow-lg shadow-stone-900/20 border border-stone-700">
             <Shield className="w-8 h-8" />
           </div>
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-extrabold text-center text-slate-900 mb-1 tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-center text-stone-900 mb-1 tracking-tight">
           Admin & Instructor Portal
         </h2>
-        <p className="text-center text-xs sm:text-sm text-slate-500 mb-4 font-medium">
+        <p className="text-center text-xs sm:text-sm text-stone-500 mb-4 font-medium">
           ระบบจัดการคิวเรียน ตารางสอน และตรวจสอบสลิปโอนเงิน
         </p>
 
@@ -87,11 +88,11 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
           )}
           
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
               อีเมลผู้ดูแลระบบ (Admin Email)
             </label>
             <div className="relative">
-              <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+              <User className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
               <input
                 type="email"
                 required
@@ -99,7 +100,7 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
                 id="admin-username-input"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-medium"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-medium"
                 placeholder="กรอกอีเมลอาจารย์ผู้สอน"
               />
             </div>
@@ -107,13 +108,13 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
           
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
                 รหัสผ่าน (Password)
               </label>
               <button
                 type="button"
                 onClick={() => {
-                  alert("หากลืมรหัสผ่านผู้ดูแลระบบ กรุณาติดต่อกู้คืนรหัสผ่านผ่าน LINE: @zarntastic หรือโทร 061-5614269");
+                  toast.error("หากลืมรหัสผ่านผู้ดูแลระบบ กรุณาติดต่อกู้คืนรหัสผ่านผ่าน LINE ID: zarn หรือโทร 061-5614269");
                 }}
                 className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
               >
@@ -121,7 +122,7 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
               </button>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
@@ -129,13 +130,13 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
                 id="admin-password-input"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-medium"
+                className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-medium"
                 placeholder="กรอกรหัสผ่านผู้ดูแลระบบ"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-3 text-stone-400 hover:text-stone-600"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -145,7 +146,7 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
           <button
             type="submit"
             id="admin-login-submit-btn"
-            className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer text-xs sm:text-sm"
+            className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer text-xs sm:text-sm"
           >
             <span>เข้าสู่ระบบจัดการอาจารย์</span>
             <ArrowRight className="w-4 h-4" />

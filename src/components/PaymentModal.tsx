@@ -16,6 +16,10 @@ import {
   FileCheck,
   MessageCircle
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import imageCompression from 'browser-image-compression';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase';
 
 interface PaymentModalProps {
   booking: Booking;
@@ -30,6 +34,7 @@ export function PaymentModal({
 }: PaymentModalProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [slipImage, setSlipImage] = useState<string | null>(null);
+  const [slipFile, setSlipFile] = useState<Blob | null>(null);
   const [slipFileName, setSlipFileName] = useState<string>('');
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [manualRef, setManualRef] = useState<string>('');
@@ -56,14 +61,36 @@ export function PaymentModal({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('ขนาดไฟล์ใหญ่เกินไป กรุณาอัปโหลดไฟล์ขนาดไม่เกิน 5MB');
+      let fileToProcess = file;
+      
+      // Auto compress if image is large (e.g. > 1MB)
+      if (file.size > 1024 * 1024) {
+        toast.loading('กำลังปรับขนาดรูปภาพอัตโนมัติ...', { id: 'compressing' });
+        try {
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          };
+          fileToProcess = await imageCompression(file, options);
+          toast.success('ปรับขนาดรูปภาพสำเร็จ', { id: 'compressing' });
+        } catch (error) {
+          console.error('Error compressing image:', error);
+          toast.dismiss('compressing');
+          toast.error('ไม่สามารถปรับขนาดรูปภาพได้ จะใช้ไฟล์ต้นฉบับ');
+        }
+      }
+
+      if (fileToProcess.size > 5 * 1024 * 1024) {
+        toast.error('ขนาดไฟล์ยังคงใหญ่เกินไป กรุณาอัปโหลดไฟล์ขนาดไม่เกิน 5MB');
         return;
       }
-      setSlipFileName(file.name);
+      
+      // We will now use fileToProcess instead of file for the rest of the flow
+      setSlipFileName(fileToProcess.name);
       
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -84,22 +111,25 @@ export function PaymentModal({
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            // Compress and convert to base64
+            // Compress and convert to base64 for preview
             const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
             setSlipImage(compressedDataUrl);
+            canvas.toBlob((blob) => {
+              if (blob) setSlipFile(blob);
+            }, 'image/jpeg', 0.8);
           } else {
             setSlipImage(event.target?.result as string);
+            setSlipFile(file);
           }
         };
         img.src = event.target?.result as string;
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileToProcess);
     }
   };
 
   // Sample mock slips generator for fast testing
   const handleLoadSampleSlip = () => {
-    // Generate simple SVG data URL simulating a bank transfer slip
     const canvas = document.createElement('canvas');
     canvas.width = 400;
     canvas.height = 600;
@@ -145,15 +175,26 @@ export function PaymentModal({
 
       const dataUrl = canvas.toDataURL('image/png');
       setSlipImage(dataUrl);
+      canvas.toBlob((blob) => {
+        if (blob) setSlipFile(blob);
+      }, 'image/png');
       setSlipFileName('sample_kbank_slip.png');
     }
   };
 
   const handleSubmitSlip = async () => {
-    if (!slipImage) return;
+    if (!slipImage || !slipFile) return;
     setIsVerifying(true);
     try {
-      await onUploadSlip(slipImage, manualRef || `REF-${Date.now().toString().slice(-6)}`, booking.totalPrice);
+      // Upload to Firebase Storage
+      const fileExt = slipFileName.split('.').pop() || 'jpg';
+      const storageRef = ref(storage, `slips/${booking.id}_${Date.now()}.${fileExt}`);
+      await uploadBytes(storageRef, slipFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      await onUploadSlip(downloadURL, manualRef || `REF-${Date.now().toString().slice(-6)}`, booking.totalPrice);
+    } catch (error) {
+      toast.error('อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsVerifying(false);
     }
@@ -163,15 +204,15 @@ export function PaymentModal({
   const promptpayPayload = generatePayload(ACADEMY_PAYMENT_INFO.promptPayId, { amount: booking.totalPrice });
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
       
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
-        <div className="bg-slate-900 text-white p-5 sm:p-6 flex items-center justify-between border-b border-slate-800">
+        <div className="bg-stone-900 text-white p-5 sm:p-6 flex items-center justify-between border-b border-stone-800">
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 text-[11px] font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-orange-950 text-orange-400 border border-orange-800 text-[11px] font-bold">
                 รหัสการจอง: {booking.id}
               </span>
               <div className="flex items-center gap-1 text-xs text-amber-300 font-semibold bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-800/80">
@@ -186,7 +227,7 @@ export function PaymentModal({
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors"
+            className="p-2 text-stone-400 hover:text-white rounded-full hover:bg-stone-800 transition-colors"
           >
             ✕
           </button>
@@ -198,7 +239,7 @@ export function PaymentModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Left Col: PromptPay QR & Bank Info */}
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 flex flex-col items-center text-center">
+            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200 flex flex-col items-center text-center">
               
               {/* PromptPay Header */}
               <div className="w-full bg-[#113566] text-white py-2 rounded-t-xl text-center text-xs font-bold uppercase tracking-wider mb-3">
@@ -206,23 +247,35 @@ export function PaymentModal({
               </div>
 
               {/* Dynamic QR Box */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm inline-block my-1">
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm inline-block my-1">
                 <div className="flex justify-center mb-3">
                   <QRCodeSVG 
                     value={promptpayPayload} 
                     size={200}
                     level={"H"}
                     includeMargin={true}
-                    className="w-44 h-44 sm:w-48 sm:h-48 mx-auto border border-slate-100 rounded-lg shadow-sm"
+                    className="w-44 h-44 sm:w-48 sm:h-48 mx-auto border border-stone-100 rounded-lg shadow-sm"
                   />
                 </div>
                 <div className="text-center">
-                  <span className="text-[11px] font-semibold text-slate-500">
+                  <span className="text-[11px] font-semibold text-stone-500">
                     สแกน QR เพื่อโอนเงิน
                   </span>
-                  <div className="text-xl font-black text-slate-900">
+                  <div className="text-xl font-black text-stone-900">
                     {formatCurrency(booking.totalPrice)}
                   </div>
+                </div>
+              </div>
+
+              {/* Trust Factor & Security Badges */}
+              <div className="flex items-center justify-center gap-4 mt-3 text-stone-400">
+                <div className="flex items-center gap-1 text-[10px] font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Secure Transfer</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] font-medium">
+                  <Check className="w-3.5 h-3.5 text-orange-500" />
+                  <span>Verified PromptPay</span>
                 </div>
               </div>
 
@@ -230,14 +283,14 @@ export function PaymentModal({
               <div className="w-full space-y-2 mt-4 text-xs text-left">
                 
                 {/* PromptPay ID */}
-                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-stone-200">
                   <div>
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase block">เบอร์พร้อมเพย์</span>
-                    <span className="font-bold text-slate-900 text-sm">{ACADEMY_PAYMENT_INFO.phoneNumber}</span>
+                    <span className="text-[10px] text-stone-500 font-semibold uppercase block">เบอร์พร้อมเพย์</span>
+                    <span className="font-bold text-stone-900 text-sm">{ACADEMY_PAYMENT_INFO.phoneNumber}</span>
                   </div>
                   <button
                     onClick={() => handleCopy(ACADEMY_PAYMENT_INFO.promptPayId, 'promptpay')}
-                    className="flex items-center gap-1 text-xs font-semibold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                   >
                     {copiedField === 'promptpay' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedField === 'promptpay' ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
@@ -245,15 +298,15 @@ export function PaymentModal({
                 </div>
 
                 {/* Bank Account */}
-                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-stone-200">
                   <div>
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase block">{ACADEMY_PAYMENT_INFO.bankName}</span>
-                    <span className="font-bold text-slate-900 text-sm">{ACADEMY_PAYMENT_INFO.accountNumber}</span>
-                    <span className="text-[10px] text-slate-400 block">{ACADEMY_PAYMENT_INFO.accountName}</span>
+                    <span className="text-[10px] text-stone-500 font-semibold uppercase block">{ACADEMY_PAYMENT_INFO.bankName}</span>
+                    <span className="font-bold text-stone-900 text-sm">{ACADEMY_PAYMENT_INFO.accountNumber}</span>
+                    <span className="text-[10px] text-stone-400 block">{ACADEMY_PAYMENT_INFO.accountName}</span>
                   </div>
                   <button
                     onClick={() => handleCopy(ACADEMY_PAYMENT_INFO.accountNumber.replace(/-/g, ''), 'bank')}
-                    className="flex items-center gap-1 text-xs font-semibold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                   >
                     {copiedField === 'bank' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedField === 'bank' ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
@@ -269,8 +322,8 @@ export function PaymentModal({
               
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <UploadCloud className="w-4 h-4 text-cyan-600" />
+                  <label className="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <UploadCloud className="w-4 h-4 text-orange-600" />
                     <span>แนบสลิปหลักฐานการโอนเงิน</span>
                   </label>
                   <button
@@ -289,7 +342,7 @@ export function PaymentModal({
                   className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[220px] ${
                     slipImage
                       ? 'border-emerald-400 bg-emerald-50/30'
-                      : 'border-slate-300 hover:border-cyan-500 bg-slate-50/50 hover:bg-cyan-50/20'
+                      : 'border-stone-300 hover:border-orange-500 bg-stone-50/50 hover:bg-orange-50/20'
                   }`}
                 >
                   <input
@@ -305,23 +358,23 @@ export function PaymentModal({
                       <img
                         src={slipImage}
                         alt="สลิปโอนเงิน"
-                        className="max-h-48 mx-auto rounded-xl shadow-sm border border-slate-200 object-contain"
+                        className="max-h-48 mx-auto rounded-xl shadow-sm border border-stone-200 object-contain"
                       />
-                      <div className="text-xs text-slate-600 font-medium flex items-center justify-center gap-1.5">
+                      <div className="text-xs text-stone-600 font-medium flex items-center justify-center gap-1.5">
                         <FileCheck className="w-4 h-4 text-emerald-600" />
                         <span>แนบไฟล์: {slipFileName || 'สลิปพร้อมตรวจสอบ'}</span>
                       </div>
-                      <p className="text-[11px] text-cyan-700 underline font-medium">คลิกเพื่อเปลี่ยนรูปสลิป</p>
+                      <p className="text-[11px] text-orange-700 underline font-medium">คลิกเพื่อเปลี่ยนรูปสลิป</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <div className="w-12 h-12 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center mx-auto">
+                      <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
                         <ImageIcon className="w-6 h-6" />
                       </div>
-                      <div className="text-sm font-bold text-slate-800">
+                      <div className="text-sm font-bold text-stone-800">
                         คลิกเพื่ออัปโหลดสลิป หรือ ลากไฟล์มาวางที่นี่
                       </div>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-stone-500">
                         รองรับไฟล์รูปภาพ PNG, JPG, JPEG (ไม่เกิน 10MB)
                       </p>
                     </div>
@@ -330,7 +383,7 @@ export function PaymentModal({
 
                 {/* Reference Number input optional */}
                 <div className="mt-3">
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  <label className="block text-[11px] font-semibold text-stone-600 mb-1">
                     รหัสอ้างอิงสลิป / หมายเลขอ้างอิงธนาคาร (ระบบจะตรวจให้อัตโนมัติ):
                   </label>
                   <input
@@ -338,7 +391,7 @@ export function PaymentModal({
                     placeholder="เช่น KBANK12345678"
                     value={manualRef}
                     onChange={(e) => setManualRef(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
 
@@ -360,7 +413,7 @@ export function PaymentModal({
                   className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md ${
                     slipImage && !isVerifying
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 cursor-pointer'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-stone-200 text-stone-400 cursor-not-allowed'
                   }`}
                 >
                   {isVerifying ? (
@@ -377,13 +430,13 @@ export function PaymentModal({
                 </button>
                 <div className="mt-4 flex flex-col items-center gap-2 text-center">
                   <a 
-                    href="https://lin.ee/NE2vFcZ" 
+                    href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url" 
                     target="_blank" 
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#06C755]/10 hover:bg-[#06C755]/20 text-[#06C755] border border-[#06C755]/30 rounded-xl text-xs font-bold transition-colors"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    <span>แจ้งชำระเงินหรือส่งสลิปผ่าน LINE: @zarntastic</span>
+                    <span>แจ้งชำระเงินหรือส่งสลิปผ่าน LINE ID: zarn</span>
                   </a>
                 </div>
               </div>

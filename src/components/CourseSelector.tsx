@@ -64,6 +64,7 @@ export function CourseSelector({
     { id: 'web', label: 'Landing Page & No-Code', count: COURSES.filter(c => c.categoryGroup === 'web').length },
     { id: 'claude', label: 'Claude & AI Agent', count: COURSES.filter(c => c.categoryGroup === 'claude').length },
     { id: 'coaching', label: 'Private Coaching', count: COURSES.filter(c => c.categoryGroup === 'coaching').length },
+    { id: 'corporate', label: 'องค์กร / บริษัท', count: COURSES.filter(c => c.categoryGroup === 'corporate').length },
   ];
 
   // Filtered and sorted courses
@@ -75,10 +76,10 @@ export function CourseSelector({
       }
 
       // Duration Match
-      if (durationFilter === 'online' && c.durationCategory !== 'vdo') return false;
-      if (durationFilter === 'live-1h' && (c.durationCategory !== 'live' || c.totalHours !== 1)) return false;
-      if (durationFilter === 'live-3h' && (c.durationCategory !== 'live' || c.totalHours !== 3)) return false;
-      if (durationFilter === 'live-6h' && (c.durationCategory !== 'live' || c.totalHours !== 6)) return false;
+      if (durationFilter === 'online' && !c.isVdoCourse) return false;
+      if (durationFilter === 'live-1h' && (c.isVdoCourse || c.totalHours !== 1)) return false;
+      if (durationFilter === 'live-3h' && (c.isVdoCourse || c.totalHours !== 3)) return false;
+      if (durationFilter === 'live-6h' && (c.isVdoCourse || c.totalHours !== 6)) return false;
 
       // Search query Match
       if (searchQuery.trim()) {
@@ -96,10 +97,14 @@ export function CourseSelector({
     });
 
     return [...list].sort((a, b) => {
+      // Always put coming soon at the bottom
+      if (a.comingSoon && !b.comingSoon) return 1;
+      if (!a.comingSoon && b.comingSoon) return -1;
+
       // Keep live courses above vdo courses by default unless specifically filtered
       if (durationFilter === 'all') {
-        if (a.durationCategory === 'live' && b.durationCategory === 'vdo') return -1;
-        if (a.durationCategory === 'vdo' && b.durationCategory === 'live') return 1;
+        if (!a.isVdoCourse && b.isVdoCourse) return -1;
+        if (a.isVdoCourse && !b.isVdoCourse) return 1;
       }
 
       if (sortBy === 'price-asc') {
@@ -144,40 +149,40 @@ export function CourseSelector({
     <section className="space-y-6">
       
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 pb-5">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-800 text-xs font-semibold mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-orange-600" />
             <span>ขั้นตอนที่ 1: เลือกคอร์สเรียน AI ที่ต้องการ</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight flex items-center gap-2">
             <span>คอร์สเรียน AI คุณภาพสูง ({COURSES.length} หลักสูตร)</span>
           </h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-stone-600 mt-1">
             สอนสดออนไลน์แบบจับมือทำ (Google Meet) โดยอาจารย์ผู้เชี่ยวชาญระดับ Verified Pro บน Fastwork
           </p>
         </div>
 
         {/* Verified Instructor Badge */}
-        <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-stone-200 shadow-xs">
           <img
             src={INSTRUCTOR_INFO.avatar}
             alt={INSTRUCTOR_INFO.name}
-            className="w-11 h-11 rounded-full object-cover border-2 border-cyan-500 shrink-0"
+            className="w-11 h-11 rounded-full object-cover border-2 border-orange-500 shrink-0"
           />
           <div className="text-xs">
-            <div className="font-bold text-slate-900 flex items-center gap-1">
+            <div className="font-bold text-stone-900 flex items-center gap-1">
               <span>{INSTRUCTOR_INFO.brand}</span>
               <span className="inline-flex items-center text-amber-500 font-extrabold text-[11px]">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> 5.0
               </span>
             </div>
-            <div className="text-slate-500 text-[11px] truncate max-w-[200px]">{INSTRUCTOR_INFO.name}</div>
+            <div className="text-stone-500 text-[11px] truncate max-w-[200px]">{INSTRUCTOR_INFO.name}</div>
             <a 
               href={INSTRUCTOR_INFO.fastworkProfileUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-cyan-700 hover:text-cyan-800 font-semibold text-[10px] flex items-center gap-0.5 mt-0.5 underline"
+              className="text-orange-700 hover:text-orange-800 font-semibold text-[10px] flex items-center gap-0.5 mt-0.5 underline"
             >
               ดูประวัติบน Fastwork <ExternalLink className="w-2.5 h-2.5" />
             </a>
@@ -186,24 +191,24 @@ export function CourseSelector({
       </div>
 
       {/* Filter and Search Controls */}
-      <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs">
         
         {/* Search Bar & Duration Quick Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -transtone-y-1/2" />
             <input
               type="text"
               id="course-search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ค้นหาชื่อคอร์ส, เครื่องมือ AI (เช่น Lovable, Claude, Gamma, NotebookLM, Nano Banana, Prompt)..."
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all placeholder:text-slate-400"
+              placeholder="ค้นหาชื่อคอร์ส, เครื่องมือ AI..."
+              className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all placeholder:text-stone-400"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -transtone-y-1/2 text-stone-400 hover:text-stone-600"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -211,13 +216,13 @@ export function CourseSelector({
           </div>
 
           {/* Duration Filter Buttons */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 overflow-x-auto">
+          <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl shrink-0 overflow-x-auto">
             <button
               onClick={() => setDurationFilter('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 durationFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               ทุกหลักสูตร
@@ -226,8 +231,8 @@ export function CourseSelector({
               onClick={() => setDurationFilter('live-1h')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 durationFilter === 'live-1h'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               💻 เรียนสด 1 ชม.
@@ -236,8 +241,8 @@ export function CourseSelector({
               onClick={() => setDurationFilter('live-3h')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 durationFilter === 'live-3h'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               💻 เรียนสด 3 ชม.
@@ -246,8 +251,8 @@ export function CourseSelector({
               onClick={() => setDurationFilter('live-6h')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 durationFilter === 'live-6h'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               💻 เรียนสด 6 ชม.
@@ -256,8 +261,8 @@ export function CourseSelector({
               onClick={() => setDurationFilter('online')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1 ${
                 durationFilter === 'online'
-                  ? 'bg-white text-slate-900 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               <span>🎬 VDO Online</span>
@@ -267,7 +272,7 @@ export function CourseSelector({
         </div>
 
         {/* Category Pills Strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-slate-100 scrollbar-thin">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-stone-100 scrollbar-thin">
           {categoryTabs.map((tab) => {
             const isActive = selectedCategory === tab.id;
             return (
@@ -277,13 +282,13 @@ export function CourseSelector({
                 onClick={() => setSelectedCategory(tab.id)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-medium shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
                   isActive
-                    ? 'bg-slate-900 text-white font-bold shadow-xs'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80'
+                    ? 'bg-stone-900 text-white font-bold shadow-xs'
+                    : 'bg-stone-50 hover:bg-stone-100 text-stone-600 border border-stone-200/80'
                 }`}
               >
                 <span>{tab.label}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                  isActive ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-600'
                 }`}>
                   {tab.count}
                 </span>
@@ -295,7 +300,7 @@ export function CourseSelector({
       </div>
 
       {/* Results Count & Sort Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-600 px-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-stone-600 px-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span>
             พบ <strong>{filteredCourses.length}</strong> หลักสูตร {searchQuery && `(ค้นหา "${searchQuery}")`}
@@ -307,7 +312,7 @@ export function CourseSelector({
                 setSelectedCategory('all');
                 setDurationFilter('all');
               }}
-              className="text-cyan-700 hover:underline font-semibold ml-1 cursor-pointer"
+              className="text-orange-700 hover:underline font-semibold ml-1 cursor-pointer"
             >
               ล้างตัวกรองทั้งหมด
             </button>
@@ -315,16 +320,16 @@ export function CourseSelector({
         </div>
 
         {/* Sort By Selector */}
-        <div className="flex items-center gap-2 self-start sm:self-auto bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="font-semibold text-slate-700 text-[11px] flex items-center gap-1 shrink-0">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+        <div className="flex items-center gap-2 self-start sm:self-auto bg-white px-3 py-1.5 rounded-xl border border-stone-200 shadow-2xs">
+          <span className="font-semibold text-stone-700 text-[11px] flex items-center gap-1 shrink-0">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500" />
             เรียงลำดับ:
           </span>
           <select
             id="sort-by-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-xs font-bold text-stone-900 focus:outline-none cursor-pointer pr-1"
           >
             <option value="price-asc">💰 เรียงตามราคา: น้อย ➔ มาก (฿1,500 ➔ ฿7,500)</option>
             <option value="price-desc">💰 เรียงตามราคา: มาก ➔ น้อย (฿7,500 ➔ ฿1,500)</option>
@@ -336,12 +341,12 @@ export function CourseSelector({
 
       {/* Course Cards Grid */}
       {filteredCourses.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+        <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 space-y-3">
+          <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center mx-auto text-stone-400">
             <Search className="w-6 h-6" />
           </div>
-          <h3 className="font-bold text-slate-900 text-base">ไม่พบคอร์สเรียนที่ตรงกับเงื่อนไข</h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
+          <h3 className="font-bold text-stone-900 text-base">ไม่พบคอร์สเรียนที่ตรงกับเงื่อนไข</h3>
+          <p className="text-xs text-stone-500 max-w-md mx-auto">
             ลองค้นหาด้วยคำสำคัญอื่น หรือเลือกดูหมวดหมู่ "ทั้งหมด" เพื่อดูหลักสูตรที่มีให้เลือกทั้งหมด 15 คอร์ส
           </p>
           <button
@@ -350,7 +355,7 @@ export function CourseSelector({
               setSelectedCategory('all');
               setDurationFilter('all');
             }}
-            className="px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-xl hover:bg-slate-800"
+            className="px-4 py-2 bg-stone-900 text-white text-xs font-semibold rounded-xl hover:bg-stone-800"
           >
             แสดงคอร์สทั้งหมด
           </button>
@@ -366,8 +371,8 @@ export function CourseSelector({
                 id={`course-card-${course.id}`}
                 className={`relative rounded-3xl transition-all duration-200 flex flex-col justify-between bg-white border ${
                   isSelected
-                    ? 'border-cyan-500 ring-2 ring-cyan-500/20 shadow-xl'
-                    : 'border-slate-200/90 hover:border-slate-300 hover:shadow-md'
+                    ? 'border-orange-500 ring-2 ring-orange-500/20 shadow-xl'
+                    : 'border-stone-200/90 hover:border-stone-300 hover:shadow-md'
                 }`}
               >
                 {/* Featured / Best Seller Badge or Coming Soon Badge */}
@@ -380,7 +385,7 @@ export function CourseSelector({
                 )}
                 {(course.comingSoon || course.durationCategory === 'vdo' || course.isVdoCourse) && (
                   <div className="absolute -top-3 left-6 z-10">
-                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-slate-900 to-indigo-950 text-amber-300 border border-amber-400/40 text-[10px] font-black px-3 py-0.5 rounded-full shadow-md tracking-wider uppercase">
+                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-stone-900 to-indigo-950 text-amber-300 border border-amber-400/40 text-[10px] font-black px-3 py-0.5 rounded-full shadow-md tracking-wider uppercase">
                       <Clock className="w-3 h-3 text-amber-400 animate-pulse" /> Coming Soon (เร็วๆ นี้)
                     </span>
                   </div>
@@ -430,33 +435,33 @@ export function CourseSelector({
                       course.badgeColor === 'purple' ? 'bg-purple-500/10 text-purple-600' :
                       course.badgeColor === 'violet' ? 'bg-violet-500/10 text-violet-600' :
                       course.badgeColor === 'indigo' ? 'bg-indigo-500/10 text-indigo-600' :
-                      course.badgeColor === 'cyan' ? 'bg-cyan-500/10 text-cyan-600' :
+                      course.badgeColor === 'orange' ? 'bg-orange-500/10 text-orange-600' :
                       course.badgeColor === 'rose' ? 'bg-rose-500/10 text-rose-600' :
                       'bg-amber-500/10 text-amber-600'
                     }`}>
                       {getCourseIcon(course.iconName)}
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-base sm:text-lg leading-snug">
+                      <h3 className="font-bold text-stone-900 text-base sm:text-lg leading-snug">
                         {course.title}
                       </h3>
-                      <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
+                      <p className="text-[11px] text-stone-500 font-medium line-clamp-1 mt-0.5">
                         {course.titleEn || ''}
                       </p>
                     </div>
                   </div>
 
                   {/* Description */}
-                  <p className="text-xs text-slate-600 leading-relaxed mb-3.5 line-clamp-2">
+                  <p className="text-xs text-stone-600 leading-relaxed mb-3.5 line-clamp-2">
                     {course.tagline}
                   </p>
 
                   {/* Quick Topics preview */}
-                  <div className="space-y-1.5 mb-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs">
-                    <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                      <BookOpen className="w-3 h-3 text-cyan-600" /> เนื้อหา & Workshop:
+                  <div className="space-y-1.5 mb-3 bg-stone-50 p-3 rounded-2xl border border-stone-100 text-xs">
+                    <p className="text-[11px] font-bold text-stone-700 flex items-center gap-1">
+                      <BookOpen className="w-3 h-3 text-orange-600" /> เนื้อหา & Workshop:
                     </p>
-                    <ul className="text-[11px] text-slate-600 space-y-1 pl-0.5">
+                    <ul className="text-[11px] text-stone-600 space-y-1 pl-0.5">
                       {(course.topics || []).slice(0, 2).map((t, idx) => (
                         <li key={idx} className="flex items-start gap-1.5">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
@@ -475,21 +480,21 @@ export function CourseSelector({
                   )}
 
                   {/* Schedule Notice */}
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 bg-slate-100/70 px-2.5 py-1.5 rounded-xl">
-                    <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-[10px] text-stone-500 bg-stone-100/70 px-2.5 py-1.5 rounded-xl">
+                    <Calendar className="w-3 h-3 text-stone-400 shrink-0" />
                     <span className="truncate">{course.scheduleRuleNotice || 'ไม่มีข้อมูล'}</span>
                   </div>
                 </div>
 
                 {/* Bottom Footer: Price & Action */}
-                <div className="p-5 pt-3 border-t border-slate-100 bg-slate-50/60 rounded-b-3xl flex items-center justify-between gap-3">
+                <div className="p-5 pt-3 border-t border-stone-100 bg-stone-50/60 rounded-b-3xl flex items-center justify-between gap-3">
                   <div>
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-xl font-black text-slate-900">
+                      <span className="text-xl font-black text-stone-900">
                         {formatCurrency(course.price)}
                       </span>
                       {course.originalPrice > course.price && (
-                        <span className="text-xs text-slate-400 line-through">
+                        <span className="text-xs text-stone-400 line-through">
                           {formatCurrency(course.originalPrice)}
                         </span>
                       )}
@@ -506,7 +511,7 @@ export function CourseSelector({
                         e.stopPropagation();
                         onOpenDetails(course);
                       }}
-                      className="p-2.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
+                      className="p-2.5 rounded-xl text-stone-500 hover:text-stone-900 hover:bg-stone-200 transition-colors cursor-pointer"
                       title="ดูรายละเอียดคอร์สเต็ม"
                     >
                       <Info className="w-4 h-4" />
@@ -517,8 +522,8 @@ export function CourseSelector({
                       onClick={() => onSelectCourse(course)}
                       className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
-                          : 'bg-slate-900 hover:bg-slate-800 text-white'
+                          ? 'bg-orange-600 text-white shadow-md shadow-orange-600/30'
+                          : 'bg-stone-900 hover:bg-stone-800 text-white'
                       }`}
                     >
                       {isSelected ? (

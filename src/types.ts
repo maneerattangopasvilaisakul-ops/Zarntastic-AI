@@ -7,7 +7,7 @@ export type CourseCategoryGroup =
   | 'marketing' 
   | 'web' 
   | 'claude' 
-  | 'coaching';
+  | 'coaching' | 'corporate';
 
 export type UserCategory = 'general' | 'corporate';
 

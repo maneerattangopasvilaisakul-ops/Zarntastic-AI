@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://zarntastic-ai-learning.com/sitemap.xml

@@ -43,17 +43,14 @@ export function SlotScheduler({
   userCategory = 'general',
   onUserCategoryChange,
 }: SlotSchedulerProps) {
-  const [internalCategory, setInternalCategory] = useState<UserCategory>(userCategory);
-  const currentCategory = onUserCategoryChange ? userCategory : internalCategory;
-
-  const handleCategoryChange = (cat: UserCategory) => {
-    setInternalCategory(cat);
-    if (onUserCategoryChange) {
-      onUserCategoryChange(cat);
+  const currentCategory: UserCategory = course.categoryGroup === "corporate" ? "corporate" : "general";
+  useEffect(() => {
+    if (onUserCategoryChange && userCategory !== currentCategory) {
+      onUserCategoryChange(currentCategory);
     }
-    // Clear selected slots if category changes to avoid invalid combinations
-    onSelectSlots([]);
-  };
+  }, [course.categoryGroup, onUserCategoryChange, userCategory, currentCategory]);
+  
+
 
   const dates = useMemo(() => getValidNextDates(30), []);
   const [activeDayNumber, setActiveDayNumber] = useState<number>(1);
@@ -146,13 +143,13 @@ export function SlotScheduler({
   if (course.durationCategory === 'vdo') {
     return (
       <section className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold mb-2">
               <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
               <span>ขั้นตอนที่ 2: เตรียมพร้อมเรียนคอร์ส VDO</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight flex items-center gap-2">
               <span>{course.title}</span>
             </h2>
           </div>
@@ -192,16 +189,16 @@ export function SlotScheduler({
     <section className="space-y-6">
       
       {/* Header Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-semibold mb-2">
-            <CalendarCheck className="w-3.5 h-3.5 text-cyan-600" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-800 text-xs font-semibold mb-2">
+            <CalendarCheck className="w-3.5 h-3.5 text-orange-600" />
             <span>ขั้นตอนที่ 2: เลือกวันและเวลาเรียน (ระบบล็อกเวลาอัตโนมัติ)</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight flex items-center gap-2">
             <span>ตารางจองคิว: {course.title}</span>
           </h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-stone-600 mt-1">
             {course.totalDays === 1 
               ? `คอร์สเรียน 1 วัน (${course.totalHours} ชั่วโมง)` 
               : `คอร์สเรียน ${course.totalDays} วัน (รวม ${course.totalHours} ชั่วโมง • แบ่งเรียนวันละ ${course.hoursPerDay} ชั่วโมง)`}
@@ -209,15 +206,15 @@ export function SlotScheduler({
         </div>
 
         {/* Operating Hours Banner */}
-        <div className="bg-slate-900 text-slate-100 px-4 py-3 rounded-2xl border border-slate-800 text-xs self-start sm:self-auto shadow-xs space-y-1">
-          <div className="font-semibold text-cyan-400 flex items-center gap-1.5">
+        <div className="bg-stone-900 text-stone-100 px-4 py-3 rounded-2xl border border-stone-800 text-xs self-start sm:self-auto shadow-xs space-y-1">
+          <div className="font-semibold text-orange-400 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" /> ช่วงเวลาทำการเปิดสอน
           </div>
-          <div className="text-slate-300 space-y-0.5">
-            <div className={currentCategory === 'general' ? 'text-white font-medium' : 'text-slate-400'}>
-              • บุคคลทั่วไป: <strong className="text-cyan-300">จ.-ศ. 19:30-22:30</strong> | <strong className="text-cyan-300">เสาร์ 10:00-23:00</strong> | <strong className="text-cyan-300">อาทิตย์ 09:00-18:00</strong>
+          <div className="text-stone-300 space-y-0.5">
+            <div className={currentCategory === 'general' ? 'text-white font-medium' : 'text-stone-400'}>
+              • บุคคลทั่วไป: <strong className="text-orange-300">จ.-ศ. 19:30-22:30</strong> | <strong className="text-orange-300">เสาร์ 10:00-23:00</strong> | <strong className="text-orange-300">อาทิตย์ 09:00-18:00</strong>
             </div>
-            <div className={currentCategory === 'corporate' ? 'text-white font-medium' : 'text-slate-400'}>
+            <div className={currentCategory === 'corporate' ? 'text-white font-medium' : 'text-stone-400'}>
               • องค์กร (Corporate): <strong className="text-amber-300">จ.-ส. 09:00-18:00</strong> (ปิดวันอาทิตย์)
             </div>
           </div>
@@ -225,54 +222,54 @@ export function SlotScheduler({
       </div>
 
       {/* Target Audience / Category Switcher */}
-      <div className="bg-slate-100 p-2 rounded-2xl border border-slate-200">
-        <div className="text-xs font-bold text-slate-600 uppercase tracking-wider px-2 py-1 mb-1">
+      <div className="bg-stone-100 p-2 rounded-2xl border border-stone-200">
+        <div className="text-xs font-bold text-stone-600 uppercase tracking-wider px-2 py-1 mb-1">
           ประเภทผู้ลงทะเบียนเรียน:
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <button
             type="button"
             id="cat-btn-general"
-            onClick={() => handleCategoryChange('general')}
-            className={`p-3.5 rounded-xl text-left transition-all flex items-center justify-between cursor-pointer ${
+            
+            className={`p-3.5 rounded-xl text-left transition-all flex items-center justify-between cursor-default  ${
               currentCategory === 'general'
-                ? 'bg-white text-slate-900 shadow-sm border border-cyan-500/40 ring-2 ring-cyan-500/20'
-                : 'bg-slate-200/60 text-slate-600 hover:bg-slate-200'
+                ? 'bg-white text-stone-900 shadow-sm border border-orange-500/40 ring-2 ring-orange-500/20'
+                : "bg-stone-200/60 text-stone-600 opacity-50"
             }`}
           >
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                currentCategory === 'general' ? 'bg-cyan-600 text-white' : 'bg-slate-300 text-slate-600'
+                currentCategory === 'general' ? 'bg-orange-600 text-white' : 'bg-stone-300 text-stone-600'
               }`}>
                 <User className="w-5 h-5" />
               </div>
               <div>
                 <div className="font-bold text-sm">บุคคลทั่วไป (รอบค่ำ & วันหยุด)</div>
-                <div className="text-xs text-slate-500">จ.-ศ. 19:30-22:30 น. / ส. 10:00-23:00 น. / อา. 09:00-18:00 น.</div>
+                <div className="text-xs text-stone-500">จ.-ศ. 19:30-22:30 น. / ส. 10:00-23:00 น. / อา. 09:00-18:00 น.</div>
               </div>
             </div>
-            {currentCategory === 'general' && <CheckCircle2 className="w-5 h-5 text-cyan-600" />}
+            {currentCategory === 'general' && <CheckCircle2 className="w-5 h-5 text-orange-600" />}
           </button>
 
           <button
             type="button"
             id="cat-btn-corporate"
-            onClick={() => handleCategoryChange('corporate')}
-            className={`p-3.5 rounded-xl text-left transition-all flex items-center justify-between cursor-pointer ${
+            
+            className={`p-3.5 rounded-xl text-left transition-all flex items-center justify-between cursor-default  ${
               currentCategory === 'corporate'
-                ? 'bg-white text-slate-900 shadow-sm border border-amber-500/40 ring-2 ring-amber-500/20'
-                : 'bg-slate-200/60 text-slate-600 hover:bg-slate-200'
+                ? 'bg-white text-stone-900 shadow-sm border border-amber-500/40 ring-2 ring-amber-500/20'
+                : "bg-stone-200/60 text-stone-600 opacity-50"
             }`}
           >
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                currentCategory === 'corporate' ? 'bg-amber-500 text-white' : 'bg-slate-300 text-slate-600'
+                currentCategory === 'corporate' ? 'bg-amber-500 text-white' : 'bg-stone-300 text-stone-600'
               }`}>
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
                 <div className="font-bold text-sm">องค์กร / บริษัท (In-House Training)</div>
-                <div className="text-xs text-slate-500">เปิดรอบเวลากลางวัน จันทร์-เสาร์ 09:00-18:00 น.</div>
+                <div className="text-xs text-stone-500">เปิดรอบเวลากลางวัน จันทร์-เสาร์ 09:00-18:00 น.</div>
               </div>
             </div>
             {currentCategory === 'corporate' && <CheckCircle2 className="w-5 h-5 text-amber-600" />}
@@ -282,7 +279,7 @@ export function SlotScheduler({
 
       {/* Multi-Day Step Navigator (If course has > 1 days) */}
       {course.totalDays > 1 && (
-        <div className={`grid grid-cols-1 sm:grid-cols-${Math.min(course.totalDays, 4)} gap-2.5 p-2 bg-slate-100 rounded-2xl border border-slate-200`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-${Math.min(course.totalDays, 4)} gap-2.5 p-2 bg-stone-100 rounded-2xl border border-stone-200`}>
           {Array.from({ length: course.totalDays }, (_, i) => i + 1).map((dayNum) => {
             const isDayActive = activeDayNumber === dayNum;
             const slotForDay = selectedSlots.find((s) => s.dayNumber === dayNum);
@@ -308,29 +305,29 @@ export function SlotScheduler({
                   }
                   setActiveDayNumber(dayNum);
                 }}
-                className={`p-3 rounded-xl text-left transition-all flex items-center justify-between cursor-pointer ${
+                className={`p-3 rounded-xl text-left transition-all flex items-center justify-between cursor-default  ${
                   isDayActive
-                    ? 'bg-white shadow-sm border border-cyan-500/40 ring-2 ring-cyan-500/10'
-                    : 'hover:bg-slate-200/60'
+                    ? 'bg-white shadow-sm border border-orange-500/40 ring-2 ring-orange-500/10'
+                    : 'hover:bg-stone-200/60'
                 }`}
               >
                 <div>
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <div className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
                     วันที่ {dayNum} (เรียน {course.hoursPerDay} ชม.)
                   </div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900 mt-0.5">
+                  <div className="font-bold text-xs sm:text-sm text-stone-900 mt-0.5">
                     {slotForDay ? (
                       <span className="text-emerald-700 flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         {formatThaiDateShort(slotForDay.date)} ({slotForDay.startTime}-{slotForDay.endTime}น.)
                       </span>
                     ) : (
-                      <span className="text-slate-600">คลิกเพื่อเลือกรอบเรียน</span>
+                      <span className="text-stone-600">คลิกเพื่อเลือกรอบเรียน</span>
                     )}
                   </div>
                 </div>
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  slotForDay ? 'bg-emerald-100 text-emerald-700' : isDayActive ? 'bg-cyan-600 text-white' : 'bg-slate-200 text-slate-600'
+                  slotForDay ? 'bg-emerald-100 text-emerald-700' : isDayActive ? 'bg-orange-600 text-white' : 'bg-stone-200 text-stone-600'
                 }`}>
                   {slotForDay ? <CheckCircle2 className="w-4 h-4" /> : dayNum}
                 </span>
@@ -345,7 +342,7 @@ export function SlotScheduler({
         <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
           <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <strong className="font-semibold">ข้อกำหนดคอร์ส 8 ชั่วโมง (บุคคลทั่วไป - วันละ 4 ชม.):</strong> เนื่องจากวันธรรมดามีช่วงเวลาสอนรอบค่ำ 19:30-22:30 น. (3 ชม.) ซึ่งไม่เพียงพอต่อเนื้อหา 4 ชม./วัน ระบบจึงเปิดให้ลงทะเบียนเฉพาะ <strong className="underline">วันเสาร์ (10:00 - 23:00 น.) และวันอาทิตย์ (09:00 - 18:00 น.)</strong> หรือหากเป็นองค์กรสามารถเลือกโหมดองค์กรเพื่อเรียนวันธรรมดาได้
+            <strong className="font-semibold">ข้อกำหนดคอร์ส 8 ชั่วโมง (บุคคลทั่วไป - วันละ 4 ชม.):</strong> เนื่องจากวันธรรมดามีช่วงเวลาสอนรอบค่ำ 19:30-22:30 น. (3 ชม.) ซึ่งไม่เพียงพอต่อเนื้อหา 4 ชม./วัน ระบบจึงเปิดให้ลงทะเบียนเฉพาะ <strong className="underline">วันเสาร์ (10:00 - 23:00 น.) และวันอาทิตย์ (09:00 - 18:00 น.)</strong>
           </div>
         </div>
       )}
@@ -353,12 +350,12 @@ export function SlotScheduler({
       {/* Date Picker Strip */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-            <CalendarIcon className="w-4 h-4 text-cyan-600" />
+          <label className="text-xs font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
+            <CalendarIcon className="w-4 h-4 text-orange-600" />
             <span>เลือกวันที่สำหรับ {course.totalDays > 1 ? `วันที่ ${activeDayNumber}` : 'การเรียน'}:</span>
           </label>
-          <span className="text-xs text-slate-500 font-medium">
-            กำลังแสดงคิวของ: <strong className="text-slate-800">{formatThaiDate(activeViewingDate)}</strong>
+          <span className="text-xs text-stone-500 font-medium">
+            กำลังแสดงคิวของ: <strong className="text-stone-800">{formatThaiDate(activeViewingDate)}</strong>
           </span>
         </div>
 
@@ -411,16 +408,16 @@ export function SlotScheduler({
                     onSelectSlots(selectedSlots.filter((s) => s.dayNumber !== activeDayNumber));
                   }
                 }}
-                className={`flex-shrink-0 w-24 py-3 px-2 rounded-2xl text-center border transition-all cursor-pointer ${
+                className={`flex-shrink-0 w-24 py-3 px-2 rounded-2xl text-center border transition-all cursor-default  ${
                   disabled
-                    ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400'
+                    ? 'opacity-40 bg-stone-100 border-stone-200 cursor-not-allowed text-stone-400'
                     : isSelected
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-cyan-500/30'
-                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 hover:border-slate-300'
+                    ? 'bg-stone-900 text-white border-stone-900 shadow-md ring-2 ring-orange-500/30'
+                    : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-800 hover:border-stone-300'
                 }`}
               >
                 <div className={`text-[11px] font-bold ${
-                  isSelected ? 'text-cyan-400' : isWeekend ? 'text-rose-600' : 'text-slate-600'
+                  isSelected ? 'text-orange-400' : isWeekend ? 'text-rose-600' : 'text-stone-600'
                 }`}>
                   {d.dayName.replace('วัน', '')}
                 </div>
@@ -428,7 +425,7 @@ export function SlotScheduler({
                   {formatThaiDateShort(d.dateStr)}
                 </div>
                 <div className={`text-[10px] ${
-                  isSelected ? 'text-slate-300' : 'text-slate-500'
+                  isSelected ? 'text-stone-300' : 'text-stone-500'
                 }`}>
                   {reasonText ? reasonText : isWeekend ? 'ส.-อา.' : 'จ.-ศ.'}
                 </div>
@@ -439,25 +436,25 @@ export function SlotScheduler({
       </div>
 
       {/* Available Time Slots Grid */}
-      <div className="bg-slate-50 rounded-3xl p-5 sm:p-6 border border-slate-200 space-y-4">
+      <div className="bg-stone-50 rounded-3xl p-5 sm:p-6 border border-stone-200 space-y-4">
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 pb-3">
           <div>
-            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              <Clock className="w-4 h-4 text-cyan-600" />
+            <h3 className="font-bold text-stone-900 text-base flex items-center gap-2">
+              <Clock className="w-4 h-4 text-orange-600" />
               <span>เลือกรอบเวลา ({formatThaiDate(activeViewingDate)})</span>
             </h3>
-            <p className="text-xs text-slate-600 mt-0.5">
+            <p className="text-xs text-stone-600 mt-0.5">
               เวลาทำการ: {getOperatingHours(activeViewingDate, currentCategory)} (ความยาวรอบเรียน: {course.hoursPerDay} ชั่วโมง)
             </p>
           </div>
 
           <div className="flex items-center gap-3 text-xs">
-            <div className="flex items-center gap-1.5 text-slate-600">
+            <div className="flex items-center gap-1.5 text-stone-600">
               <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
               <span>ว่างให้จอง</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-600">
+            <div className="flex items-center gap-1.5 text-stone-600">
               <span className="w-3 h-3 rounded-full bg-rose-400 inline-block"></span>
               <span>มีผู้จองแล้ว (ล็อก)</span>
             </div>
@@ -466,7 +463,7 @@ export function SlotScheduler({
 
         {/* Slot Buttons */}
         {activeSlots.length === 0 ? (
-          <div className="text-center py-10 text-slate-500 text-sm">
+          <div className="text-center py-10 text-stone-500 text-sm">
             ไม่มีรอบเวลาที่เปิดสอนในวันที่เลือก กรุณาเลือกวันอื่น
           </div>
         ) : (
@@ -484,8 +481,8 @@ export function SlotScheduler({
                     slot.isOccupied
                       ? 'bg-rose-50/70 border-rose-200 text-rose-800 opacity-80 cursor-not-allowed'
                       : currentChosen
-                      ? 'bg-cyan-600 text-white border-cyan-600 shadow-md ring-2 ring-cyan-400/30'
-                      : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-cyan-400 text-slate-800 cursor-pointer shadow-xs'
+                      ? 'bg-orange-600 text-white border-orange-600 shadow-md ring-2 ring-orange-400/30'
+                      : 'bg-white hover:bg-stone-50 border-stone-200 hover:border-orange-400 text-stone-800 cursor-pointer shadow-xs'
                   }`}
                 >
                   {/* Status Tag */}
@@ -508,7 +505,7 @@ export function SlotScheduler({
                     )}
                   </div>
 
-                  <div className={`text-xs ${currentChosen ? 'text-cyan-100' : 'text-slate-500'}`}>
+                  <div className={`text-xs ${currentChosen ? 'text-orange-100' : 'text-stone-500'}`}>
                     {slot.isOccupied ? (
                       <span className="text-rose-600 font-medium truncate block">
                         จองแล้ว ({slot.bookedBy || 'ติดคิวผู้เรียนอื่น'})
@@ -526,12 +523,12 @@ export function SlotScheduler({
       </div>
 
       {/* Bottom Summary Bar & Proceed CTA */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
             สรุปเวลานัดหมาย ({currentCategory === 'corporate' ? 'รอบองค์กร' : 'รอบบุคคลทั่วไป'}) • ครบ {selectedSlots.length}/{course.totalDays} วัน
           </div>
-          <div className="text-sm font-bold text-slate-900 mt-1 space-y-1">
+          <div className="text-sm font-bold text-stone-900 mt-1 space-y-1">
             {Array.from({ length: course.totalDays }, (_, i) => i + 1).map((dNum) => {
               const s = selectedSlots.find((slot) => slot.dayNumber === dNum);
               return s ? (
@@ -540,7 +537,7 @@ export function SlotScheduler({
                   <span>วันที่ {dNum}: {formatThaiDate(s.date)} ({s.startTime} - {s.endTime} น.)</span>
                 </div>
               ) : (
-                <div key={dNum} className="text-slate-400">
+                <div key={dNum} className="text-stone-400">
                   • กรุณาเลือกรอบเวลาเรียนวันที่ {dNum}
                 </div>
               );
@@ -554,8 +551,8 @@ export function SlotScheduler({
           onClick={onProceedToForm}
           className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all shadow-md ${
             isScheduleComplete
-              ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/30 cursor-pointer'
-              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-600/30 cursor-pointer'
+              : 'bg-stone-200 text-stone-400 cursor-not-allowed'
           }`}
         >
           <span>กรอกข้อมูลผู้เรียนและชำระเงิน</span>

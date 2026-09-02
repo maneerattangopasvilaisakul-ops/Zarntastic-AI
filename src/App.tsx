@@ -15,6 +15,7 @@ import { NotificationDrawer } from './components/NotificationDrawer';
 import { CourseDetailModal } from './components/CourseDetailModal';
 import { FastworkReviews } from './components/FastworkReviews';
 import { KnowledgeBase } from './components/KnowledgeBase';
+import { SEO } from './components/SEO';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -298,28 +299,48 @@ export default function App() {
 
   const unreadNotifCount = notifications.filter((n) => !n.isRead).length;
 
+  const appSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Zarntastic AI Course",
+    "url": "https://zarntastic-ai-course.web.app",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://zarntastic-ai-course.web.app/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Zarntastic AI Learning",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://zarntastic-ai-course.web.app/icon.png"
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-100/60 text-slate-900 flex flex-col font-sans selection:bg-cyan-500 selection:text-white">
-      
+    <div className="min-h-screen w-full overflow-x-hidden bg-stone-100/60 text-stone-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+      <SEO schema={appSchema} />
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 max-w-sm w-full bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-800 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-bottom-5">
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm w-full bg-stone-900 text-white p-4 rounded-2xl shadow-2xl border border-stone-800 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-bottom-5">
           <div className="flex items-start gap-2.5">
             {toastMessage.type === 'success' ? (
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             ) : toastMessage.type === 'alert' ? (
               <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             ) : (
-              <Sparkles className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+              <Sparkles className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
             )}
             <div>
               <div className="font-bold text-xs sm:text-sm text-white">{toastMessage.title}</div>
-              <div className="text-xs text-slate-300 mt-0.5">{toastMessage.desc}</div>
+              <div className="text-xs text-stone-300 mt-0.5">{toastMessage.desc}</div>
             </div>
           </div>
           <button
             onClick={() => setToastMessage(null)}
-            className="text-slate-400 hover:text-white p-1"
+            className="text-stone-400 hover:text-white p-1"
           >
             <X className="w-4 h-4" />
           </button>
@@ -365,7 +386,7 @@ export default function App() {
           <div className="space-y-8">
             
             {/* Step Navigation Progress Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between overflow-x-auto">
+            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between overflow-x-auto">
               {[
                 { step: 'course', number: 1, title: 'เลือกคอร์สเรียน AI' },
                 { step: 'schedule', number: 2, title: 'เลือกวัน & เวลาเรียน' },
@@ -384,18 +405,18 @@ export default function App() {
                       }}
                       className={`flex items-center gap-2 text-xs sm:text-sm font-bold transition-colors cursor-pointer ${
                         isActive
-                          ? 'text-cyan-700'
+                          ? 'text-orange-700'
                           : isPassed
                           ? 'text-emerald-700'
-                          : 'text-slate-400'
+                          : 'text-stone-400'
                       }`}
                     >
                       <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-extrabold ${
                         isActive
-                          ? 'bg-cyan-600 text-white ring-2 ring-cyan-600/30'
+                          ? 'bg-orange-600 text-white ring-2 ring-orange-600/30'
                           : isPassed
                           ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-100 text-slate-400'
+                          : 'bg-stone-100 text-stone-400'
                       }`}>
                         {isPassed ? <CheckCircle2 className="w-4 h-4" /> : s.number}
                       </span>
@@ -403,7 +424,7 @@ export default function App() {
                     </button>
 
                     {idx < 2 && (
-                      <ChevronRight className="w-4 h-4 text-slate-300 mx-1 sm:mx-3" />
+                      <ChevronRight className="w-4 h-4 text-stone-300 mx-1 sm:mx-3" />
                     )}
                   </div>
                 );
@@ -478,17 +499,17 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 mt-16 py-10 text-xs">
+      <footer className="bg-stone-900 text-stone-400 border-t border-stone-800 mt-16 py-10 text-xs">
         <div className="max-w-7xl mx-auto px-4 space-y-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-800">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-6 border-b border-stone-800">
             <div className="text-center md:text-left">
               <p className="font-bold text-sm text-white flex items-center justify-center md:justify-start gap-2">
                 <span>ZARNTASTIC AI LEARNING</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-950 text-orange-400 border border-orange-800">
                   Fastwork 5.0 ★
                 </span>
               </p>
-              <p className="text-slate-400 text-xs mt-1">
+              <p className="text-stone-400 text-xs mt-1">
                 Turning Ideas Into Visual Experiences • ผู้เชี่ยวชาญด้าน AI และ Automation โดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล
               </p>
             </div>
@@ -504,18 +525,18 @@ export default function App() {
                 }}
                 className="px-4 py-2 bg-indigo-950 hover:bg-indigo-900 text-indigo-300 hover:text-white rounded-xl border border-indigo-700/60 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
               >
-                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <ShieldCheck className="w-4 h-4 text-orange-400" />
                 <span>🔐 เข้าสู่ระบบผู้ดูแล / อาจารย์ (Admin Portal)</span>
               </button>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-slate-500 text-[11px]">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-stone-500 text-[11px]">
             <p>
               บุคคลทั่วไป: จันทร์-ศุกร์ (19.30-22.30 น.), เสาร์-อาทิตย์ (09.00-18.00 น.) • องค์กร: จันทร์-เสาร์ (09.00-18.00 น.)
             </p>
             <p>
-              ติดต่อ: LINE: @zarntastic | โทร: 061-5614269 | Fastwork: zarnzarn
+              ติดต่อ: LINE ID: zarn | โทร: 061-5614269 | Fastwork: zarnzarn
             </p>
           </div>
         </div>
@@ -563,7 +584,7 @@ export default function App() {
           id="btn-floating-gemini-chat"
           type="button"
           onClick={() => setIsAIAdvisorOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-indigo-500 text-white p-3 sm:px-4 sm:py-3 rounded-full shadow-xl shadow-purple-900/30 border border-purple-300/40 flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95 cursor-pointer group"
+          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-purple-600 via-indigo-600 to-orange-600 hover:from-purple-500 hover:to-indigo-500 text-white p-3 sm:px-4 sm:py-3 rounded-full shadow-xl shadow-purple-900/30 border border-purple-300/40 flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95 cursor-pointer group"
           title="ปรึกษาหลักสูตรกับ Gemini AI"
         >
           <div className="relative">
