@@ -996,10 +996,11 @@ app.post("/api/bookings/:id/slip", async (req, res) => {
 });
 
 // Short Link endpoints for customer sharing
-const DEFAULT_CUSTOMER_SHORT_URL = "https://tinyurl.com/2codulfo";
+const DEFAULT_CUSTOMER_SHORT_URL = "https://tinyurl.com/zarntastic";
 app.get("/api/short-link", async (req, res) => {
   res.json({
     shortUrl: DEFAULT_CUSTOMER_SHORT_URL,
+    alternateShortUrl: "https://da.gd/zarntastic",
     originalUrl: "https://ais-pre-bs4eeo3qrendw7bstnmdwp-887964686274.asia-southeast1.run.app/",
     description: "ลิงก์สั้นสำหรับส่งลูกค้าจองคอร์สเรียน AI"
   });

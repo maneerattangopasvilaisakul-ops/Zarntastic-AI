@@ -801,7 +801,7 @@ export default function App() {
       <ShareLinkModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
-        shortUrl="https://tinyurl.com/2codulfo"
+        shortUrl="https://tinyurl.com/zarntastic"
         longUrl="https://ais-pre-bs4eeo3qrendw7bstnmdwp-887964686274.asia-southeast1.run.app/"
       />
 

@@ -27,9 +27,10 @@ interface ShareLinkModalProps {
 export function ShareLinkModal({
   isOpen,
   onClose,
-  shortUrl = "https://tinyurl.com/2codulfo",
+  shortUrl: propShortUrl = "https://tinyurl.com/zarntastic",
   longUrl = "https://ais-pre-bs4eeo3qrendw7bstnmdwp-887964686274.asia-southeast1.run.app/"
 }: ShareLinkModalProps) {
+  const [selectedUrl, setSelectedUrl] = useState<string>(propShortUrl);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedTemplate, setCopiedTemplate] = useState(false);
   const [activeTab, setActiveTab] = useState<'link' | 'qr' | 'domain'>('link');
@@ -37,17 +38,20 @@ export function ShareLinkModal({
 
   if (!isOpen) return null;
 
+  const currentShortUrl = selectedUrl || "https://tinyurl.com/zarntastic";
+
   const clientMessage = `สวัสดีค่ะ/ครับ ขออนุญาตส่งลิงก์ระบบจองคอร์สเรียน AI กับ อ.มณีรัตน์ (Zarntastic AI Learning)
 
 ✨ สามารถคลิกเลือกดูรายละเอียดคอร์ส ตรวจสอบวันและเวลาที่ว่าง และจองคิวออนไลน์ได้ทันทีที่:
-${shortUrl}
+${currentShortUrl}
 
 หากมีข้อสงสัยเพิ่มเติม สามารถทักสอบถามได้ตลอดเวลาเลยนะคะ/ครับ ขอบคุณค่ะ/ครับ 🙏`;
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shortUrl);
+  const handleCopyLink = (urlToCopy?: string) => {
+    const text = urlToCopy || currentShortUrl;
+    navigator.clipboard.writeText(text);
     setCopiedLink(true);
-    toast.success('คัดลอกลิงก์สั้นเรียบร้อย พร้อมส่งลูกค้าทันที!');
+    toast.success(`คัดลอก ${text} เรียบร้อย พร้อมส่งลูกค้าทันที!`);
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
@@ -176,9 +180,9 @@ ${shortUrl}
               {/* Short Link Box */}
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1.5 flex items-center justify-between">
-                  <span>ลิงก์สั้นที่ย่อแล้ว (พร้อมคลิกส่งได้ทันที):</span>
+                  <span>ลิงก์สั้นหลัก (zarntastic):</span>
                   <span className="text-[11px] font-normal text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> จำง่าย สั้น กะทัดรัด
+                    <CheckCircle2 className="w-3.5 h-3.5" /> จดจำง่าย มีชื่อแบรนด์ zarntastic
                   </span>
                 </label>
                 <div className="flex items-center gap-2 p-1.5 bg-stone-50 border-2 border-orange-200 rounded-2xl focus-within:border-orange-500 transition-all">
@@ -188,12 +192,12 @@ ${shortUrl}
                   <input
                     type="text"
                     readOnly
-                    value={shortUrl}
+                    value={currentShortUrl}
                     className="flex-1 bg-transparent text-sm sm:text-base font-bold text-stone-900 focus:outline-none select-all"
                   />
                   <button
                     id="copy-short-url-btn"
-                    onClick={handleCopyLink}
+                    onClick={() => handleCopyLink(currentShortUrl)}
                     className="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-600/20 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                   >
                     {copiedLink ? (
@@ -209,6 +213,36 @@ ${shortUrl}
                     )}
                   </button>
                 </div>
+
+                {/* Available zarntastic short link formats */}
+                <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                  <span className="text-[11px] text-stone-500 font-medium">รูปแบบลิงก์ที่มี zarntastic:</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUrl("https://tinyurl.com/zarntastic")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                      currentShortUrl === "https://tinyurl.com/zarntastic"
+                        ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                        : "bg-white text-stone-700 border-stone-200 hover:bg-stone-100"
+                    }`}
+                  >
+                    <span>tinyurl.com/zarntastic</span>
+                    <span className={`text-[9px] px-1 py-0.2 rounded font-extrabold ${currentShortUrl === "https://tinyurl.com/zarntastic" ? "bg-white/20 text-white" : "bg-orange-100 text-orange-700"}`}>หลัก</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUrl("https://da.gd/zarntastic")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                      currentShortUrl === "https://da.gd/zarntastic"
+                        ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                        : "bg-white text-stone-700 border-stone-200 hover:bg-stone-100"
+                    }`}
+                  >
+                    <span>da.gd/zarntastic</span>
+                    <span className={`text-[9px] px-1 py-0.2 rounded font-extrabold ${currentShortUrl === "https://da.gd/zarntastic" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"}`}>สั้นสุด</span>
+                  </button>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -222,7 +256,7 @@ ${shortUrl}
                   ส่งเข้า LINE ทันที
                 </button>
                 <a
-                  href={shortUrl}
+                  href={currentShortUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="py-3 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all text-center"
@@ -265,7 +299,7 @@ ${shortUrl}
               <div className="bg-stone-50 p-6 rounded-3xl border border-stone-200 inline-block mx-auto shadow-inner">
                 <QRCodeSVG
                   ref={qrRef}
-                  value={shortUrl}
+                  value={currentShortUrl}
                   size={220}
                   level="H"
                   includeMargin={true}
@@ -285,6 +319,9 @@ ${shortUrl}
                 <p className="text-xs text-stone-500 mt-1">
                   นำภาพนี้ไปใส่ในโบรชัวร์, โพสต์เฟซบุ๊ก, ใบเสนอราคา หรือส่งให้ลูกค้าในแชตได้ทันที
                 </p>
+                <p className="text-[11px] font-mono font-bold text-orange-600 mt-1">
+                  {currentShortUrl}
+                </p>
               </div>
 
               <div className="flex justify-center gap-3 pt-2">
@@ -297,7 +334,7 @@ ${shortUrl}
                   ดาวน์โหลดรูป QR Code (PNG)
                 </button>
                 <button
-                  onClick={handleCopyLink}
+                  onClick={() => handleCopyLink(currentShortUrl)}
                   className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs sm:text-sm rounded-xl transition-all cursor-pointer"
                 >
                   คัดลอกลิงก์
@@ -336,7 +373,7 @@ ${shortUrl}
               </ol>
 
               <div className="p-3 bg-stone-100 rounded-xl text-[11px] text-stone-600">
-                💡 <strong>คำแนะนำ:</strong> ในช่วงระหว่างนี้ สามารถใช้ลิงก์สั้น <span className="font-bold text-orange-700 select-all">{shortUrl}</span> ที่สร้างไว้ให้เพื่อส่งลูกค้าหรือโพสต์ได้ทันที ไม่ต้องรอตั้งค่าโดเมน
+                💡 <strong>คำแนะนำ:</strong> ในช่วงระหว่างนี้ สามารถใช้ลิงก์สั้น <span className="font-bold text-orange-700 select-all">{currentShortUrl}</span> ที่สร้างไว้ให้เพื่อส่งลูกค้าหรือโพสต์ได้ทันที ไม่ต้องรอตั้งค่าโดเมน
               </div>
             </div>
           )}
