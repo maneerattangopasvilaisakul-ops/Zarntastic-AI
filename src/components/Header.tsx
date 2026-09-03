@@ -16,7 +16,9 @@ import {
   BookOpen,
   Home,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  FileCheck,
+  Share2
 } from 'lucide-react';
 import { NotificationItem } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,6 +34,8 @@ interface HeaderProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenAIAdvisor: () => void;
+  onOpenMyBookings?: () => void;
+  onOpenShareLink?: () => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
 }
@@ -44,6 +48,8 @@ export function Header({
   soundEnabled,
   onToggleSound,
   onOpenAIAdvisor,
+  onOpenMyBookings,
+  onOpenShareLink,
   searchQuery = '',
   onSearchChange,
 }: HeaderProps) {
@@ -137,6 +143,14 @@ export function Header({
             >
               คลังความรู้ AI
             </button>
+            <button
+              id="nav-btn-my-bookings"
+              onClick={onOpenMyBookings}
+              className="px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100"
+            >
+              <FileCheck className="w-3.5 h-3.5 text-orange-600" />
+              <span>ตรวจสอบการจอง</span>
+            </button>
             <button 
               id="nav-btn-admin-portal"
               onClick={() => handleNavClick('admin')}
@@ -183,13 +197,13 @@ export function Header({
           {/* Desktop Contact Badges (>= xl) */}
           <div className="hidden xl:flex items-center gap-2">
             <a
-              href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
+              href="https://line.me/ti/p/N9UPH4OL4L"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800 text-emerald-400 text-xs font-semibold hover:bg-emerald-900/60 transition-colors"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              <span>LINE ID: zarn</span>
+              <span>LINE ส่วนตัว</span>
             </a>
             <a
               href="tel:0615614269"
@@ -203,6 +217,19 @@ export function Header({
           {/* Right Action Icons & Controls */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             
+            {/* Share Short Link Button */}
+            {onOpenShareLink && (
+              <button
+                id="header-btn-share-link"
+                onClick={onOpenShareLink}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-xs font-bold text-orange-700 border border-orange-200 shadow-sm transition-all cursor-pointer"
+                title="คัดลอกลิงก์สั้นและ QR Code สำหรับส่งลูกค้า"
+              >
+                <Share2 className="w-3.5 h-3.5 text-orange-600" />
+                <span className="hidden md:inline">ลิงก์ส่งลูกค้า</span>
+              </button>
+            )}
+
             {/* AI Advisor Button */}
             <button
               id="header-btn-ai-advisor"
@@ -369,6 +396,23 @@ export function Header({
               <ChevronRight className="w-4 h-4 text-stone-500" />
             </button>
 
+            {/* My Bookings Entry */}
+            <button
+              type="button"
+              id="mobile-nav-my-bookings"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenMyBookings?.();
+              }}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all min-h-[44px] cursor-pointer bg-stone-800/60 text-stone-200 hover:bg-stone-800"
+            >
+              <div className="flex items-center gap-3">
+                <FileCheck className="w-4 h-4 text-orange-400" />
+                <span>ตรวจสอบสถานะการจองของฉัน</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-stone-500" />
+            </button>
+
             {/* Admin Portal Entry */}
             <button
               type="button"
@@ -387,6 +431,23 @@ export function Header({
               <ChevronRight className="w-4 h-4 text-stone-500" />
             </button>
           </div>
+
+          {/* Quick Share Link Button */}
+          {onOpenShareLink && (
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenShareLink();
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-200 font-bold text-sm flex items-center justify-center gap-2 shadow-sm cursor-pointer min-h-[44px]"
+              >
+                <Share2 className="w-4 h-4 text-orange-600" />
+                <span>ลิงก์สั้นและ QR Code สำหรับส่งลูกค้า</span>
+              </button>
+            </div>
+          )}
 
           {/* Quick AI Consultant Prompt Button */}
           <div className="pt-1">
@@ -413,7 +474,7 @@ export function Header({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <a
-                href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
+                href="https://line.me/ti/p/N9UPH4OL4L"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-emerald-950/70 border border-emerald-800 text-emerald-400 font-semibold min-h-[40px]"

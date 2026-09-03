@@ -1,7 +1,14 @@
+export interface ArticleSource {
+  name: string;
+  url: string;
+  tier: 'Tier 1 Official' | 'Tier 2 Trusted' | string;
+  publishedDate?: string;
+}
+
 export interface Article {
   id: string;
   type: 'article' | 'video' | 'guide' | 'comparison';
-  category: 'geo-aeo' | 'prompt' | 'workflow' | 'comparison' | 'agent' | 'webapp' | 'marketing';
+  category: 'geo-aeo' | 'prompt' | 'workflow' | 'comparison' | 'agent' | 'webapp' | 'marketing' | 'ai-news';
   categoryLabel: string;
   title: string;
   tagline: string;
@@ -19,6 +26,8 @@ export interface Article {
   relatedCourseId?: string;
   relatedCourseTitle?: string;
   tags: string[];
+  sources?: ArticleSource[];
+  isAutomated?: boolean;
   content: {
     summary: string;
     sections: {

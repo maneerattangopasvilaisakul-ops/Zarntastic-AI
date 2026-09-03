@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Booking } from '../types';
 import { ACADEMY_PAYMENT_INFO } from '../utils/promptpay';
-import { formatCurrency } from '../utils/scheduleUtils';
+import { formatCurrency, formatThaiDate } from '../utils/scheduleUtils';
 import { QRCodeSVG } from 'qrcode.react';
 import generatePayload from 'promptpay-qr';
 import { 
@@ -14,27 +14,41 @@ import {
   Clock, 
   Loader2, 
   FileCheck,
-  MessageCircle
+  MessageCircle,
+  Pencil,
+  Calendar,
+  User
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase';
+import { EditBookingModal } from './EditBookingModal';
 
 interface PaymentModalProps {
   booking: Booking;
+  existingBookings?: Booking[];
   onUploadSlip: (slipUrl: string, refNo?: string, manualAmount?: number) => Promise<void>;
   onClose: () => void;
+  onCancelBooking: () => void;
+  onUpdateBooking?: (updated: Booking) => void;
 }
 
 export function PaymentModal({
-  booking,
+  booking: initialBooking,
+  existingBookings = [],
   onUploadSlip,
   onClose,
+  onCancelBooking,
+  onUpdateBooking,
 }: PaymentModalProps) {
+  const [booking, setBooking] = useState<Booking>(initialBooking);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  useEffect(() => {
+    setBooking(initialBooking);
+  }, [initialBooking]);
+
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [slipImage, setSlipImage] = useState<string | null>(null);
-  const [slipFile, setSlipFile] = useState<Blob | null>(null);
   const [slipFileName, setSlipFileName] = useState<string>('');
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [manualRef, setManualRef] = useState<string>('');
@@ -112,14 +126,10 @@ export function PaymentModal({
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
             // Compress and convert to base64 for preview
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
             setSlipImage(compressedDataUrl);
-            canvas.toBlob((blob) => {
-              if (blob) setSlipFile(blob);
-            }, 'image/jpeg', 0.8);
           } else {
             setSlipImage(event.target?.result as string);
-            setSlipFile(file);
           }
         };
         img.src = event.target?.result as string;
@@ -175,26 +185,22 @@ export function PaymentModal({
 
       const dataUrl = canvas.toDataURL('image/png');
       setSlipImage(dataUrl);
-      canvas.toBlob((blob) => {
-        if (blob) setSlipFile(blob);
-      }, 'image/png');
       setSlipFileName('sample_kbank_slip.png');
     }
   };
 
   const handleSubmitSlip = async () => {
-    if (!slipImage || !slipFile) return;
+    if (!slipImage) return;
     setIsVerifying(true);
     try {
-      // Upload to Firebase Storage
-      const fileExt = slipFileName.split('.').pop() || 'jpg';
-      const storageRef = ref(storage, `slips/${booking.id}_${Date.now()}.${fileExt}`);
-      await uploadBytes(storageRef, slipFile);
-      const downloadURL = await getDownloadURL(storageRef);
-      
-      await onUploadSlip(downloadURL, manualRef || `REF-${Date.now().toString().slice(-6)}`, booking.totalPrice);
+      await onUploadSlip(
+        slipImage,
+        manualRef.trim() || `REF-${Date.now().toString().slice(-6)}`,
+        booking.totalPrice
+      );
     } catch (error) {
-      toast.error('อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+      console.error('Submit slip error:', error);
+      toast.error('อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsVerifying(false);
     }
@@ -236,6 +242,47 @@ export function PaymentModal({
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6">
           
+          {/* Booking Summary Banner with Edit Button */}
+          <div className="bg-gradient-to-r from-orange-50 to-amber-50/60 border border-orange-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-extrabold text-stone-900 text-sm sm:text-base">
+                  {booking.courseTitle}
+                </span>
+                <span className="text-xs bg-orange-200 text-orange-950 font-black px-2.5 py-0.5 rounded-lg border border-orange-300">
+                  {formatCurrency(booking.totalPrice)}
+                </span>
+              </div>
+              <div className="text-xs text-stone-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="flex items-center gap-1 font-medium">
+                  <User className="w-3.5 h-3.5 text-stone-500" />
+                  {booking.customer.name} ({booking.customer.phone})
+                </span>
+                {booking.customer.lineId && (
+                  <span className="text-stone-500 font-medium">
+                    LINE: <strong className="text-stone-700">{booking.customer.lineId}</strong>
+                  </span>
+                )}
+                {booking.schedule?.length > 0 && (
+                  <span className="flex items-center gap-1 text-indigo-900 font-medium bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100">
+                    <Calendar className="w-3 h-3 text-indigo-600" />
+                    {booking.schedule.map(s => `${formatThaiDate(s.date, false)} ${s.startTime}-${s.endTime}น.`).join(' | ')}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="shrink-0 px-3.5 py-2 bg-white hover:bg-orange-100 text-orange-800 border border-orange-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:shadow-sm"
+              title="แก้ไขข้อมูลชื่อ เบอร์โทร หรือเปลี่ยนวันเวลาเรียน"
+            >
+              <Pencil className="w-3.5 h-3.5 text-orange-600" />
+              <span>แก้ไขข้อมูล / เปลี่ยนวันเวลา</span>
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Left Col: PromptPay QR & Bank Info */}
@@ -404,7 +451,7 @@ export function PaymentModal({
                 </div>
               </div>
 
-              {/* Submit CTA */}
+                            {/* Submit CTA */}
               <div className="pt-2">
                 <button
                   id="btn-confirm-upload-slip"
@@ -428,15 +475,27 @@ export function PaymentModal({
                     </>
                   )}
                 </button>
+                <div className="mt-3 flex items-center justify-center">
+                   <button
+                     onClick={onCancelBooking}
+                     className="text-xs font-bold text-rose-500 hover:text-rose-600 underline cursor-pointer"
+                   >
+                     ยกเลิกการจองนี้
+                   </button>
+                </div>
+                <div className="mt-2 text-center text-[10px] text-stone-500 font-medium">
+                  * ไม่มีการคืนเงินทุกกรณี หลังชำระเงินเรียบร้อยแล้ว<br/>
+                  * หากชำระแล้วจะไม่สามารถยกเลิกหรือแก้ไขได้ (ต้องติดต่อ Admin เท่านั้น)
+                </div>
                 <div className="mt-4 flex flex-col items-center gap-2 text-center">
                   <a 
-                    href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url" 
+                    href="https://line.me/ti/p/N9UPH4OL4L" 
                     target="_blank" 
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#06C755]/10 hover:bg-[#06C755]/20 text-[#06C755] border border-[#06C755]/30 rounded-xl text-xs font-bold transition-colors"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    <span>แจ้งชำระเงินหรือส่งสลิปผ่าน LINE ID: zarn</span>
+                    <span>แจ้งชำระเงินหรือส่งสลิปผ่าน LINE ส่วนตัว</span>
                   </a>
                 </div>
               </div>
@@ -448,6 +507,20 @@ export function PaymentModal({
         </div>
 
       </div>
+
+      {/* Edit Booking Modal */}
+      {isEditModalOpen && (
+        <EditBookingModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          booking={booking}
+          existingBookings={existingBookings}
+          onSuccess={(updated) => {
+            setBooking(updated);
+            onUpdateBooking?.(updated);
+          }}
+        />
+      )}
 
     </div>
   );

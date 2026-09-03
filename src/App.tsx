@@ -13,8 +13,10 @@ import { AdminLoginForm } from './components/AdminLoginForm';
 import { AICourseAdvisor } from './components/AICourseAdvisor';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import { CourseDetailModal } from './components/CourseDetailModal';
+import { MyBookingsModal } from './components/MyBookingsModal';
 import { FastworkReviews } from './components/FastworkReviews';
 import { KnowledgeBase } from './components/KnowledgeBase';
+import { ShareLinkModal } from './components/ShareLinkModal';
 import { SEO } from './components/SEO';
 import { 
   Sparkles, 
@@ -60,15 +62,36 @@ export default function App() {
   // Selected State
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(COURSES[0]);
   const [selectedSlots, setSelectedSlots] = useState<ScheduleSlot[]>([]);
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-    name: '',
-    email: '',
-    phone: '',
-    lineId: '',
-    notes: '',
-    experienceLevel: 'Beginner',
-    clientType: 'general',
+  
+  // Persistent Customer Info (survives page refresh & screen changes)
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(() => {
+    try {
+      const saved = localStorage.getItem('zarntastic_customer_info');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      // ignore
+    }
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      lineId: '',
+      notes: '',
+      experienceLevel: 'Beginner',
+      clientType: 'general',
+    };
   });
+
+  // Auto-persist customerInfo whenever user modifies it
+  useEffect(() => {
+    try {
+      localStorage.setItem('zarntastic_customer_info', JSON.stringify(customerInfo));
+    } catch (e) {
+      // ignore
+    }
+  }, [customerInfo]);
 
   // Data Store
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -84,7 +107,34 @@ export default function App() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
   const [isAIAdvisorOpen, setIsAIAdvisorOpen] = useState<boolean>(false);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState<boolean>(false);
-  const [activeBooking, setActiveBooking] = useState<Booking | null>(null);
+  const [isMyBookingsOpen, setIsMyBookingsOpen] = useState<boolean>(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+
+  // Persistent Active Booking (allows returning to payment or reviewing anytime)
+  const [activeBooking, setActiveBooking] = useState<Booking | null>(() => {
+    try {
+      const saved = localStorage.getItem('zarntastic_active_booking');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  });
+
+  // Auto-persist activeBooking
+  useEffect(() => {
+    try {
+      if (activeBooking) {
+        localStorage.setItem('zarntastic_active_booking', JSON.stringify(activeBooking));
+      } else {
+        localStorage.removeItem('zarntastic_active_booking');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [activeBooking]);
 
   // Sound alert & Notification Toast
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -211,26 +261,67 @@ export default function App() {
   // Upload Slip
   const handleUploadSlip = async (slipUrl: string, referenceNo?: string, manualAmount?: number) => {
     if (!activeBooking) return;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
     try {
       const res = await fetch(`/api/bookings/${activeBooking.id}/slip`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           slipUrl,
           referenceNo,
           manualAmount,
         }),
       });
+      clearTimeout(timeoutId);
 
-      const data = await res.json();
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.booking) {
         setActiveBooking(data.booking);
         setIsPaymentModalOpen(false);
         setIsSuccessModalOpen(true);
-        triggerToast('ส่งสลิปเรียบร้อย', 'ระบบ AI และแอดมินกำลังตรวจสอบความถูกต้อง', 'success');
+        triggerToast('ส่งสลิปเรียบร้อย', 'ระบบ AI และแอดมินได้รับสลิปแล้ว กำลังตรวจสอบความถูกต้อง', 'success');
         fetchBookings();
       } else {
-        triggerToast('ข้อผิดพลาด', data.error || 'ไม่สามารถส่งสลิปได้', 'alert');
+        triggerToast('ข้อผิดพลาด', data.error || 'ไม่สามารถส่งสลิปได้ กรุณาลองใหม่', 'alert');
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        triggerToast('การเชื่อมต่อช้า', 'การส่งสลิปใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง หรือส่งผ่าน LINE', 'alert');
+      } else if (!err.message || err.message === 'Failed to fetch') {
+        triggerToast('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง', 'alert');
+      }
+      throw err;
+    }
+  };
+
+  // Customer Cancel Booking
+  const handleCustomerCancelBooking = async () => {
+    if (!activeBooking) return;
+    await handleCancelBookingById(activeBooking.id);
+  };
+
+  // Cancel Booking by ID (Used across Customer modals)
+  const handleCancelBookingById = async (bookingId: string) => {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/cancel-customer`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        triggerToast('ยกเลิกการจองสำเร็จ', 'รายการจองของคุณถูกยกเลิกแล้ว', 'success');
+        if (activeBooking && activeBooking.id === bookingId) {
+          setIsPaymentModalOpen(false);
+          setIsSuccessModalOpen(false);
+          setActiveBooking(null);
+          setBookingStep('schedule');
+        }
+        fetchBookings();
+      } else {
+        triggerToast('ไม่สามารถยกเลิกได้', data.error || 'ไม่สามารถยกเลิกการจองได้', 'alert');
       }
     } catch (err) {
       triggerToast('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'alert');
@@ -357,9 +448,59 @@ export default function App() {
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled((prev) => !prev)}
         onOpenAIAdvisor={() => setIsAIAdvisorOpen(true)}
+        onOpenMyBookings={() => setIsMyBookingsOpen(true)}
+        onOpenShareLink={() => setIsShareModalOpen(true)}
         searchQuery={globalSearchQuery}
         onSearchChange={setGlobalSearchQuery}
       />
+
+      {/* Active Booking Floating / Top Sticky Reminder */}
+      {currentView === 'student' && activeBooking && (
+        <div className="bg-amber-50/90 border-b border-amber-200 py-2.5 px-4 text-xs">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-stone-800 flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                การจองล่าสุดของคุณ:
+              </span>
+              <span className="font-semibold text-stone-900">{activeBooking.courseTitle}</span>
+              <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-200 text-stone-600 font-bold text-[11px]">
+                {activeBooking.id}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                activeBooking.payment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                activeBooking.payment.status === 'under_review' ? 'bg-blue-100 text-blue-800 border border-blue-300' : 
+                activeBooking.payment.status === 'cancelled' ? 'bg-stone-100 text-stone-600' :
+                'bg-amber-200 text-amber-900'
+              }`}>
+                {activeBooking.payment.status === 'confirmed' ? 'อนุมัติเรียบร้อย' :
+                 activeBooking.payment.status === 'under_review' ? 'รอแอดมินตรวจสลิป' : 
+                 activeBooking.payment.status === 'cancelled' ? 'ยกเลิกแล้ว' :
+                 'รอชำระเงิน & แนบสลิป'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {activeBooking.payment.status === 'pending_slip' && (
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-xs"
+                >
+                  ชำระเงิน & แนบสลิป
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsMyBookingsOpen(true)}
+                className="px-3 py-1.5 bg-white hover:bg-stone-100 border border-amber-300 text-stone-700 font-bold rounded-lg text-xs transition-colors cursor-pointer"
+              >
+                ดูใบนัดหมาย & ลิงก์ห้องเรียน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
@@ -490,6 +631,7 @@ export default function App() {
               bookings={bookings}
               onUpdateBookingStatus={handleAdminUpdateStatus}
               onRefreshBookings={fetchBookings}
+              onOpenShareLink={() => setIsShareModalOpen(true)}
             />
           ) : (
             <AdminLoginForm onSuccess={() => setIsAdminAuthenticated(true)} />
@@ -557,8 +699,14 @@ export default function App() {
       {isPaymentModalOpen && activeBooking && (
         <PaymentModal
           booking={activeBooking}
+          existingBookings={bookings}
           onUploadSlip={handleUploadSlip}
           onClose={() => setIsPaymentModalOpen(false)}
+          onCancelBooking={handleCustomerCancelBooking}
+          onUpdateBooking={(updated) => {
+            setActiveBooking(updated);
+            setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+          }}
         />
       )}
 
@@ -577,6 +725,28 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Student Self-Service My Bookings Modal */}
+      <MyBookingsModal
+        isOpen={isMyBookingsOpen}
+        onClose={() => setIsMyBookingsOpen(false)}
+        activeBooking={activeBooking}
+        existingBookings={bookings}
+        defaultPhoneOrEmail={customerInfo.phone || customerInfo.email}
+        onSelectBookingForPayment={(bookingToPay) => {
+          setActiveBooking(bookingToPay);
+          setIsPaymentModalOpen(true);
+        }}
+        onCancelBooking={async (bId) => {
+          await handleCancelBookingById(bId);
+        }}
+        onUpdateBooking={(updated) => {
+          if (activeBooking && activeBooking.id === updated.id) {
+            setActiveBooking(updated);
+          }
+          setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+        }}
+      />
 
       {/* Floating Gemini Chatbot Launcher Button */}
       {!isAIAdvisorOpen && (
@@ -625,6 +795,14 @@ export default function App() {
         onSelectBooking={(bookingId) => {
           setCurrentView('admin');
         }}
+      />
+
+      {/* Share Link Modal for sending shortened URL to customers */}
+      <ShareLinkModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shortUrl="https://tinyurl.com/2codulfo"
+        longUrl="https://ais-pre-bs4eeo3qrendw7bstnmdwp-887964686274.asia-southeast1.run.app/"
       />
 
     </div>

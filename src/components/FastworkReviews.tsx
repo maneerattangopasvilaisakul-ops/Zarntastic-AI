@@ -154,7 +154,7 @@ export function FastworkReviews() {
           </div>
 
           <a
-            href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
+            href="https://line.me/ti/p/N9UPH4OL4L"
             target="_blank"
             rel="noopener noreferrer"
             className="text-orange-400 hover:text-orange-300 font-bold underline shrink-0 cursor-pointer"

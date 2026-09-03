@@ -226,7 +226,7 @@ export function AICourseAdvisor({
             {/* Top Right Controls */}
             <div className="flex items-center gap-1.5">
               <a
-                href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
+                href="https://line.me/ti/p/N9UPH4OL4L"
                 target="_blank"
                 rel="noreferrer"
                 className="px-2.5 py-1.5 bg-[#06C755] hover:bg-[#05b34c] text-white rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm"
@@ -450,7 +450,7 @@ export function AICourseAdvisor({
 
                     {!isUser && (
                       <a
-                        href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
+                        href="https://line.me/ti/p/N9UPH4OL4L"
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#06C755] hover:text-[#05b34c] bg-[#06C755]/10 hover:bg-[#06C755]/20 px-2 py-0.5 rounded-md transition-colors"

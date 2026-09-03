@@ -114,7 +114,7 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
               <button
                 type="button"
                 onClick={() => {
-                  toast.error("หากลืมรหัสผ่านผู้ดูแลระบบ กรุณาติดต่อกู้คืนรหัสผ่านผ่าน LINE ID: zarn หรือโทร 061-5614269");
+                  toast.success("รหัสผ่านผู้ดูแลระบบคือ: Enter10! (หรือติดต่อ LINE: @zarntastic โทร 061-5614269)", { duration: 6000 });
                 }}
                 className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
               >
@@ -131,7 +131,7 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-medium"
-                placeholder="กรอกรหัสผ่านผู้ดูแลระบบ"
+                placeholder="กรอกรหัสผ่านผู้ดูแลระบบ (Enter10!)"
               />
               <button
                 type="button"

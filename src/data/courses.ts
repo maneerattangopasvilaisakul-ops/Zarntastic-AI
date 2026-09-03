@@ -13,7 +13,7 @@ export const INSTRUCTOR_INFO = {
   totalReviews: 128,
   completionRate: '100%',
   contactPhone: '061-5614269',
-  contactLine: 'https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url',
+  contactLine: 'https://line.me/ti/p/N9UPH4OL4L',
   contactLineId: 'zarn',
   contactEmail: 'zarnzarn10@gmail.com',
 };

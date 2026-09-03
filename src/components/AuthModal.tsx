@@ -1,3 +1,4 @@
+import { signInWithGoogle } from '../firebase';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
@@ -445,7 +446,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
                     หากต้องการเข้าเรียนหรือใช้งานทันที สามารถแจ้งอาจารย์ผ่าน LINE Official ได้ตลอดเวลา
                   </p>
                   <a
-                    href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
+                    href="https://line.me/ti/p/N9UPH4OL4L"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#06C755] hover:bg-[#05b34c] text-white rounded-xl font-bold text-[11px] transition-colors"

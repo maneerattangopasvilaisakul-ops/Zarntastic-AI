@@ -1,16 +1,14 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-
-const firebaseConfig = {
-  projectId: "ai-course-booking",
-  appId: "1:109147327047:web:7b5bd7f5ed8cd954ecbf62",
-  apiKey: "AIzaSyAlcNoNRng4cZG6gfLMpVFEJ4XS5dMcz5k",
-  authDomain: "ai-course-booking.firebaseapp.com",
-  storageBucket: "ai-course-booking.firebasestorage.app",
-  messagingSenderId: "109147327047"
-};
+import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
+export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);

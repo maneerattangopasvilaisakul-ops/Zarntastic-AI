@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Lightbulb,
   AlertTriangle,
-  Code
+  Code,
+  ShieldCheck
 } from 'lucide-react';
 import { Article } from '../data/articles';
 
@@ -246,6 +247,50 @@ export function ArticleModal({ article, onClose, onSelectCourseById }: ArticleMo
                 {article.content.conclusion}
               </p>
             </div>
+
+            {/* Verified Sources Reference List (Anti-Hallucination Guardrail) */}
+            {article.sources && article.sources.length > 0 && (
+              <div className="p-5 bg-emerald-950/20 border border-emerald-800/40 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-emerald-300">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>แหล่งข้อมูลอ้างอิงทางการที่ผ่านการตรวจสอบจริง 100% (Verified Sources):</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Official Tier 1 & Tier 2 Verified
+                  </span>
+                </div>
+                <p className="text-[11px] text-stone-400">
+                  ทุกข้อมูลและข้อเท็จจริงในบทความนี้อ้างอิงตรงจากประกาศและเอกสารเผยแพร่ทางการต้นฉบับ ปราศจากการคาดเดาหรือแต่งข้อมูล
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  {article.sources.map((src, idx) => (
+                    <a
+                      key={idx}
+                      href={src.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 rounded-xl bg-stone-900/80 border border-stone-800 hover:border-emerald-500/60 text-xs text-stone-200 hover:text-emerald-300 transition-all flex items-center justify-between group shadow-xs"
+                    >
+                      <div className="truncate pr-2 space-y-0.5">
+                        <div className="font-bold text-white truncate group-hover:text-emerald-300">
+                          {src.name}
+                        </div>
+                        <div className="text-[10px] text-stone-400 font-mono truncate">
+                          {src.url}
+                        </div>
+                        {src.tier && (
+                          <span className="inline-block text-[9px] font-bold text-emerald-400">
+                            ✓ {src.tier}
+                          </span>
+                        )}
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-stone-500 group-hover:text-emerald-400 shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Related Tags */}

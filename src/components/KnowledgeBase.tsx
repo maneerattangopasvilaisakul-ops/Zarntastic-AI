@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BookOpen, 
   Search, 
@@ -11,7 +11,9 @@ import {
   Star, 
   Filter, 
   Flame,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck,
+  Globe
 } from 'lucide-react';
 import { ARTICLES_DATA, Article } from '../data/articles';
 import { ArticleModal } from './ArticleModal';
@@ -21,12 +23,30 @@ interface KnowledgeBaseProps {
 }
 
 export function KnowledgeBase({ onSelectCourseById }: KnowledgeBaseProps) {
+  const [articles, setArticles] = useState<Article[]>(ARTICLES_DATA);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
+  useEffect(() => {
+    fetch('/api/articles')
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to load articles');
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setArticles(data);
+        }
+      })
+      .catch((e) => {
+        console.warn('Using bundled articles as fallback:', e.message);
+      });
+  }, []);
+
   const categories = [
     { id: 'all', label: 'ทั้งหมด (All Articles)' },
+    { id: 'ai-news', label: '📰 ข่าวสาร AI ประจำสัปดาห์ (Weekly AI News)' },
     { id: 'geo-aeo', label: 'GEO & AEO (SEO ยุค AI)' },
     { id: 'prompt', label: 'Prompt Engineering' },
     { id: 'workflow', label: 'AI Workflow Automation' },
@@ -36,7 +56,7 @@ export function KnowledgeBase({ onSelectCourseById }: KnowledgeBaseProps) {
   ];
 
   const filteredArticles = useMemo(() => {
-    return ARTICLES_DATA.filter((art) => {
+    return articles.filter((art) => {
       const matchCat = selectedCategory === 'all' || art.category === selectedCategory;
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
@@ -47,7 +67,7 @@ export function KnowledgeBase({ onSelectCourseById }: KnowledgeBaseProps) {
         art.tags.some((t) => t.toLowerCase().includes(q));
       return matchCat && matchSearch;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [articles, searchQuery, selectedCategory]);
 
   
   const faqSchemaData = {
@@ -237,7 +257,13 @@ export function KnowledgeBase({ onSelectCourseById }: KnowledgeBaseProps) {
                 </p>
 
                 {/* Card Tags */}
-                <div className="flex flex-wrap gap-1 mb-4">
+                <div className="flex flex-wrap items-center gap-1.5 mb-4">
+                  {article.sources && article.sources.length > 0 && (
+                    <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                      {article.sources.length} แหล่งข่าวทางการ
+                    </span>
+                  )}
                   {article.tags.slice(0, 3).map((t, idx) => (
                     <span
                       key={idx}

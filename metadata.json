@@ -1,6 +1,6 @@
 {
-  "name": "AI Course Automated Booking & Scheduling System",
-  "description": "ระบบจัดคิวนัดหมายลงเรียนคอร์ส AI อัตโนมัติ พร้อมระบบชำระเงิน ตรวจสอบสลิป และป้องกันการจองเวลาซ้ำ",
+  "name": "Zarntastic AI LEARNING - สถาบันสอน AI & Workflow Automation",
+  "description": "ระบบจัดคิวนัดหมายลงเรียนคอร์ส AI อัตโนมัติ พร้อมระบบชำระเงิน ตรวจสอบสลิป ป้องกันการจองเวลาซ้ำ และ AI News Automation",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

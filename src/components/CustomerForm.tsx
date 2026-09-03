@@ -151,6 +151,40 @@ export function CustomerForm({
             </button>
           </div>
 
+          {/* Persistence Badge & Clear Form */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-emerald-50/90 border border-emerald-200 rounded-xl px-3.5 py-2.5 text-xs text-emerald-800">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <strong>ระบบจำข้อมูลอัตโนมัติ:</strong> ข้อมูลที่คุณกรอกจะถูกบันทึกไว้อย่างปลอดภัยในเครื่อง ข้อมูลจะไม่สูญหายแม้ปิดหน้าจอหรือรีเฟรช
+              </span>
+            </div>
+            {(customerInfo.name || customerInfo.email || customerInfo.phone) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('ต้องการล้างข้อมูลในฟอร์มเพื่อกรอกใหม่หรือไม่?')) {
+                    onUpdateCustomer({
+                      name: '',
+                      email: '',
+                      phone: '',
+                      lineId: '',
+                      notes: '',
+                      experienceLevel: 'Beginner',
+                      clientType: 'general',
+                    });
+                    try {
+                      localStorage.removeItem('zarntastic_customer_info');
+                    } catch (e) {}
+                  }
+                }}
+                className="text-[11px] text-stone-500 hover:text-stone-800 underline shrink-0 cursor-pointer self-end sm:self-auto"
+              >
+                ล้างข้อมูลฟอร์ม
+              </button>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
             {/* Full Name */}

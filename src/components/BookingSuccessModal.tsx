@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Booking } from '../types';
 import { COURSES } from '../data/courses';
@@ -16,8 +16,12 @@ import {
   Share2,
   FileCheck,
   PlayCircle,
-  FolderOpen
+  FolderOpen,
+  Mail,
+  Send,
+  Check
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface BookingSuccessModalProps {
   booking: Booking;
@@ -32,6 +36,9 @@ export function BookingSuccessModal({
 }: BookingSuccessModalProps) {
   const isVdoCourse = (booking.courseId && booking.courseId.startsWith('vdo-')) || (booking.schedule && booking.schedule.length === 0);
   const courseData = COURSES.find(c => c.id === booking.courseId);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [copiedLine, setCopiedLine] = useState(false);
+  const [emailSentSuccess, setEmailSentSuccess] = useState(true);
   
   useEffect(() => {
     // Fire celebratory confetti
@@ -44,7 +51,62 @@ export function BookingSuccessModal({
     } catch (e) {
       // ignore
     }
-  }, []);
+
+    // Persist last booking ID locally so it is never lost
+    try {
+      localStorage.setItem('zarntastic_last_booking_id', booking.id);
+    } catch (e) {
+      // ignore
+    }
+  }, [booking.id]);
+
+  const handleResendEmail = async () => {
+    setIsSendingEmail(true);
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailSentSuccess(true);
+        toast.success(`ส่งอีเมลยืนยันไปยัง ${booking.customer.email} เรียบร้อยแล้ว!`);
+      } else {
+        toast.error(data.message || 'ส่งอีเมลไม่สำเร็จ');
+      }
+    } catch (err) {
+      toast.error('ไม่สามารถเชื่อมต่อระบบส่งอีเมลได้');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const getLineSummaryText = () => {
+    const scheduleStr = booking.schedule && booking.schedule.length > 0
+      ? booking.schedule.map(s => `• วันที่ ${s.dayNumber}: ${formatThaiDate(s.date)} เวลา ${s.startTime}-${s.endTime} น.`).join('\n')
+      : '• คอร์สเรียนผ่าน VDO Online (เวลาอิสระ)';
+
+    return `[ใบนัดหมายคอร์สเรียน Zarntastic AI]
+รหัสการจอง: ${booking.id}
+ชื่อผู้เรียน: ${booking.customer.name} (${booking.customer.phone})
+คอร์สเรียน: ${booking.courseTitle}
+${scheduleStr}
+ลิงก์ Google Meet: ${booking.meetingLink}
+ยอดชำระ: ฿${booking.totalPrice.toLocaleString()} (แนบสลิปเรียบร้อย)
+ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล (โทร 061-5614269 | LINE: @zarntastic)`;
+  };
+
+  const handleCopyAndOpenLine = () => {
+    const text = getLineSummaryText();
+    navigator.clipboard.writeText(text);
+    setCopiedLine(true);
+    toast.success('คัดลอกข้อความใบนัดหมายเรียบร้อย กำลังเปิด LINE...');
+    setTimeout(() => {
+      setCopiedLine(false);
+      window.open('https://line.me/ti/p/N9UPH4OL4L', '_blank');
+    }, 800);
+  };
 
   const handleDownloadICS = () => {
     // Generate .ics calendar file
@@ -237,6 +299,36 @@ END:VCALENDAR`;
             </div>
           )}
 
+          {/* Email Confirmation Notification Card */}
+          <div className="bg-indigo-50/80 border border-indigo-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-bold text-xs sm:text-sm text-stone-900 flex items-center gap-2">
+                  <span>ส่งอีเมลยืนยันวันเวลาเรียนแล้ว</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+                    อัตโนมัติ
+                  </span>
+                </div>
+                <p className="text-[11px] text-stone-600 mt-0.5">
+                  ระบบได้จัดส่งใบนัดหมายไปยัง <strong className="text-stone-800">{booking.customer.email}</strong>
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={isSendingEmail}
+              onClick={handleResendEmail}
+              className="w-full sm:w-auto px-3.5 py-2 bg-white hover:bg-stone-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-xs shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{isSendingEmail ? 'กำลังส่งอีเมล...' : 'ส่งอีเมลยืนยันอีกครั้ง'}</span>
+            </button>
+          </div>
+
           {/* Export to Calendar actions (only for Live courses) */}
           {!isVdoCourse && (
             <div className="flex flex-wrap gap-2">
@@ -269,34 +361,36 @@ END:VCALENDAR`;
               <div className="text-left">
                 <div className="font-bold text-xs sm:text-sm text-stone-900 flex items-center gap-1.5">
                   <span>แจ้งการจองผ่าน LINE</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#06C755] text-white font-bold">ID: zarn</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#06C755] text-white font-bold">ส่งตรงถึงอาจารย์</span>
                 </div>
                 <p className="text-[11px] text-stone-600 mt-0.5">
-                  ส่งหลักฐานการจองเพื่อให้อาจารย์ล็อกคิวและเตรียมห้องเรียนทันที
+                  ส่งใบนัดหมายพร้อมลิงก์ Google Meet เข้า LINE อาจารย์ เพื่อล็อกคิวทันที
                 </p>
               </div>
             </div>
-            <a
-              href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
-              target="_blank"
-              rel="noreferrer"
-              className="w-full sm:w-auto px-4 py-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
-            >
-              <span>ส่งข้อมูลเข้า LINE</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleCopyAndOpenLine}
+                className="flex-1 sm:flex-none px-4 py-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+              >
+                {copiedLine ? <Check className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                <span>{copiedLine ? 'คัดลอก & กำลังเปิด...' : 'ส่งใบนัดหมายเข้า LINE'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Modal Footer */}
           <div className="border-t border-stone-200 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <a
-              href="https://line.me/R/ti/p/@761rqbfc?ts=09011400&oat_content=url"
+              href="https://line.me/ti/p/N9UPH4OL4L"
               target="_blank"
               rel="noreferrer"
               className="text-xs text-[#06C755] hover:text-[#05b34c] font-bold flex items-center gap-1.5 cursor-pointer bg-[#06C755]/10 px-4 py-2.5 rounded-xl border border-[#06C755]/20 transition-colors"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>ติดต่อ Admin / อาจารย์ (LINE ID: zarn)</span>
+              <span>ติดต่อ Admin / อาจารย์ (LINE ส่วนตัว)</span>
             </a>
 
             <button

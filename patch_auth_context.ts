@@ -1,4 +1,6 @@
+import fs from 'fs';
 
+const authContextContent = `
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { auth } from '../firebase';
@@ -53,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
       } else {
-        if ((user as any)?.role !== 'admin') {
+        if (user?.role !== 'admin') {
           setUser(null);
         }
       }
@@ -96,3 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => useContext(AuthContext);
+`;
+
+fs.writeFileSync('src/contexts/AuthContext.tsx', authContextContent);
+console.log('AuthContext patched');

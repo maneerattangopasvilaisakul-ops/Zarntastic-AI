@@ -1,8 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 import { Booking, BookingStatus, Course } from '../types';
 import { COURSES } from '../data/courses';
 import { formatThaiDate, formatCurrency, getValidNextDates } from '../utils/scheduleUtils';
+import { syncToGoogleCalendar } from '../utils/calendar';
 import { 
   BarChart, 
   Bar, 
@@ -42,39 +45,82 @@ import {
   Flame,
   Check,
   Layers,
-  SearchX
+  SearchX,
+  Share2
 } from 'lucide-react';
 import { AdminCalendarView } from './AdminCalendarView';
+import { AdminAINewsAutomation } from './AdminAINewsAutomation';
+import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { EditBookingModal } from './EditBookingModal';
 
 interface AdminDashboardProps {
   bookings: Booking[];
   onUpdateBookingStatus: (bookingId: string, status: BookingStatus, reviewNotes?: string) => Promise<void>;
   onRefreshBookings: () => void;
+  onOpenShareLink?: () => void;
 }
 
 export function AdminDashboard({
   bookings,
   onUpdateBookingStatus,
   onRefreshBookings,
+  onOpenShareLink,
 }: AdminDashboardProps) {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'automation'>('list');
   const [inspectingBooking, setInspectingBooking] = useState<Booking | null>(null);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [reviewNoteInput, setReviewNoteInput] = useState<string>('');
   const [isSubmittingReview, setIsSubmittingReview] = useState<boolean>(false);
+  const [isSyncingCalendar, setIsSyncingCalendar] = useState<boolean>(false);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [lineTestResult, setLineTestResult] = useState<string | null>(null);
+  const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isTestingEmail, setIsTestingEmail] = useState<boolean>(false);
 
-  // Firebase Live & Test Data States
+  const handleTestEmail = async () => {
+    setIsTestingEmail(true);
+    setEmailTestResult(null);
+    try {
+      const res = await fetch('/api/admin/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'maneerat.tangopasvilaisakul@gmail.com' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEmailTestResult({
+          success: true,
+          message: data.preview
+            ? `บันทึกระบบจำลอง: ${data.message}`
+            : `ส่งอีเมลทดสอบไปยัง ${data.to} สำเร็จแล้ว! (Message ID: ${data.messageId || 'OK'})`,
+        });
+      } else {
+        setEmailTestResult({
+          success: false,
+          message: data.error || 'ไม่สามารถส่งอีเมลได้ ตรวจสอบ SMTP_PASS และ Sender ใน Brevo',
+        });
+      }
+    } catch (err: any) {
+      setEmailTestResult({ success: false, message: `ข้อผิดพลาด: ${err.message}` });
+    } finally {
+      setIsTestingEmail(false);
+      setTimeout(() => setEmailTestResult(null), 10000);
+    }
+  };
+
+  // Database & Test Data States
   const [firebaseStatus, setFirebaseStatus] = useState<{
     connected: boolean;
     databaseId?: string;
+    mode?: string;
     totalBookings?: number;
     totalNotifications?: number;
     lastSync?: string;
-  }>({ connected: true, databaseId: 'ai-studio-aicourseautomate-400e85bf-1dd8-4e3e-9058-c49bff12aee0' });
+  }>({ connected: false, databaseId: 'bookings_db.json' });
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
   const [isClearing, setIsClearing] = useState<boolean>(false);
   const [seedNotice, setSeedNotice] = useState<string | null>(null);
@@ -330,6 +376,36 @@ export function AdminDashboard({
     }
   };
 
+  
+  const handleSyncCalendar = async (booking: Booking) => {
+    setIsSyncingCalendar(true);
+    try {
+      let token = googleToken;
+      if (!token) {
+        const result = await signInWithPopup(auth, googleProvider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        if (credential?.accessToken) {
+          token = credential.accessToken;
+          setGoogleToken(token);
+        } else {
+          throw new Error('ไม่สามารถดึงข้อมูลสิทธิ์การเข้าถึง Calendar ได้');
+        }
+      }
+      
+      const success = await syncToGoogleCalendar(booking, token);
+      if (success) {
+        alert('ซิงค์ข้อมูลลง Google Calendar สำเร็จ!');
+      } else {
+        alert('เกิดข้อผิดพลาดในการสร้างกิจกรรมบน Calendar');
+      }
+    } catch (error: any) {
+      console.error(error);
+      alert('Error: ' + error.message);
+    } finally {
+      setIsSyncingCalendar(false);
+    }
+  };
+
   const handleApproveSlip = async (booking: Booking) => {
     setIsSubmittingReview(true);
     try {
@@ -390,6 +466,18 @@ export function AdminDashboard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {onOpenShareLink && (
+            <button
+              id="admin-btn-share-link"
+              onClick={onOpenShareLink}
+              className="p-2.5 bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+              title="ลิงก์สั้นและ QR Code สำหรับส่งลูกค้า"
+            >
+              <Share2 className="w-4 h-4 text-orange-600" />
+              <span>ลิงก์ส่งลูกค้า (Short Link)</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               onRefreshBookings();
@@ -426,19 +514,28 @@ export function AdminDashboard({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Firebase Firestore Connected
-              </span>
+              {firebaseStatus.connected ? (
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Firebase Firestore Connected
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  ระบบฐานข้อมูลถาวร (Persistent Active)
+                </span>
+              )}
               <span className="text-xs text-indigo-300 font-mono bg-indigo-900/60 px-2.5 py-0.5 rounded-md border border-indigo-700/50">
-                DB ID: {firebaseStatus.databaseId || 'ai-studio-aicourseautomate-400e85bf-1dd8-4e3e-9058-c49bff12aee0'}
+                DB: {firebaseStatus.databaseId || 'bookings_db.json'}
               </span>
               <span className="text-xs text-stone-300">
-                ({bookings.length} รายการจองบนคลาวด์)
+                ({bookings.length} รายการจอง)
               </span>
             </div>
             <p className="text-xs text-stone-300">
-              ฐานข้อมูลคลาวด์ Real-time: ทุกการจอง การอัปโหลดสลิป และการเปลี่ยนสถานะจะบันทึกตรงเข้า Firestore อัตโนมัติ
+              {firebaseStatus.connected
+                ? "ฐานข้อมูลคลาวด์ Real-time: ทุกการจอง การอัปโหลดสลิป และการเปลี่ยนสถานะจะบันทึกตรงเข้า Firestore อัตโนมัติ"
+                : "ระบบจัดเก็บข้อมูลถาวร: ทุกการจอง การอัปโหลดสลิป การอนุมัติ และบันทึกประวัติการทำงานถูกซิงก์ลงดิสก์อย่างสมบูรณ์แบบ"}
             </p>
           </div>
 
@@ -478,8 +575,41 @@ export function AdminDashboard({
                 </>
               )}
             </button>
+
+            <button
+              onClick={handleTestEmail}
+              disabled={isTestingEmail}
+              className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
+            >
+              {isTestingEmail ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>กำลังส่งทดสอบ...</span>
+                </>
+              ) : (
+                <>
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>✉️ ทดสอบส่งอีเมล (Brevo)</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
+
+        {emailTestResult && (
+          <div className={`mt-3 p-3 rounded-xl text-xs flex items-center gap-2 ${
+            emailTestResult.success 
+              ? 'bg-emerald-900/80 border border-emerald-500/40 text-emerald-100' 
+              : 'bg-rose-900/80 border border-rose-500/40 text-rose-100'
+          }`}>
+            {emailTestResult.success ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            )}
+            <span>{emailTestResult.message}</span>
+          </div>
+        )}
 
         {seedNotice && (
           <div className="mt-3 p-3 rounded-xl bg-indigo-900/80 border border-indigo-500/40 text-xs text-indigo-100 flex items-center gap-2">
@@ -627,11 +757,27 @@ export function AdminDashboard({
               {metrics.confirmed} คิวยืนยัน
             </span>
           </button>
+
+          <button
+            type="button"
+            id="tab-admin-ai-automation"
+            onClick={() => setViewMode('automation')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              viewMode === 'automation'
+                ? 'bg-purple-950 text-white shadow-sm border border-purple-800'
+                : 'text-purple-800 hover:text-purple-950 hover:bg-purple-50'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>📰 AI News Automation</span>
+          </button>
         </div>
       </div>
 
       {/* View Mode Content */}
-      {viewMode === 'calendar' ? (
+      {viewMode === 'automation' ? (
+        <AdminAINewsAutomation />
+      ) : viewMode === 'calendar' ? (
         <AdminCalendarView 
           bookings={bookings} 
           onInspectBooking={setInspectingBooking} 
@@ -720,8 +866,12 @@ export function AdminDashboard({
                             <SearchX className="w-8 h-8 text-stone-300" />
                           </div>
                           <div>
-                            <h4 className="text-sm font-bold text-stone-700">ไม่พบรายการจอง</h4>
-                            <p className="text-xs text-stone-500 mt-1">ลองเปลี่ยนเงื่อนไขการค้นหาหรือสถานะ เพื่อดูคิวอื่น ๆ</p>
+                            <h4 className="text-sm font-bold text-stone-700">
+                              {bookings.length === 0 ? 'ยังไม่มีรายการจองในระบบ' : 'ไม่พบรายการจองตามเงื่อนไขที่เลือก'}
+                            </h4>
+                            <p className="text-xs text-stone-500 mt-1">
+                              {bookings.length === 0 ? 'ตารางนัดหมายว่างทั้งหมด พร้อมรับการจองคอร์สจากผู้เรียนใหม่' : 'ลองเปลี่ยนเงื่อนไขการค้นหาหรือสถานะ เพื่อดูคิวอื่น ๆ'}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -792,6 +942,16 @@ export function AdminDashboard({
                             >
                               <Eye className="w-3.5 h-3.5" />
                               <span>ดูสลิป</span>
+                            </button>
+
+                            {/* Edit Booking Button */}
+                            <button
+                              onClick={() => setEditingBooking(b)}
+                              className="px-2.5 py-1.5 bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-800 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer border border-stone-200"
+                              title="แก้ไขข้อมูลผู้เรียน หรือเลื่อนวันเวลาเรียน"
+                            >
+                              <Pencil className="w-3.5 h-3.5 text-amber-600" />
+                              <span>แก้ไข</span>
                             </button>
 
                             {/* Fast Approve if under review */}
@@ -1008,10 +1168,44 @@ export function AdminDashboard({
                 onClick={() => handleRejectSlip(inspectingBooking)}
                 className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
-                ปฏิเสธสลิป / แจ้งโอนใหม่
+                ปฏิเสธสลิป
+              </button>
+              <button
+                disabled={isSubmittingReview}
+                onClick={() => {
+                   if(window.confirm('คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?')) {
+                     onUpdateBookingStatus(inspectingBooking.id, 'cancelled', reviewNoteInput || 'ยกเลิกการจองโดย Admin');
+                     setInspectingBooking(null);
+                     setReviewNoteInput('');
+                   }
+                }}
+                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                ยกเลิกการจอง
               </button>
 
               <div className="flex items-center gap-2">
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingBooking(inspectingBooking);
+                  }}
+                  className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-amber-600" />
+                  <span>แก้ไขข้อมูล / วันเวลา</span>
+                </button>
+
+                <button
+                  disabled={isSyncingCalendar}
+                  onClick={() => handleSyncCalendar(inspectingBooking)}
+                  className="px-4 py-2.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <CalendarIcon className="w-4 h-4" />
+                  {isSyncingCalendar ? 'กำลังซิงค์...' : 'เพิ่มลง Calendar'}
+                </button>
+
                 <button
                   disabled={isSubmittingReview}
                   onClick={() => onUpdateBookingStatus(inspectingBooking.id, 'completed', 'คอร์สเรียนเสร็จสิ้นสมบูรณ์')}
@@ -1032,6 +1226,24 @@ export function AdminDashboard({
 
           </div>
         </div>
+      )}
+
+      {/* Edit Booking Modal */}
+      {editingBooking && (
+        <EditBookingModal
+          isOpen={!!editingBooking}
+          onClose={() => setEditingBooking(null)}
+          booking={editingBooking}
+          existingBookings={bookings}
+          isAdminMode={true}
+          onSuccess={(updated) => {
+            setEditingBooking(null);
+            if (inspectingBooking && inspectingBooking.id === updated.id) {
+              setInspectingBooking(updated);
+            }
+            onRefreshBookings();
+          }}
+        />
       )}
 
     </div>
