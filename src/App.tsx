@@ -262,7 +262,7 @@ export default function App() {
   const handleUploadSlip = async (slipUrl: string, referenceNo?: string, manualAmount?: number) => {
     if (!activeBooking) return;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
     try {
       const res = await fetch(`/api/bookings/${activeBooking.id}/slip`, {
         method: 'POST',
@@ -272,6 +272,7 @@ export default function App() {
           slipUrl,
           referenceNo,
           manualAmount,
+          fallbackBooking: activeBooking,
         }),
       });
       clearTimeout(timeoutId);
@@ -281,7 +282,7 @@ export default function App() {
         setActiveBooking(data.booking);
         setIsPaymentModalOpen(false);
         setIsSuccessModalOpen(true);
-        triggerToast('ส่งสลิปเรียบร้อย', 'ระบบ AI และแอดมินได้รับสลิปแล้ว กำลังตรวจสอบความถูกต้อง', 'success');
+        triggerToast('ส่งสลิปเรียบร้อย', 'ระบบ AI ตรวจสอบความถูกต้องและอนุมัติคิวเรียบร้อย', 'success');
         fetchBookings();
       } else {
         triggerToast('ข้อผิดพลาด', data.error || 'ไม่สามารถส่งสลิปได้ กรุณาลองใหม่', 'alert');
@@ -652,7 +653,7 @@ export default function App() {
                 </span>
               </p>
               <p className="text-stone-400 text-xs mt-1">
-                Turning Ideas Into Visual Experiences • ผู้เชี่ยวชาญด้าน AI และ Automation โดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล
+                Turning Ideas Into Visual Experiences • ผู้เชี่ยวชาญด้าน AI และ Automation โดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)
               </p>
             </div>
 

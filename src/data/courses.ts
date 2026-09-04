@@ -1,7 +1,7 @@
 import { Course, FastworkReview } from '../types';
 
 export const INSTRUCTOR_INFO = {
-  name: 'มณีรัตน์ ตั้งโอภาสวิไลสกุล (Zarn / Zarntastic)',
+  name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)',
   nameEn: 'Maneerat Tangopasvilaisakul',
   brand: 'Zarntastic AI LEARNING',
   slogan: 'Turning Ideas Into Visual Experiences',

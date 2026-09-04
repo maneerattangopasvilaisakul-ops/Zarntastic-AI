@@ -123,7 +123,7 @@ export function KnowledgeBase({ onSelectCourseById }: KnowledgeBaseProps) {
           </h2>
 
           <p className="text-sm sm:text-base text-stone-300 leading-relaxed font-normal">
-            เจาะลึกเทคนิคการใช้งาน AI ระดับมืออาชีพ ปรับแต่งเว็บไซต์ให้ติดอันดับบน AI Search Engine (Perplexity, ChatGPT, Google SGE) และคู่มือการสร้าง AI Web App ใช้งานได้จริง โดย <strong className="text-white font-semibold">อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล</strong> (Fastwork 5.0 ★)
+            เจาะลึกเทคนิคการใช้งาน AI ระดับมืออาชีพ ปรับแต่งเว็บไซต์ให้ติดอันดับบน AI Search Engine (Perplexity, ChatGPT, Google SGE) และคู่มือการสร้าง AI Web App ใช้งานได้จริง โดย <strong className="text-white font-semibold">อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)</strong> (Fastwork 5.0 ★)
           </p>
 
           {/* Quick Search in Banner */}

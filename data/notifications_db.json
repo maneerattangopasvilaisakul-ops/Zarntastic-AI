@@ -1,5 +1,50 @@
 [
   {
+    "id": "notif-1788516830377",
+    "title": "มีรายการจองคอร์สใหม่เข้ามา!",
+    "message": "Job จอง AI STARTER (2026-09-12 20:30น.)",
+    "type": "booking",
+    "timestamp": "2026-09-04T10:13:50.376Z",
+    "isRead": false,
+    "bookingId": "AI-20260912-549c695f5c95"
+  },
+  {
+    "id": "notif-1788516585399",
+    "title": "มีการส่งสลิปชำระเงินใหม่",
+    "message": "Job ส่งสลิปยอด ฿1,500 (คอร์ส AI STARTER)",
+    "type": "payment",
+    "timestamp": "2026-09-04T10:09:45.213Z",
+    "isRead": false,
+    "bookingId": "AI-20260910-017fc8221b98"
+  },
+  {
+    "id": "notif-1788516584957",
+    "title": "มีรายการจองคอร์สใหม่เข้ามา!",
+    "message": "Job จอง AI STARTER (2026-09-10 20:30น.)",
+    "type": "booking",
+    "timestamp": "2026-09-04T10:09:44.957Z",
+    "isRead": false,
+    "bookingId": "AI-20260910-017fc8221b98"
+  },
+  {
+    "id": "notif-1788516552749",
+    "title": "มีการส่งสลิปชำระเงินใหม่",
+    "message": "Test User ส่งสลิปยอด ฿1,500 (คอร์ส AI STARTER)",
+    "type": "payment",
+    "timestamp": "2026-09-04T10:09:12.417Z",
+    "isRead": false,
+    "bookingId": "AI-20260905-69f54f0c473b"
+  },
+  {
+    "id": "notif-1788516552087",
+    "title": "มีรายการจองคอร์สใหม่เข้ามา!",
+    "message": "Test User จอง AI STARTER (2026-09-05 20:00น.)",
+    "type": "booking",
+    "timestamp": "2026-09-04T10:09:12.087Z",
+    "isRead": false,
+    "bookingId": "AI-20260905-69f54f0c473b"
+  },
+  {
     "id": "notif-1788428146993",
     "title": "มีรายการจองคอร์สใหม่เข้ามา!",
     "message": "ทดสอบ แนบสลิป จอง AI STARTER (2026-09-20 10:00น.)",

@@ -168,7 +168,7 @@ export function PaymentModal({
       ctx.fillStyle = '#64748b';
       ctx.font = '12px sans-serif';
       ctx.fillText('จาก: ' + (booking.customer?.name || 'ผู้เรียน AI Course'), 20, 210);
-      ctx.fillText('ถึง: มณีรัตน์ ตั้งโอภาสวิไลสกุล', 20, 240);
+      ctx.fillText('ถึง: มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)', 20, 240);
       ctx.fillText('พร้อมเพย์: 061-561-4269 (KBANK: 585-2-29915-2)', 20, 270);
       ctx.fillText(`วันเวลา: 2026-08-25 08:30 น.`, 20, 300);
       
@@ -189,8 +189,19 @@ export function PaymentModal({
     }
   };
 
+  // Safety timer to ensure isVerifying never remains stuck indefinitely
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isVerifying) {
+      timer = setTimeout(() => {
+        setIsVerifying(false);
+      }, 14000);
+    }
+    return () => clearTimeout(timer);
+  }, [isVerifying]);
+
   const handleSubmitSlip = async () => {
-    if (!slipImage) return;
+    if (!slipImage || isVerifying) return;
     setIsVerifying(true);
     try {
       await onUploadSlip(
@@ -198,9 +209,9 @@ export function PaymentModal({
         manualRef.trim() || `REF-${Date.now().toString().slice(-6)}`,
         booking.totalPrice
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submit slip error:', error);
-      toast.error('อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+      toast.error(error?.message || 'อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsVerifying(false);
     }

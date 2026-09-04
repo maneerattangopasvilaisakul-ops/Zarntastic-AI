@@ -94,7 +94,7 @@ export function BookingSuccessModal({
 ${scheduleStr}
 ลิงก์ Google Meet: ${booking.meetingLink}
 ยอดชำระ: ฿${booking.totalPrice.toLocaleString()} (แนบสลิปเรียบร้อย)
-ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล (โทร 061-5614269 | LINE: @zarntastic)`;
+ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน) (โทร 061-5614269 | LINE: @zarntastic)`;
   };
 
   const handleCopyAndOpenLine = () => {

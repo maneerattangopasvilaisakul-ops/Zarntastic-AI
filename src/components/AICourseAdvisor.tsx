@@ -56,7 +56,7 @@ export function AICourseAdvisor({
   const initialGreeting: ChatMessage = {
     id: 'msg-init',
     role: 'assistant',
-    content: `สวัสดีครับ! ผมคือ **Gemini AI Consultant** ประจำสถาบัน **Zarntastic AI LEARNING** (โดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล) 🤖✨
+    content: `สวัสดีครับ! ผมคือ **Gemini AI Consultant** ประจำสถาบัน **Zarntastic AI LEARNING** (โดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)) 🤖✨
 
 🌟 **แนะนำคอร์สเรียนสด Online 1:1 ผ่าน Google Meet (จับมือทำ ปรึกษาโจทย์จริง ตัวต่อตัว)**:
 • 💼 **AI for Work: ใช้ AI ในการทำงานคล่อง (3 ชม. ฿3,900)**: ประยุกต์ใช้ AI ครบวงจร เอกสาร รายงาน วิเคราะห์ข้อมูล

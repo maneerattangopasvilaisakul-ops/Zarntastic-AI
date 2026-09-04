@@ -442,7 +442,7 @@ export function CustomerForm({
 
               <div className="flex justify-between py-1 border-b border-stone-800/60">
                 <span className="text-stone-400">ผู้สอน:</span>
-                <span className="font-semibold text-white">{course.instructor?.name || 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล'}</span>
+                <span className="font-semibold text-white">{course.instructor?.name || 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)'}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-stone-800/60">
                 <span className="text-stone-400">ช่องทางเรียน:</span>

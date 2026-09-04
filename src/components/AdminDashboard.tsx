@@ -80,6 +80,22 @@ export function AdminDashboard({
   const [lineTestResult, setLineTestResult] = useState<string | null>(null);
   const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingEmail, setIsTestingEmail] = useState<boolean>(false);
+  const [emailStatus, setEmailStatus] = useState<{
+    configured: boolean;
+    providers: { id: string; name: string }[];
+    hasGmail: boolean;
+    gmailUser: string | null;
+  } | null>(null);
+
+  const fetchEmailStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/email-status');
+      if (res.ok) {
+        const data = await res.json();
+        setEmailStatus(data);
+      }
+    } catch (e) {}
+  };
 
   const handleTestEmail = async () => {
     setIsTestingEmail(true);
@@ -96,12 +112,12 @@ export function AdminDashboard({
           success: true,
           message: data.preview
             ? `บันทึกระบบจำลอง: ${data.message}`
-            : `ส่งอีเมลทดสอบไปยัง ${data.to} สำเร็จแล้ว! (Message ID: ${data.messageId || 'OK'})`,
+            : `ส่งอีเมลทดสอบไปยัง ${data.to} สำเร็จเรียบร้อยแล้ว! (${data.provider || 'Gmail SMTP'})`,
         });
       } else {
         setEmailTestResult({
           success: false,
-          message: data.error || 'ไม่สามารถส่งอีเมลได้ ตรวจสอบ SMTP_PASS และ Sender ใน Brevo',
+          message: data.error || 'ไม่สามารถส่งอีเมลได้ กรุณาตรวจสอบการตั้งค่าอีเมล',
         });
       }
     } catch (err: any) {
@@ -142,7 +158,11 @@ export function AdminDashboard({
 
   useEffect(() => {
     fetchFirebaseStatus();
-    const interval = setInterval(fetchFirebaseStatus, 15000);
+    fetchEmailStatus();
+    const interval = setInterval(() => {
+      fetchFirebaseStatus();
+      fetchEmailStatus();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -525,6 +545,17 @@ export function AdminDashboard({
                   ระบบฐานข้อมูลถาวร (Persistent Active)
                 </span>
               )}
+              {emailStatus?.configured ? (
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+                  <Mail className="w-3 h-3 text-emerald-400" />
+                  อีเมลคอนเฟิร์ม: {emailStatus.gmailUser ? `Gmail (${emailStatus.gmailUser})` : 'พร้อมส่งอัตโนมัติ'}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold">
+                  <Mail className="w-3 h-3 text-amber-400" />
+                  อีเมลคอนเฟิร์ม: โหมดจำลอง
+                </span>
+              )}
               <span className="text-xs text-indigo-300 font-mono bg-indigo-900/60 px-2.5 py-0.5 rounded-md border border-indigo-700/50">
                 DB: {firebaseStatus.databaseId || 'bookings_db.json'}
               </span>
@@ -589,7 +620,7 @@ export function AdminDashboard({
               ) : (
                 <>
                   <Mail className="w-3.5 h-3.5" />
-                  <span>✉️ ทดสอบส่งอีเมล (Brevo)</span>
+                  <span>✉️ ทดสอบส่งอีเมล (Gmail)</span>
                 </>
               )}
             </button>

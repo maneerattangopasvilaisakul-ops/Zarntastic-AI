@@ -1,1 +1,170 @@
-[]
+[
+  {
+    "id": "AI-20260903-2efb1f3cbb70",
+    "courseId": "ai-starter",
+    "courseTitle": "AI STARTER",
+    "totalPrice": 1500,
+    "customer": {
+      "name": "Job",
+      "email": "job@example.com",
+      "phone": "0615614269"
+    },
+    "schedule": [
+      {
+        "date": "2026-09-03",
+        "startTime": "20:30",
+        "endTime": "21:30"
+      }
+    ],
+    "payment": {
+      "method": "promptpay",
+      "amount": 1500,
+      "status": "confirmed",
+      "slipUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "slipUploadedAt": "2026-09-04T10:14:00.693Z",
+      "referenceNo": "KBANK30536833",
+      "reviewedAt": "2026-09-04T10:14:00.693Z",
+      "reviewNotes": "ระบบตรวจสอบยอดเงินและสลิปถูกต้อง อนุมัติคิวอัตโนมัติ",
+      "aiVerification": {
+        "detectedAmount": 1500,
+        "detectedDate": "2026-09-04 10:14",
+        "detectedRef": "KBANK30536833",
+        "confidence": 0.95,
+        "statusMatch": true,
+        "notes": "ระบบบันทึกและตรวจสอบข้อมูลสลิปเรียบร้อย"
+      }
+    },
+    "updatedAt": "2026-09-04T10:14:00.693Z"
+  },
+  {
+    "id": "AI-20260912-549c695f5c95",
+    "courseId": "ai-starter",
+    "courseTitle": "AI STARTER",
+    "totalHours": 1,
+    "totalDays": 1,
+    "totalPrice": 1500,
+    "customer": {
+      "name": "Job",
+      "email": "job@example.com",
+      "phone": "0615614269",
+      "lineId": "",
+      "notes": "",
+      "experienceLevel": "Beginner"
+    },
+    "schedule": [
+      {
+        "date": "2026-09-12",
+        "startTime": "20:30",
+        "endTime": "21:30",
+        "dayNumber": 1
+      }
+    ],
+    "payment": {
+      "method": "promptpay",
+      "amount": 1500,
+      "status": "confirmed",
+      "slipUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "slipUploadedAt": "2026-09-04T10:13:50.608Z",
+      "referenceNo": "KBANK30536833",
+      "reviewedAt": "2026-09-04T10:13:50.608Z",
+      "reviewNotes": "ระบบตรวจสอบยอดเงินและสลิปถูกต้อง อนุมัติคิวอัตโนมัติ",
+      "aiVerification": {
+        "detectedAmount": 1500,
+        "detectedDate": "2026-09-04 10:13",
+        "detectedRef": "KBANK30536833",
+        "confidence": 0.95,
+        "statusMatch": true,
+        "notes": "ระบบบันทึกและตรวจสอบข้อมูลสลิปเรียบร้อย"
+      }
+    },
+    "meetingLink": "https://meet.google.com/ai-ai-20260912-549c695f5c95",
+    "createdAt": "2026-09-04T10:13:50.376Z",
+    "updatedAt": "2026-09-04T10:13:50.608Z"
+  },
+  {
+    "id": "AI-20260910-017fc8221b98",
+    "courseId": "ai-starter",
+    "courseTitle": "AI STARTER",
+    "totalHours": 1,
+    "totalDays": 1,
+    "totalPrice": 1500,
+    "customer": {
+      "name": "Job",
+      "email": "test@example.com",
+      "phone": "0615614269",
+      "lineId": "",
+      "notes": "",
+      "experienceLevel": "Beginner"
+    },
+    "schedule": [
+      {
+        "date": "2026-09-10",
+        "startTime": "20:30",
+        "endTime": "21:30",
+        "dayNumber": 1
+      }
+    ],
+    "payment": {
+      "method": "promptpay",
+      "amount": 1500,
+      "status": "under_review",
+      "slipUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAALCCAYAAACpTzBIAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAAVlpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iPgo=",
+      "slipUploadedAt": "2026-09-04T10:09:45.213Z",
+      "referenceNo": "KBANK30536833",
+      "aiVerification": {
+        "detectedAmount": 1500,
+        "detectedDate": "2026-09-04 10:09",
+        "detectedRef": "KBANK30536833",
+        "confidence": 0,
+        "statusMatch": false,
+        "notes": "รอการตรวจสอบสลิปโดยผู้ดูแลระบบ (Manual Verification)"
+      }
+    },
+    "meetingLink": "https://meet.google.com/ai-ai-20260910-017fc8221b98",
+    "createdAt": "2026-09-04T10:09:44.957Z",
+    "updatedAt": "2026-09-04T10:09:45.213Z"
+  },
+  {
+    "id": "AI-20260905-69f54f0c473b",
+    "courseId": "ai-starter",
+    "courseTitle": "AI STARTER",
+    "totalHours": 1,
+    "totalDays": 1,
+    "totalPrice": 1500,
+    "customer": {
+      "name": "Test User",
+      "email": "test@example.com",
+      "phone": "0812345678",
+      "lineId": "",
+      "notes": "",
+      "experienceLevel": "Beginner"
+    },
+    "schedule": [
+      {
+        "date": "2026-09-05",
+        "startTime": "20:00",
+        "endTime": "21:00",
+        "dayNumber": 1
+      }
+    ],
+    "payment": {
+      "method": "promptpay",
+      "amount": 1500,
+      "status": "under_review",
+      "slipUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "slipUploadedAt": "2026-09-04T10:09:12.417Z",
+      "referenceNo": "TEST12345",
+      "aiVerification": {
+        "detectedAmount": 1500,
+        "detectedDate": "2026-09-04 10:09",
+        "detectedRef": "TEST12345",
+        "confidence": 0,
+        "statusMatch": false,
+        "notes": "รอการตรวจสอบสลิปโดยผู้ดูแลระบบ (Manual Verification)"
+      }
+    },
+    "meetingLink": "https://meet.google.com/ai-ai-20260905-69f54f0c473b",
+    "createdAt": "2026-09-04T10:09:12.087Z",
+    "updatedAt": "2026-09-04T10:09:12.417Z"
+  }
+]

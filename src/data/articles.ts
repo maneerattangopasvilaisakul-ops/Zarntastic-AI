@@ -57,7 +57,7 @@ export const ARTICLES_DATA: Article[] = [
     readTimeMinutes: 6,
     publishedDate: '15 กุมภาพันธ์ 2026',
     author: {
-      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล',
+      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)',
       role: 'Fastwork Verified AI Specialist & Workflow Consultant',
       badge: 'คะแนนรีวิว 5.0 เต็ม 5 ดาว',
       avatar: 'https://ui-avatars.com/api/?name=Zarntastic&background=0ea5e9&color=fff&size=200',
@@ -122,7 +122,7 @@ export const ARTICLES_DATA: Article[] = [
     readTimeMinutes: 5,
     publishedDate: '18 กุมภาพันธ์ 2026',
     author: {
-      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล',
+      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)',
       role: 'Fastwork Verified AI Specialist & Workflow Consultant',
       badge: 'คะแนนรีวิว 5.0 เต็ม 5 ดาว',
       avatar: 'https://ui-avatars.com/api/?name=Zarntastic&background=0ea5e9&color=fff&size=200',
@@ -172,7 +172,7 @@ export const ARTICLES_DATA: Article[] = [
     readTimeMinutes: 7,
     publishedDate: '20 กุมภาพันธ์ 2026',
     author: {
-      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล',
+      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)',
       role: 'Fastwork Verified AI Specialist & Workflow Consultant',
       badge: 'คะแนนรีวิว 5.0 เต็ม 5 ดาว',
       avatar: 'https://ui-avatars.com/api/?name=Zarntastic&background=0ea5e9&color=fff&size=200',
@@ -218,7 +218,7 @@ export const ARTICLES_DATA: Article[] = [
     readTimeMinutes: 8,
     publishedDate: '22 กุมภาพันธ์ 2026',
     author: {
-      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล',
+      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)',
       role: 'Fastwork Verified AI Specialist & Workflow Consultant',
       badge: 'คะแนนรีวิว 5.0 เต็ม 5 ดาว',
       avatar: 'https://ui-avatars.com/api/?name=Zarntastic&background=0ea5e9&color=fff&size=200',
@@ -259,7 +259,7 @@ export const ARTICLES_DATA: Article[] = [
     readTimeMinutes: 6,
     publishedDate: '24 กุมภาพันธ์ 2026',
     author: {
-      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล',
+      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)',
       role: 'Fastwork Verified AI Specialist & Workflow Consultant',
       badge: 'คะแนนรีวิว 5.0 เต็ม 5 ดาว',
       avatar: 'https://ui-avatars.com/api/?name=Zarntastic&background=0ea5e9&color=fff&size=200',
@@ -296,7 +296,7 @@ export const ARTICLES_DATA: Article[] = [
     readTimeMinutes: 7,
     publishedDate: '25 กุมภาพันธ์ 2026',
     author: {
-      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล',
+      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)',
       role: 'Fastwork Verified AI Specialist & Workflow Consultant',
       badge: 'คะแนนรีวิว 5.0 เต็ม 5 ดาว',
       avatar: 'https://ui-avatars.com/api/?name=Zarntastic&background=0ea5e9&color=fff&size=200',
@@ -334,7 +334,7 @@ export const ARTICLES_DATA: Article[] = [
     readTimeMinutes: 6,
     publishedDate: '26 กุมภาพันธ์ 2026',
     author: {
-      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล',
+      name: 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)',
       role: 'Fastwork Verified AI Specialist & Workflow Consultant',
       badge: 'คะแนนรีวิว 5.0 เต็ม 5 ดาว',
       avatar: 'https://ui-avatars.com/api/?name=Zarntastic&background=0ea5e9&color=fff&size=200',
