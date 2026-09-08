@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Booking, ScheduleSlot } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   getValidNextDates, 
   generateSlotsForDate, 
@@ -22,7 +23,11 @@ import {
   CheckCircle2, 
   Loader2,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Video,
+  ExternalLink,
+  Building2,
+  MapPin
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -43,6 +48,7 @@ export function EditBookingModal({
   onSuccess,
   isAdminMode = false,
 }: EditBookingModalProps) {
+  const { user } = useAuth();
   if (!isOpen || !booking) return null;
 
   const [activeTab, setActiveTab] = useState<'contact' | 'schedule'>('contact');
@@ -55,7 +61,10 @@ export function EditBookingModal({
   const [email, setEmail] = useState(booking.customer.email || '');
   const [lineId, setLineId] = useState(booking.customer.lineId || '');
   const [notes, setNotes] = useState(booking.customer.notes || '');
+  const [companyName, setCompanyName] = useState(booking.customer.companyName || '');
+  const [onsiteLocation, setOnsiteLocation] = useState(booking.customer.onsiteLocation || '');
   const [experienceLevel, setExperienceLevel] = useState(booking.customer.experienceLevel || 'Beginner');
+  const [meetingLink, setMeetingLink] = useState(booking.meetingLink || '');
 
   // Form State - Schedule
   const [schedule, setSchedule] = useState<ScheduleSlot[]>(() => {
@@ -137,7 +146,14 @@ export function EditBookingModal({
     setErrorMsg(null);
 
     try {
-      const token = localStorage.getItem('token') || '';
+      const token = user?.token || (() => {
+        try {
+          const raw = localStorage.getItem('app_user') || sessionStorage.getItem('app_user');
+          return raw ? JSON.parse(raw)?.token : '';
+        } catch {
+          return '';
+        }
+      })();
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -155,9 +171,13 @@ export function EditBookingModal({
             email: email.trim(),
             lineId: lineId.trim(),
             notes: notes.trim(),
+            companyName: companyName.trim(),
+            onsiteLocation: onsiteLocation.trim(),
             experienceLevel,
           },
           schedule: schedule.length > 0 ? schedule : undefined,
+          meetingLink: meetingLink.trim(),
+          editToken: booking.editToken,
         }),
       });
 
@@ -304,7 +324,7 @@ export function EditBookingModal({
                       value={lineId}
                       onChange={(e) => setLineId(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white font-medium"
-                      placeholder="เช่น @zarntastic หรือไอดีไลน์"
+                      placeholder="เช่น @761rqbfc หรือไอดีไลน์"
                     />
                   </div>
                 </div>
@@ -324,6 +344,41 @@ export function EditBookingModal({
                     className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white font-medium"
                     placeholder="เช่น yourname@gmail.com"
                   />
+                </div>
+              </div>
+
+              {/* Company & Onsite Location (Corporate & Onsite training) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
+                    องค์กร / บริษัท (สำหรับ Corporate)
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
+                    <input
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white font-medium"
+                      placeholder="เช่น บริษัท อินโนเวชั่น จำกัด"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
+                    สถานที่จัดอบรม Onsite (เขต กทม.)
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-3 w-4 h-4 text-orange-500" />
+                    <input
+                      type="text"
+                      value={onsiteLocation}
+                      onChange={(e) => setOnsiteLocation(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white font-medium"
+                      placeholder="เช่น อาคาร A ชั้น 4 ห้องประชุมใหญ่"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -355,6 +410,38 @@ export function EditBookingModal({
                   className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white font-medium resize-none"
                   placeholder="เช่น อยากเน้นทำ Webapp ขายของ, อยากทำระบบอัตโนมัติเชื่อม Google Sheets และ LINE เป็นต้น"
                 />
+              </div>
+
+              {/* Meeting Link */}
+              <div className="pt-2 border-t border-stone-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
+                    ลิงก์ห้องเรียนออนไลน์ (Google Meet)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.open('https://meet.google.com/new', '_blank');
+                    }}
+                    className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 hover:underline"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span>สร้างห้องใหม่ทันที (meet.new)</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <Video className="absolute left-3.5 top-3 w-4 h-4 text-blue-500" />
+                  <input
+                    type="text"
+                    value={meetingLink}
+                    onChange={(e) => setMeetingLink(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-mono"
+                    placeholder="https://meet.google.com/xxx-yyyy-zzz"
+                  />
+                </div>
+                <p className="text-[11px] text-stone-500 mt-1">
+                  ระบุ URL ห้องเรียน Google Meet เช่น https://meet.google.com/xxx-yyyy-zzz หรือเว้นว่างเพื่อใช้ห้องเริ่มต้น
+                </p>
               </div>
 
             </div>

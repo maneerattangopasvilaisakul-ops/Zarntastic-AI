@@ -37,16 +37,9 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
   
-  // Auto-fill customer info if logged in & set admin authentication
+  // Set admin authentication status (never auto-fill student form with admin credentials)
   useEffect(() => {
     if (user) {
-      setCustomerInfo(prev => ({
-        ...prev,
-        name: user.name || prev.name,
-        email: user.email || prev.email,
-        phone: user.phone || prev.phone,
-        lineId: user.lineId || prev.lineId,
-      }));
       if (user.role === 'admin') {
         setIsAdminAuthenticated(true);
       } else {
@@ -63,12 +56,28 @@ export default function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(COURSES[0]);
   const [selectedSlots, setSelectedSlots] = useState<ScheduleSlot[]>([]);
   
-  // Persistent Customer Info (survives page refresh & screen changes)
+  // Persistent Customer Info (students fill this form themselves)
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(() => {
     try {
       const saved = localStorage.getItem('zarntastic_customer_info');
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Clean out any teacher/admin info so student fills in fresh
+        const isInstructorInfo =
+          parsed.name?.includes('อาจารย์') ||
+          parsed.name?.includes('Admin') ||
+          parsed.name?.includes('ซาน') ||
+          parsed.email?.toLowerCase().includes('zarnzarn10') ||
+          parsed.email?.toLowerCase().includes('zarntastic.com') ||
+          parsed.phone?.includes('061-5614269') ||
+          parsed.phone?.includes('0615614269') ||
+          parsed.lineId === '@761rqbfc';
+
+        if (isInstructorInfo) {
+          localStorage.removeItem('zarntastic_customer_info');
+        } else {
+          return parsed;
+        }
       }
     } catch (e) {
       // ignore
@@ -87,7 +96,26 @@ export default function App() {
   // Auto-persist customerInfo whenever user modifies it
   useEffect(() => {
     try {
-      localStorage.setItem('zarntastic_customer_info', JSON.stringify(customerInfo));
+      const isInstructorInfo =
+        customerInfo.name?.includes('อาจารย์') ||
+        customerInfo.name?.includes('Admin') ||
+        customerInfo.email?.toLowerCase().includes('zarnzarn10') ||
+        customerInfo.phone?.includes('061-5614269') ||
+        customerInfo.phone?.includes('0615614269') ||
+        customerInfo.lineId === '@761rqbfc';
+
+      if (isInstructorInfo) {
+        localStorage.removeItem('zarntastic_customer_info');
+        setCustomerInfo(prev => ({
+          ...prev,
+          name: '',
+          email: '',
+          phone: '',
+          lineId: '',
+        }));
+      } else if (customerInfo.name || customerInfo.email || customerInfo.phone) {
+        localStorage.setItem('zarntastic_customer_info', JSON.stringify(customerInfo));
+      }
     } catch (e) {
       // ignore
     }
@@ -220,7 +248,7 @@ export default function App() {
 
   // Create Booking
   const handleCreateBooking = async () => {
-    if (!selectedCourse || selectedSlots.length === 0) return;
+    if (isSubmittingBooking || !selectedCourse || selectedSlots.length === 0) return;
     setIsSubmittingBooking(true);
     setServerError('');
 
@@ -272,7 +300,7 @@ export default function App() {
           slipUrl,
           referenceNo,
           manualAmount,
-          fallbackBooking: activeBooking,
+          editToken: activeBooking?.editToken,
         }),
       });
       clearTimeout(timeoutId);
@@ -282,7 +310,11 @@ export default function App() {
         setActiveBooking(data.booking);
         setIsPaymentModalOpen(false);
         setIsSuccessModalOpen(true);
-        triggerToast('ส่งสลิปเรียบร้อย', 'ระบบ AI ตรวจสอบความถูกต้องและอนุมัติคิวเรียบร้อย', 'success');
+        if (data.booking.payment?.status === 'under_review') {
+          triggerToast('ส่งสลิปเรียบร้อย', 'แนบสลิปเรียบร้อย เจ้าหน้าที่กำลังตรวจสอบยอดโอนเพื่อยืนยันคิว', 'success');
+        } else {
+          triggerToast('ส่งสลิปเรียบร้อย', 'ระบบ AI ตรวจสอบความถูกต้องและอนุมัติคิวเรียบร้อย', 'success');
+        }
         fetchBookings();
       } else {
         triggerToast('ข้อผิดพลาด', data.error || 'ไม่สามารถส่งสลิปได้ กรุณาลองใหม่', 'alert');
@@ -308,8 +340,12 @@ export default function App() {
   // Cancel Booking by ID (Used across Customer modals)
   const handleCancelBookingById = async (bookingId: string) => {
     try {
+      const b = bookings.find(x => x.id === bookingId) || activeBooking;
+      
       const res = await fetch(`/api/bookings/${bookingId}/cancel-customer`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ editToken: b?.editToken }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -676,7 +712,7 @@ export default function App() {
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-stone-500 text-[11px]">
             <p>
-              บุคคลทั่วไป: จันทร์-ศุกร์ (19.30-22.30 น.), เสาร์-อาทิตย์ (09.00-18.00 น.) • องค์กร: จันทร์-เสาร์ (09.00-18.00 น.)
+              บุคคลทั่วไป: จันทร์-ศุกร์ (19:30-22:30 น.), เสาร์ (10:00-23:00 น.), อาทิตย์ (10:00-22:00 น.) • องค์กร: จันทร์-เสาร์ (09:00-18:00 น.)
             </p>
             <p>
               ติดต่อ: LINE ID: zarn | โทร: 061-5614269 | Fastwork: zarnzarn

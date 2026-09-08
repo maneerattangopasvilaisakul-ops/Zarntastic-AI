@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Article } from '../data/articles';
 import { ArticleModal } from './ArticleModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AutomationLog {
   runId: string;
@@ -50,6 +51,7 @@ interface AutomationStatus {
 }
 
 export function AdminAINewsAutomation() {
+  const { user } = useAuth();
   const [statusInfo, setStatusInfo] = useState<AutomationStatus | null>(null);
   const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -57,8 +59,9 @@ export function AdminAINewsAutomation() {
   const [isRunningPipeline, setIsRunningPipeline] = useState<boolean>(false);
   const [runResult, setRunResult] = useState<{ success: boolean; message: string; article?: any } | null>(null);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
+  const [deletingArticleId, setDeletingArticleId] = useState<string | null>(null);
 
-  const token = localStorage.getItem('token');
+  const token = user?.token || localStorage.getItem('token');
 
   const fetchAutomationData = async () => {
     setIsLoading(true);
@@ -135,14 +138,14 @@ export function AdminAINewsAutomation() {
     }
   };
 
-  const handleDeleteArticle = async (id: string, title: string) => {
-    if (!confirm(`ต้องการลบบทความ "${title}" ใช่หรือไม่?`)) return;
+  const handleDeleteArticle = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/articles/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
+        setDeletingArticleId(null);
         fetchAutomationData();
       }
     } catch (e) {
@@ -373,13 +376,31 @@ export function AdminAINewsAutomation() {
                     <Eye className="w-3.5 h-3.5" />
                     <span>อ่านบทความ</span>
                   </button>
-                  <button
-                    onClick={() => handleDeleteArticle(art.id, art.title)}
-                    className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
-                    title="ลบบทความ"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {deletingArticleId === art.id ? (
+                    <div className="flex items-center gap-1 bg-rose-50 border border-rose-300 rounded-xl px-2 py-1 text-xs">
+                      <span className="text-rose-900 font-semibold">ลบ?</span>
+                      <button
+                        onClick={() => handleDeleteArticle(art.id)}
+                        className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px] cursor-pointer"
+                      >
+                        ยืนยัน
+                      </button>
+                      <button
+                        onClick={() => setDeletingArticleId(null)}
+                        className="px-1.5 py-0.5 text-stone-600 hover:text-stone-900 text-[11px] cursor-pointer"
+                      >
+                        ยกเลิก
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDeletingArticleId(art.id)}
+                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                      title="ลบบทความ"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

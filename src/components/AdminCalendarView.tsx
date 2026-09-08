@@ -10,6 +10,7 @@ import {
   isDateWeekend,
   getOperatingHours
 } from '../utils/scheduleUtils';
+import { normalizeMeetingLink } from '../utils/meetingUtils';
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 
@@ -28,7 +29,8 @@ import {
   Info,
   Building2,
   Phone,
-  MessageSquare
+  MessageSquare,
+  MapPin
 } from 'lucide-react';
 
 interface AdminCalendarViewProps {
@@ -79,14 +81,15 @@ export function AdminCalendarView({
     });
 
     // Sort by startTime
-    return events.sort((a, b) => a.slot.startTime.localeCompare(b.slot.startTime));
+    return events.sort((a, b) => (a.slot?.startTime || '').localeCompare(b.slot?.startTime || ''));
   }, [bookings, statusFilter]);
 
   // Group events by date string (YYYY-MM-DD)
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarDayEvent[]>();
     allEvents.forEach((ev) => {
-      const dateStr = ev.slot.date;
+      const dateStr = ev.slot?.date;
+      if (!dateStr) return;
       if (!map.has(dateStr)) {
         map.set(dateStr, []);
       }
@@ -151,6 +154,15 @@ export function AdminCalendarView({
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     })();
 
+    // Helper to calculate total booked hours safely
+    const calcBookedHours = (evs: CalendarDayEvent[]) => {
+      return evs.reduce((acc, ev) => {
+        const [sh, sm] = (ev.slot?.startTime || '00:00').split(':').map(Number);
+        const [eh, em] = (ev.slot?.endTime || '00:00').split(':').map(Number);
+        return acc + (((eh || 0) * 60 + (em || 0)) - ((sh || 0) * 60 + (sm || 0))) / 60;
+      }, 0);
+    };
+
     // Previous month padding
     for (let i = firstDayIndex - 1; i >= 0; i--) {
       const dayNum = daysInPrevMonth - i;
@@ -160,11 +172,7 @@ export function AdminCalendarView({
       const d = new Date(dateStr + 'T00:00:00');
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const evs = eventsByDate.get(dateStr) || [];
-      const totalBookedHours = evs.reduce((acc, ev) => {
-        const [sh, sm] = ev.slot.startTime.split(':').map(Number);
-        const [eh, em] = ev.slot.endTime.split(':').map(Number);
-        return acc + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
-      }, 0);
+      const totalBookedHours = calcBookedHours(evs);
 
       days.push({
         dateStr,
@@ -183,11 +191,7 @@ export function AdminCalendarView({
       const d = new Date(dateStr + 'T00:00:00');
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const evs = eventsByDate.get(dateStr) || [];
-      const totalBookedHours = evs.reduce((acc, ev) => {
-        const [sh, sm] = ev.slot.startTime.split(':').map(Number);
-        const [eh, em] = ev.slot.endTime.split(':').map(Number);
-        return acc + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
-      }, 0);
+      const totalBookedHours = calcBookedHours(evs);
 
       days.push({
         dateStr,
@@ -210,11 +214,7 @@ export function AdminCalendarView({
       const d = new Date(dateStr + 'T00:00:00');
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const evs = eventsByDate.get(dateStr) || [];
-      const totalBookedHours = evs.reduce((acc, ev) => {
-        const [sh, sm] = ev.slot.startTime.split(':').map(Number);
-        const [eh, em] = ev.slot.endTime.split(':').map(Number);
-        return acc + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
-      }, 0);
+      const totalBookedHours = calcBookedHours(evs);
 
       days.push({
         dateStr,
@@ -259,9 +259,9 @@ export function AdminCalendarView({
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const evs = eventsByDate.get(dateStr) || [];
       const totalBookedHours = evs.reduce((acc, ev) => {
-        const [sh, sm] = ev.slot.startTime.split(':').map(Number);
-        const [eh, em] = ev.slot.endTime.split(':').map(Number);
-        return acc + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+        const [sh, sm] = (ev.slot?.startTime || '00:00').split(':').map(Number);
+        const [eh, em] = (ev.slot?.endTime || '00:00').split(':').map(Number);
+        return acc + (((eh || 0) * 60 + (em || 0)) - ((sh || 0) * 60 + (sm || 0))) / 60;
       }, 0);
 
       days.push({
@@ -292,14 +292,14 @@ export function AdminCalendarView({
 
     monthDays.filter(d => d.isCurrentMonth).forEach(d => {
       d.events.forEach(ev => {
-        if (ev.booking.payment.status === 'confirmed' || ev.booking.payment.status === 'completed') {
+        if (ev.booking?.payment?.status === 'confirmed' || ev.booking?.payment?.status === 'completed') {
           confirmedCount++;
-        } else if (ev.booking.payment.status === 'under_review' || ev.booking.payment.status === 'pending_slip') {
+        } else if (ev.booking?.payment?.status === 'under_review' || ev.booking?.payment?.status === 'pending_slip') {
           underReviewCount++;
         }
-        const [sh, sm] = ev.slot.startTime.split(':').map(Number);
-        const [eh, em] = ev.slot.endTime.split(':').map(Number);
-        totalTeachingHours += ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+        const [sh, sm] = (ev.slot?.startTime || '00:00').split(':').map(Number);
+        const [eh, em] = (ev.slot?.endTime || '00:00').split(':').map(Number);
+        totalTeachingHours += (((eh || 0) * 60 + (em || 0)) - ((sh || 0) * 60 + (sm || 0))) / 60;
       });
     });
 
@@ -582,10 +582,10 @@ export function AdminCalendarView({
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
                               : 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
                           }`}
-                          title={`${ev.slot.startTime}-${ev.slot.endTime} น. | ${ev.booking.customer.name} (${ev.booking.courseTitle})`}
+                          title={`${ev.slot.startTime}-${ev.slot.endTime} น. | ${ev.booking.customer?.name || '-'} (${ev.booking.courseTitle || 'คอร์ส AI'})`}
                         >
                           <span className="font-bold shrink-0">{ev.slot.startTime}</span>
-                          <span className="truncate">{ev.booking.customer.name}</span>
+                          <span className="truncate">{ev.booking.customer?.name || '-'}</span>
                         </div>
                       ))}
 
@@ -599,7 +599,7 @@ export function AdminCalendarView({
                     {/* Bottom: Availability Label */}
                     <div className="text-[9px] text-stone-400 font-medium truncate pt-1 border-t border-stone-100/60 flex items-center justify-between">
                        <span className="truncate">
-                        {new Date(day.dateStr + 'T00:00:00').getDay() === 6 ? '10:00-23:00' : day.isWeekend ? '09:00-18:00' : '19:30-22:30'}
+                        {new Date(day.dateStr + 'T00:00:00').getDay() === 6 ? '10:00-23:00' : day.isWeekend ? '10:00-22:00' : '19:30-22:30'}
                       </span>
                       {hasEvents && (
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -647,7 +647,7 @@ export function AdminCalendarView({
                         {day.dayNumber}
                       </div>
                       <div className="text-[10px] text-stone-400 mt-0.5">
-                        {new Date(day.dateStr + 'T00:00:00').getDay() === 6 ? '10:00-23:00' : day.isWeekend ? '09:00-18:00' : '19:30-22:30'}
+                        {new Date(day.dateStr + 'T00:00:00').getDay() === 6 ? '10:00-23:00' : day.isWeekend ? '10:00-22:00' : '19:30-22:30'}
                       </div>
                     </div>
 
@@ -679,10 +679,10 @@ export function AdminCalendarView({
                               </span>
                             </div>
                             <div className="font-semibold text-stone-900 text-xs mt-1 truncate">
-                              {ev.booking.customer.name}
+                              {ev.booking.customer?.name || '-'}
                             </div>
                             <div className="text-[10px] text-stone-600 line-clamp-1 mt-0.5">
-                              {ev.booking.courseTitle.split('(')[0]}
+                              {(ev.booking.courseTitle || 'คอร์ส AI').split('(')[0]}
                             </div>
                             <div className="mt-1 flex items-center justify-between">
                               {getStatusBadge(ev.booking.payment.status)}
@@ -777,10 +777,10 @@ export function AdminCalendarView({
                     {/* Course Title */}
                     <div>
                       <div className="text-xs font-bold text-stone-900 line-clamp-1">
-                        {ev.booking.courseTitle}
+                        {ev.booking.courseTitle || 'คอร์สเรียน AI'}
                       </div>
                       <div className="text-[11px] text-stone-500">
-                        วันที่ {ev.slot.dayNumber} จาก {ev.booking.totalDays} วัน ({ev.booking.totalHours} ชม.)
+                        วันที่ {ev.slot.dayNumber || 1} จาก {ev.booking.totalDays || 1} วัน ({ev.booking.totalHours || 1} ชม.)
                       </div>
                     </div>
 
@@ -788,16 +788,27 @@ export function AdminCalendarView({
                     <div className="p-2 bg-white rounded-xl border border-stone-200/80 text-xs space-y-1">
                       <div className="font-bold text-stone-800 flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5 text-stone-500" />
-                        <span>{ev.booking.customer.name}</span>
+                        <span>{ev.booking.customer?.name || '-'}</span>
+                        {ev.booking.customer?.companyName && (
+                          <span className="text-[10px] bg-stone-100 text-stone-700 px-1.5 py-0.2 rounded font-normal">
+                            🏢 {ev.booking.customer.companyName}
+                          </span>
+                        )}
                       </div>
                       <div className="text-stone-600 flex items-center gap-1 text-[11px]">
                         <Phone className="w-3 h-3 text-stone-400" />
-                        <span>{ev.booking.customer.phone}</span>
-                        {ev.booking.customer.lineId && (
+                        <span>{ev.booking.customer?.phone || '-'}</span>
+                        {ev.booking.customer?.lineId && (
                           <span className="text-stone-500 ml-2">LINE: {ev.booking.customer.lineId}</span>
                         )}
                       </div>
-                      {ev.booking.customer.notes && (
+                      {ev.booking.customer?.onsiteLocation && (
+                        <div className="text-[11px] text-amber-900 bg-amber-50 p-1.5 rounded-lg border border-amber-200 flex items-start gap-1 mt-1">
+                          <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                          <span className="font-medium">สถานที่ Onsite: {ev.booking.customer.onsiteLocation}</span>
+                        </div>
+                      )}
+                      {ev.booking.customer?.notes && (
                         <div className="text-[10px] text-stone-500 bg-stone-50 p-1.5 rounded border border-stone-100">
                           <strong>โน้ต:</strong> {ev.booking.customer.notes}
                         </div>
@@ -817,7 +828,7 @@ export function AdminCalendarView({
 
                       {ev.booking.meetingLink && (
                         <a
-                          href={ev.booking.meetingLink}
+                          href={normalizeMeetingLink(ev.booking.meetingLink)}
                           target="_blank"
                           rel="noreferrer"
                           className="py-1.5 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"

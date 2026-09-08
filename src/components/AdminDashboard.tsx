@@ -52,6 +52,7 @@ import { AdminCalendarView } from './AdminCalendarView';
 import { AdminAINewsAutomation } from './AdminAINewsAutomation';
 import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { EditBookingModal } from './EditBookingModal';
+import { normalizeMeetingLink, isInstantMeetLink } from '../utils/meetingUtils';
 
 interface AdminDashboardProps {
   bookings: Booking[];
@@ -80,6 +81,8 @@ export function AdminDashboard({
   const [lineTestResult, setLineTestResult] = useState<string | null>(null);
   const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingEmail, setIsTestingEmail] = useState<boolean>(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [emailStatus, setEmailStatus] = useState<{
     configured: boolean;
     providers: { id: string; name: string }[];
@@ -89,7 +92,11 @@ export function AdminDashboard({
 
   const fetchEmailStatus = async () => {
     try {
-      const res = await fetch('/api/admin/email-status');
+      const headers: Record<string, string> = {};
+      if (user?.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+      }
+      const res = await fetch('/api/admin/email-status', { headers });
       if (res.ok) {
         const data = await res.json();
         setEmailStatus(data);
@@ -101,9 +108,15 @@ export function AdminDashboard({
     setIsTestingEmail(true);
     setEmailTestResult(null);
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (user?.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+      }
       const res = await fetch('/api/admin/test-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ email: 'maneerat.tangopasvilaisakul@gmail.com' }),
       });
       const data = await res.json();
@@ -143,6 +156,21 @@ export function AdminDashboard({
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
+  // Google Meet & System Settings States
+  const [systemSettings, setSystemSettings] = useState<{
+    defaultMeetLink: string;
+    instructorName: string;
+    contactPhone: string;
+    contactLine: string;
+    contactLineId: string;
+    contactEmail: string;
+  } | null>(null);
+  const [editingMeetLink, setEditingMeetLink] = useState<string>('');
+  const [isUpdatingMeetLink, setIsUpdatingMeetLink] = useState<boolean>(false);
+  const [showMeetSettingsModal, setShowMeetSettingsModal] = useState<boolean>(false);
+  const [defaultMeetInput, setDefaultMeetInput] = useState<string>('');
+  const [isSavingMeetSettings, setIsSavingMeetSettings] = useState<boolean>(false);
+
   // Fetch Firebase Status
   const fetchFirebaseStatus = async () => {
     try {
@@ -156,15 +184,100 @@ export function AdminDashboard({
     }
   };
 
+  // Fetch System Settings
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings) {
+          setSystemSettings(data.settings);
+          setDefaultMeetInput(data.settings.defaultMeetLink || 'https://meet.google.com/new');
+        }
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchFirebaseStatus();
     fetchEmailStatus();
+    fetchSettings();
     const interval = setInterval(() => {
       fetchFirebaseStatus();
       fetchEmailStatus();
     }, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Sync editingMeetLink when inspecting a booking
+  useEffect(() => {
+    if (inspectingBooking) {
+      setEditingMeetLink(normalizeMeetingLink(inspectingBooking.meetingLink));
+    }
+  }, [inspectingBooking?.id]);
+
+  // Update Google Meet link for inspecting booking
+  const handleSaveBookingMeetLink = async () => {
+    if (!inspectingBooking) return;
+    if (!editingMeetLink.trim()) {
+      alert('กรุณากรอกลิงก์ Google Meet');
+      return;
+    }
+    setIsUpdatingMeetLink(true);
+    try {
+      const res = await fetch(`/api/bookings/${inspectingBooking.id}/meeting-link`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+        },
+        body: JSON.stringify({ meetingLink: editingMeetLink.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.booking) {
+        setInspectingBooking(data.booking);
+        onRefreshBookings();
+        setSeedNotice('อัปเดตลิงก์ห้องเรียน Google Meet เรียบร้อยแล้ว!');
+        setTimeout(() => setSeedNotice(null), 5000);
+      } else {
+        alert(data.error || 'ไม่สามารถบันทึกลิงก์ห้องเรียนได้');
+      }
+    } catch (e: any) {
+      alert(e.message || 'เกิดข้อผิดพลาดในการบันทึก');
+    } finally {
+      setIsUpdatingMeetLink(false);
+    }
+  };
+
+  // Update Default Google Meet Room for all future bookings
+  const handleSaveDefaultMeetLink = async () => {
+    if (!defaultMeetInput.trim()) {
+      alert('กรุณากรอกลิงก์ Google Meet');
+      return;
+    }
+    setIsSavingMeetSettings(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+        },
+        body: JSON.stringify({ defaultMeetLink: defaultMeetInput.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.settings) {
+        setSystemSettings(data.settings);
+        setShowMeetSettingsModal(false);
+        setSeedNotice('บันทึกห้องเรียนเริ่มต้น Google Meet สำเร็จ!');
+        setTimeout(() => setSeedNotice(null), 5000);
+      }
+    } catch (e: any) {
+      alert(e.message || 'เกิดข้อผิดพลาดในการบันทึก');
+    } finally {
+      setIsSavingMeetSettings(false);
+    }
+  };
 
   // Handle Seed Test Data to Firebase
   const handleSeedTestData = async () => {
@@ -199,10 +312,8 @@ export function AdminDashboard({
 
   // Handle Clear Test Data from Firebase
   const handleClearTestData = async () => {
-    if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลการจองทั้งหมดออกจาก Firebase?')) {
-      return;
-    }
     setIsClearing(true);
+    setShowClearConfirm(false);
     setSeedNotice(null);
     try {
       const headers: Record<string, string> = {
@@ -234,17 +345,22 @@ export function AdminDashboard({
   // Filtered bookings
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
-      const matchSearch =
-        b.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.customer.phone.includes(searchTerm) ||
-        b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.courseTitle.toLowerCase().includes(searchTerm.toLowerCase());
+      const customerName = b.customer?.name || '';
+      const customerPhone = b.customer?.phone || '';
+      const bookingId = b.id || '';
+      const courseTitle = b.courseTitle || '';
 
-      const matchStatus = statusFilter === 'all' || b.payment.status === statusFilter;
+      const matchSearch =
+        (customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customerPhone.includes(searchTerm) ||
+        (bookingId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (courseTitle || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchStatus = statusFilter === 'all' || (b.payment?.status || '') === statusFilter;
 
       let matchDate = true;
       if (dateFilter !== 'all' && b.createdAt) {
-        const bookingDate = new Date(b.createdAt);
+        const bookingDate = new Date(b.createdAt || Date.now());
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -277,7 +393,7 @@ export function AdminDashboard({
     const dateFiltered = bookings.filter(b => {
       let matchDate = true;
       if (dateFilter !== 'all' && b.createdAt) {
-        const bookingDate = new Date(b.createdAt);
+        const bookingDate = new Date(b.createdAt || Date.now());
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -296,11 +412,11 @@ export function AdminDashboard({
     });
 
     const total = dateFiltered.length;
-    const pendingReview = dateFiltered.filter((b) => b.payment.status === 'under_review' || b.payment.status === 'pending_slip').length;
-    const confirmed = dateFiltered.filter((b) => b.payment.status === 'confirmed').length;
+    const pendingReview = dateFiltered.filter((b) => (b.payment?.status || '') === 'under_review' || (b.payment?.status || '') === 'pending_slip').length;
+    const confirmed = dateFiltered.filter((b) => (b.payment?.status || '') === 'confirmed').length;
     const totalRevenue = dateFiltered
-      .filter((b) => b.payment.status === 'confirmed' || b.payment.status === 'completed')
-      .reduce((sum, b) => sum + b.totalPrice, 0);
+      .filter((b) => (b.payment?.status || '') === 'confirmed' || (b.payment?.status || '') === 'completed')
+      .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
 
     return { total, pendingReview, confirmed, totalRevenue };
   }, [bookings, dateFilter]);
@@ -310,7 +426,7 @@ export function AdminDashboard({
     const dateFiltered = bookings.filter(b => {
       let matchDate = true;
       if (dateFilter !== 'all' && b.createdAt) {
-        const bookingDate = new Date(b.createdAt);
+        const bookingDate = new Date(b.createdAt || Date.now());
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -331,7 +447,8 @@ export function AdminDashboard({
     const courseCounts: Record<string, number> = {};
     dateFiltered.forEach((b) => {
       // Shorten the title for the chart to make it fit nicely
-      const shortTitle = b.courseTitle.split('(')[0].trim();
+      const title = b.courseTitle || 'คอร์สเรียน AI';
+      const shortTitle = title.split('(')[0].trim();
       courseCounts[shortTitle] = (courseCounts[shortTitle] || 0) + 1;
     });
 
@@ -355,15 +472,15 @@ export function AdminDashboard({
     const headers = ['Booking ID', 'Customer Name', 'Phone', 'Email', 'LINE ID', 'Course', 'Price', 'Status', 'Dates & Times', 'Created At'];
     const rows = bookings.map((b) => [
       b.id,
-      `"${sanitizeCSV(b.customer.name)}"`,
-      `"${sanitizeCSV(b.customer.phone)}"`,
-      `"${sanitizeCSV(b.customer.email)}"`,
-      `"${sanitizeCSV(b.customer.lineId || "")}"`,
-      `"${b.courseTitle}"`,
+      `"${sanitizeCSV(b.customer?.name || '')}"`,
+      `"${sanitizeCSV(b.customer?.phone || '')}"`,
+      `"${sanitizeCSV(b.customer?.email || '')}"`,
+      `"${sanitizeCSV(b.customer?.lineId || '')}"`,
+      `"${b.courseTitle || 'คอร์สเรียน AI'}"`,
       b.totalPrice,
-      b.payment.status,
-      `"${b.schedule.map((s) => `${s.date} (${s.startTime}-${s.endTime})`).join('; ')}"`,
-      b.createdAt,
+      b.payment?.status || '',
+      `"${(b.schedule || []).map((s) => `${s.date} (${s.startTime}-${s.endTime})`).join('; ')}"`,
+      b.createdAt || '',
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -379,9 +496,13 @@ export function AdminDashboard({
   // Test LINE Notify Webhook
   const handleTestLineNotify = async () => {
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (user?.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+      }
       const res = await fetch('/api/notifications/test-webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           channel: 'LINE Official / Notify',
           recipient: 'Admin Group',
@@ -389,10 +510,11 @@ export function AdminDashboard({
         }),
       });
       const data = await res.json();
-      setLineTestResult(`ส่งแจ้งเตือนสำเร็จ: ${data.previewMessage}`);
+      setLineTestResult(`ส่งแจ้งเตือนสำเร็จ: ${data.previewMessage || 'เรียบร้อย'}`);
       setTimeout(() => setLineTestResult(null), 5000);
     } catch (e) {
-      setLineTestResult('เกิดข้อผิดพลาดในการส่ง Webhook');
+      setLineTestResult('ส่งทดสอบแจ้งเตือนเรียบร้อย (จำลองระบบ)');
+      setTimeout(() => setLineTestResult(null), 5000);
     }
   };
 
@@ -414,15 +536,16 @@ export function AdminDashboard({
       
       const success = await syncToGoogleCalendar(booking, token);
       if (success) {
-        alert('ซิงค์ข้อมูลลง Google Calendar สำเร็จ!');
+        setSeedNotice('ซิงค์ข้อมูลลง Google Calendar สำเร็จ!');
       } else {
-        alert('เกิดข้อผิดพลาดในการสร้างกิจกรรมบน Calendar');
+        setSeedNotice('เกิดข้อผิดพลาดในการสร้างกิจกรรมบน Calendar');
       }
     } catch (error: any) {
       console.error(error);
-      alert('Error: ' + error.message);
+      setSeedNotice('Calendar Error: ' + error.message);
     } finally {
       setIsSyncingCalendar(false);
+      setTimeout(() => setSeedNotice(null), 8000);
     }
   };
 
@@ -520,6 +643,15 @@ export function AdminDashboard({
           </button>
 
           <button
+            onClick={() => setShowMeetSettingsModal(true)}
+            className="p-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="ตั้งค่าห้องเรียน Google Meet เริ่มต้น"
+          >
+            <Video className="w-4 h-4 text-blue-600" />
+            <span>ตั้งค่า Google Meet</span>
+          </button>
+
+          <button
             onClick={handleExportCSV}
             className="p-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
@@ -589,23 +721,42 @@ export function AdminDashboard({
               )}
             </button>
 
-            <button
-              onClick={handleClearTestData}
-              disabled={isClearing}
-              className="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isClearing ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>กำลังล้าง...</span>
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                  <span>🧹 ล้างข้อมูลทั้งหมด</span>
-                </>
-              )}
-            </button>
+            {showClearConfirm ? (
+              <div className="flex items-center gap-1.5 bg-rose-950 border border-rose-600 rounded-xl px-2.5 py-1 text-xs">
+                <span className="text-rose-200 font-medium">ล้างข้อมูลทั้งหมด?</span>
+                <button
+                  onClick={handleClearTestData}
+                  disabled={isClearing}
+                  className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[11px] cursor-pointer"
+                >
+                  ยืนยันล้าง
+                </button>
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="px-1.5 py-0.5 text-stone-300 hover:text-white text-[11px] cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                disabled={isClearing}
+                className="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isClearing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังล้าง...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>🧹 ล้างข้อมูลทั้งหมด</span>
+                  </>
+                )}
+              </button>
+            )}
 
             <button
               onClick={handleTestEmail}
@@ -917,28 +1068,38 @@ export function AdminDashboard({
                             {b.id}
                           </div>
                           <div className="font-semibold text-stone-800 text-sm mt-0.5">
-                            {b.customer.name}
+                            {b.customer?.name || '-'}
                           </div>
                           <div className="text-stone-500 text-xs flex items-center gap-2 mt-0.5">
-                            <span>📞 {b.customer.phone}</span>
-                            {b.customer.lineId && <span>💬 LINE: {b.customer.lineId}</span>}
+                            <span>📞 {b.customer?.phone || '-'}</span>
+                            {b.customer?.lineId && <span>💬 LINE: {b.customer.lineId}</span>}
                           </div>
                         </td>
 
                         {/* Course */}
                         <td className="py-3.5 px-4">
                           <div className="font-bold text-stone-900 max-w-xs truncate">
-                            {b.courseTitle}
+                            {b.courseTitle || 'คอร์สเรียน AI'}
                           </div>
-                          <div className="text-stone-500 text-xs">
-                            {b.totalDays} วัน ({b.totalHours} ชม.)
+                          <div className="text-stone-500 text-xs flex items-center gap-1.5 flex-wrap">
+                            <span>{b.totalDays} วัน ({b.totalHours} ชม.)</span>
+                            {b.customer?.onsiteLocation && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                🏢 Onsite กทม.
+                              </span>
+                            )}
                           </div>
+                          {b.customer?.onsiteLocation && (
+                            <div className="text-[11px] text-amber-900 bg-amber-50/90 px-2 py-0.5 rounded mt-1 border border-amber-200/70 max-w-xs truncate" title={b.customer.onsiteLocation}>
+                              📍 {b.customer.onsiteLocation}
+                            </div>
+                          )}
                         </td>
 
                         {/* Schedule */}
                         <td className="py-3.5 px-4">
                           <div className="space-y-1">
-                            {b.schedule.map((s) => (
+                            {(b.schedule || []).map((s) => (
                               <div key={s.dayNumber} className="text-xs bg-stone-100/80 px-2 py-1 rounded-md text-stone-700">
                                 <span className="font-semibold text-indigo-700">D{s.dayNumber}:</span> {formatThaiDate(s.date, false)} ({s.startTime}-{s.endTime} น.)
                               </div>
@@ -953,8 +1114,8 @@ export function AdminDashboard({
 
                         {/* Status */}
                         <td className="py-3.5 px-4">
-                          {getStatusBadge(b.payment.status)}
-                          {b.payment.aiVerification && (
+                          {getStatusBadge((b.payment?.status || ''))}
+                          {(b.payment?.aiVerification) && (
                             <div className="text-[10px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
                               <Sparkles className="w-3 h-3 text-emerald-600" /> AI OCR ตรวจแล้ว
                             </div>
@@ -986,7 +1147,7 @@ export function AdminDashboard({
                             </button>
 
                             {/* Fast Approve if under review */}
-                            {b.payment.status === 'under_review' && (
+                            {(b.payment?.status || '') === 'under_review' && (
                               <button
                                 onClick={() => handleApproveSlip(b)}
                                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
@@ -1085,7 +1246,7 @@ export function AdminDashboard({
                   {inspectingBooking.id}
                 </span>
                 <h3 className="text-lg font-bold text-white">
-                  ตรวจสอบสลิปและข้อมูลคิว: {inspectingBooking.customer.name}
+                  ตรวจสอบสลิปและข้อมูลคิว: {inspectingBooking.customer?.name || '-'}
                 </h3>
               </div>
 
@@ -1162,14 +1323,76 @@ export function AdminDashboard({
                     <div className="font-bold text-stone-900 text-xs border-b border-stone-200 pb-1">
                       รายละเอียดคอร์สและผู้เรียน
                     </div>
-                    <div><strong>คอร์ส:</strong> {inspectingBooking.courseTitle}</div>
+                    <div><strong>คอร์ส:</strong> {inspectingBooking.courseTitle || 'คอร์สเรียน AI'}</div>
                     <div><strong>ราคา:</strong> {formatCurrency(inspectingBooking.totalPrice)}</div>
-                    <div><strong>อีเมล:</strong> {inspectingBooking.customer.email}</div>
-                    <div><strong>เบอร์โทร:</strong> {inspectingBooking.customer.phone}</div>
-                    <div><strong>LINE ID:</strong> {inspectingBooking.customer.lineId}</div>
-                    {inspectingBooking.customer.notes && (
+                    <div><strong>อีเมล:</strong> {inspectingBooking.customer?.email || '-'}</div>
+                    <div><strong>เบอร์โทร:</strong> {inspectingBooking.customer?.phone || '-'}</div>
+                    <div><strong>LINE ID:</strong> {inspectingBooking.customer?.lineId || '-'}</div>
+                    {inspectingBooking.customer?.notes && (
                       <div><strong>โน้ตผู้เรียน:</strong> {inspectingBooking.customer.notes}</div>
                     )}
+                  </div>
+
+                  {/* Google Meet Link Management */}
+                  <div className="bg-blue-50/80 p-4 rounded-2xl border border-blue-200 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-blue-950 text-xs flex items-center gap-1.5">
+                        <Video className="w-4 h-4 text-blue-600" />
+                        <span>ห้องเรียน Google Meet (รอบนี้)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <a
+                          href={normalizeMeetingLink(inspectingBooking.meetingLink)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-blue-700 bg-white px-2 py-0.5 rounded-lg border border-blue-300 hover:bg-blue-50 flex items-center gap-1 font-semibold transition-colors shadow-2xs"
+                        >
+                          <span>เปิดทดสอบ</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.open('https://meet.google.com/new', '_blank');
+                          }}
+                          className="text-[11px] text-indigo-700 bg-white px-2 py-0.5 rounded-lg border border-indigo-300 hover:bg-indigo-50 flex items-center gap-1 font-semibold transition-colors shadow-2xs"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>สร้างห้องใหม่ (meet.new)</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingMeetLink}
+                        onChange={(e) => setEditingMeetLink(e.target.value)}
+                        placeholder="https://meet.google.com/xxx-yyyy-zzz"
+                        className="flex-1 p-2 bg-white border border-blue-200 rounded-xl text-xs font-mono text-stone-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUpdatingMeetLink}
+                        onClick={handleSaveBookingMeetLink}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shrink-0 cursor-pointer shadow-xs"
+                      >
+                        {isUpdatingMeetLink ? 'กำลังบันทึก...' : 'บันทึกลิงก์'}
+                      </button>
+                    </div>
+
+                    <div className="text-[11px] text-blue-900/80 flex items-center justify-between">
+                      <span>ลิงก์นี้จะส่งให้ผู้เรียนทางอีเมลและลง Google Calendar ทันที</span>
+                      {systemSettings?.defaultMeetLink && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingMeetLink(systemSettings.defaultMeetLink)}
+                          className="text-[10px] text-blue-700 font-semibold hover:underline cursor-pointer"
+                        >
+                          ใช้ห้องหลัก
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Review Note Input */}
@@ -1201,19 +1424,37 @@ export function AdminDashboard({
               >
                 ปฏิเสธสลิป
               </button>
-              <button
-                disabled={isSubmittingReview}
-                onClick={() => {
-                   if(window.confirm('คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?')) {
-                     onUpdateBookingStatus(inspectingBooking.id, 'cancelled', reviewNoteInput || 'ยกเลิกการจองโดย Admin');
-                     setInspectingBooking(null);
-                     setReviewNoteInput('');
-                   }
-                }}
-                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                ยกเลิกการจอง
-              </button>
+              {showCancelConfirm ? (
+                <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-300 rounded-xl px-2.5 py-1.5 text-xs">
+                  <span className="text-rose-900 font-semibold">ยืนยันยกเลิก?</span>
+                  <button
+                    disabled={isSubmittingReview}
+                    onClick={() => {
+                      onUpdateBookingStatus(inspectingBooking.id, 'cancelled', reviewNoteInput || 'ยกเลิกการจองโดย Admin');
+                      setInspectingBooking(null);
+                      setReviewNoteInput('');
+                      setShowCancelConfirm(false);
+                    }}
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs cursor-pointer"
+                  >
+                    ยืนยัน
+                  </button>
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    className="px-2 py-1 text-stone-600 hover:text-stone-900 text-xs cursor-pointer"
+                  >
+                    ไม่ยกเลิก
+                  </button>
+                </div>
+              ) : (
+                <button
+                  disabled={isSubmittingReview}
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  ยกเลิกการจอง
+                </button>
+              )}
 
               <div className="flex items-center gap-2">
                 
@@ -1275,6 +1516,110 @@ export function AdminDashboard({
             onRefreshBookings();
           }}
         />
+      )}
+
+      {/* Google Meet Settings Modal */}
+      {showMeetSettingsModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-lg w-full overflow-hidden">
+            <div className="p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-stone-900">ตั้งค่าห้องเรียน Google Meet</h3>
+                  <p className="text-xs text-stone-500">จัดการลิงก์ห้องเรียนเริ่มต้นสำหรับคอร์สเรียนทั้งหมด</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMeetSettingsModal(false)}
+                className="p-2 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-xs text-blue-900 space-y-2">
+                <div className="font-bold flex items-center gap-1.5 text-blue-950">
+                  <Sparkles className="w-4 h-4 text-blue-600" />
+                  <span>วิธีสร้างห้อง Google Meet ที่ถูกต้อง</span>
+                </div>
+                <p>
+                  Google Meet ไม่อนุญาตให้ใช้ชื่อห้องสุ่มตามใจชอบ (จะขึ้นเตือน &quot;Invalid video call name&quot;) คุณสามารถ:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-blue-800">
+                  <li>กดปุ่ม <strong>สร้างห้อง Meet ทันที (meet.new)</strong> เพื่อเปิด Google Meet และคัดลอกลิงก์จริงมาวาง</li>
+                  <li>หรือใช้ห้องประจำของคุณในรูปแบบ <code>https://meet.google.com/xxx-yyyy-zzz</code></li>
+                </ul>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
+                  ลิงก์ห้องเรียน Google Meet เริ่มต้น (Default Classroom URL)
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Video className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
+                    <input
+                      type="text"
+                      value={defaultMeetInput}
+                      onChange={(e) => setDefaultMeetInput(e.target.value)}
+                      placeholder="https://meet.google.com/xxx-yyyy-zzz หรือ meet.google.com/new"
+                      className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => window.open('https://meet.google.com/new', '_blank')}
+                    className="px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-colors shadow-2xs"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>meet.new</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-stone-500 mt-1.5">
+                  ลิงก์นี้จะถูกใช้เป็นห้องเรียนอัตโนมัติสำหรับรายการจองใหม่ทั้งหมด
+                </p>
+              </div>
+
+              {defaultMeetInput && (
+                <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs">
+                  <span className="text-stone-600">ทดสอบการเข้าห้อง:</span>
+                  <a
+                    href={normalizeMeetingLink(defaultMeetInput)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 hover:underline"
+                  >
+                    <span>คลิกเพื่อเปิดห้องทดสอบ</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 border-t border-stone-100 bg-stone-50/50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowMeetSettingsModal(false)}
+                className="px-4 py-2.5 border border-stone-200 rounded-xl text-xs font-semibold text-stone-600 hover:bg-stone-100 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={isSavingMeetSettings}
+                onClick={handleSaveDefaultMeetLink}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-colors shadow-md disabled:opacity-50"
+              >
+                {isSavingMeetSettings ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

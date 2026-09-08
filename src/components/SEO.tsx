@@ -10,9 +10,9 @@ interface SEOProps {
 }
 
 export function SEO({ 
-  title = 'Zarntastic AI Course - คอร์สเรียน AI และ Prompt Engineering โดย อ.มณีรัตน์', 
-  description = 'คอร์สเรียน AI, Prompt Engineering, ลดเวลาทำงาน, เพิ่มประสิทธิภาพด้วย Gemini, ChatGPT, Claude. สอนโดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน) (Zarntastic AI Learning)',
-  keywords = 'AI Course, Prompt Engineering, สอน AI, คอร์สเรียน AI, มณีรัตน์ ตั้งโอภาสวิไลสกุล, Fastwork AI, Gemini, ChatGPT',
+  title = 'Zarntastic AI Course - คอร์สเรียน AI และ Prompt Engineering โดย โค้ช ซาน', 
+  description = 'คอร์สเรียน AI, Prompt Engineering, ลดเวลาทำงาน, เพิ่มประสิทธิภาพด้วย Gemini, ChatGPT, Claude. สอนโดย โค้ช ซาน (Zarntastic AI Learning)',
+  keywords = 'AI Course, Prompt Engineering, สอน AI, คอร์สเรียน AI, โค้ช ซาน, Fastwork AI, Gemini, ChatGPT',
   image = 'https://firebasestorage.googleapis.com/v0/b/ai-course-booking.firebasestorage.app/o/og-image.jpg?alt=media', // Placeholder
   url = 'https://zarntastic-ai-course.web.app',
   schema 

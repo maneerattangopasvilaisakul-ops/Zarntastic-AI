@@ -2,12 +2,9 @@ export type DurationCategory = '1-day-1h' | '1-day-3h' | '2-day-6h' | '2-day-8h'
 
 export type CourseCategoryGroup = 
   | 'all' 
-  | 'starter' 
-  | 'productivity' 
-  | 'marketing' 
-  | 'web' 
-  | 'claude' 
-  | 'coaching' | 'corporate';
+  | 'in-house-onsite' 
+  | 'in-house-online' 
+  | 'other';
 
 export type UserCategory = 'general' | 'corporate';
 
@@ -69,6 +66,7 @@ export interface Course {
   keyFeatures?: string[];
   targetAudience?: string | string[];
   recommended?: boolean;
+  trainingMode?: 'online' | 'onsite';
   isVdoCourse?: boolean;
   comingSoon?: boolean;
   vdoLinks?: { title: string; url: string }[];
@@ -92,6 +90,8 @@ export interface CustomerInfo {
   clientType?: UserCategory; // 'general' | 'corporate'
   companyName?: string;
   taxId?: string;
+  trainingMode?: 'online' | 'onsite';
+  onsiteLocation?: string;
 }
 
 export interface AIVerification {
@@ -128,6 +128,7 @@ export interface Booking {
   schedule: ScheduleSlot[];
   payment: PaymentInfo;
   meetingLink: string;
+  editToken?: string;
   createdAt: string;
   updatedAt: string;
 }

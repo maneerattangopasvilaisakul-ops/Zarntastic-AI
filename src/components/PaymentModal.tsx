@@ -162,13 +162,13 @@ export function PaymentModal({
       // Amount
       ctx.fillStyle = '#0f172a';
       ctx.font = 'bold 30px sans-serif';
-      ctx.fillText(`฿ ${booking.totalPrice.toLocaleString()}.00`, 20, 160);
+      ctx.fillText(`฿ ${(booking.totalPrice || 0).toLocaleString()}.00`, 20, 160);
 
       // Details
       ctx.fillStyle = '#64748b';
       ctx.font = '12px sans-serif';
       ctx.fillText('จาก: ' + (booking.customer?.name || 'ผู้เรียน AI Course'), 20, 210);
-      ctx.fillText('ถึง: มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)', 20, 240);
+      ctx.fillText('ถึง: มณีรัตน์ ตั้งโอภาสวิไลสกุล (โค้ช ซาน)', 20, 240);
       ctx.fillText('พร้อมเพย์: 061-561-4269 (KBANK: 585-2-29915-2)', 20, 270);
       ctx.fillText(`วันเวลา: 2026-08-25 08:30 น.`, 20, 300);
       

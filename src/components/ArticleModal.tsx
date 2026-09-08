@@ -311,7 +311,7 @@ export function ArticleModal({ article, onClose, onSelectCourseById }: ArticleMo
                   หลักสูตรแนะนำสำหรับบทความนี้
                 </span>
                 <h4 className="text-base sm:text-lg font-bold text-white">
-                  {article.relatedCourseTitle || 'เรียนสด Online 1:1 กับ อ.มณีรัตน์'}
+                  {article.relatedCourseTitle || 'เรียนสด Online 1:1 โดย โค้ช ซาน'}
                 </h4>
                 <p className="text-xs text-stone-300">
                   เรียนสดตัวต่อตัวผ่าน Google Meet จับมือทำพร้อมโค้ชชิ่งโจทย์งานจริง

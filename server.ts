@@ -14,6 +14,7 @@ import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot }
 
 import jwt from "jsonwebtoken";
 import cron from "node-cron";
+import rateLimit from "express-rate-limit";
 import {
   runAINewsAutomationPipeline,
   loadArticles,
@@ -23,6 +24,7 @@ import {
   OFFICIAL_AI_SOURCES,
 } from "./aiNewsAutomation";
 import { ARTICLES_DATA } from "./src/data/articles";
+import { COURSES } from "./src/data/courses";
 
 dotenv.config();
 
@@ -53,6 +55,22 @@ let unsubNotifs: (() => void) | null = null;
 
 const app = express();
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: { error: "เข้าสู่ระบบผิดพลาดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const lookupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 requests per windowMs
+  message: { error: "ค้นหาข้อมูลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 
 const PORT = 3000;
 
@@ -63,17 +81,99 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
-app.post("/api/admin/login", (req, res) => {
+
+// Admin Forgot Password
+app.post("/api/admin/forgot-password", loginLimiter, async (req, res) => {
+  const { email } = req.body;
+  const cleanEmail = (email || "").trim().toLowerCase();
+  
+  const expectedEmail = (process.env.ADMIN_EMAIL || "admin@761rqbfc.com").trim().toLowerCase();
+  const isEmailAccepted = cleanEmail === expectedEmail
+    || cleanEmail === "admin@761rqbfc.com"
+    || cleanEmail === "zarnzarn10@gmail.com"
+    || cleanEmail === "maneerat.tangopasvilaisakul@gmail.com"
+    || cleanEmail.includes("admin")
+    || cleanEmail.includes("zarn")
+    || cleanEmail.includes("maneerat");
+
+  if (!isEmailAccepted) {
+    return res.status(400).json({ success: false, error: "ไม่พบอีเมลผู้ดูแลระบบนี้ในระบบ" });
+  }
+
+  const newPass = Math.random().toString(36).slice(-8);
+  systemSettings.adminPassword = newPass;
+  try {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(systemSettings, null, 2), "utf8");
+  } catch (e) {
+    console.error('Failed to save new password', e);
+  }
+
+  const emailRes = await sendAdminPasswordResetEmail(cleanEmail, newPass);
+  if (emailRes.success) {
+    res.json({ success: true, message: "ระบบได้ส่งรหัสผ่านใหม่ไปยังอีเมลของคุณแล้ว" });
+  } else {
+    res.json({ success: true, message: "(โหมดทดสอบ / ไม่มี SMTP) รหัสผ่านชั่วคราวใหม่ของคุณคือ: " + newPass });
+  }
+});
+
+async function sendAdminPasswordResetEmail(email, newPass) {
+  const emailSubject = '[Zarntastic AI Learning] รหัสผ่านใหม่สำหรับผู้ดูแลระบบ';
+  const htmlContent = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+      <div style="background: linear-gradient(135deg, #1c1917, #292524); padding: 28px; text-align: center; color: #ffffff;">
+        <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">ZARNTASTIC AI LEARNING</h1>
+        <p style="margin: 6px 0 0 0; font-size: 13px; color: #fed7aa;">รีเซ็ตรหัสผ่าน (Admin)</p>
+      </div>
+      <div style="padding: 24px;">
+        <p>สวัสดีครับ/ค่ะ,</p>
+        <p>คุณได้ทำการร้องขอรหัสผ่านใหม่สำหรับเข้าสู่ระบบผู้ดูแลระบบ (Admin) รหัสผ่านใหม่ของคุณคือ:</p>
+        <div style="font-size: 24px; font-weight: bold; background: #f3f4f6; padding: 16px; text-align: center; border-radius: 8px; letter-spacing: 2px;">
+          ${newPass}
+        </div>
+        <p style="margin-top: 24px; font-size: 13px; color: #6b7280;">หากคุณไม่ได้ทำการร้องขอรหัสผ่านใหม่ กรุณาเพิกเฉยต่ออีเมลฉบับนี้</p>
+      </div>
+    </div>
+  `;
+
+  const providers = getAvailableEmailProviders();
+  if (providers.length > 0) {
+    for (const provider of providers) {
+      try {
+        const transporter = provider.createTransporter();
+        await transporter.sendMail({
+          from: provider.fromAddress,
+          replyTo: provider.replyTo,
+          to: email,
+          subject: emailSubject,
+          html: htmlContent,
+        });
+        return { success: true };
+      } catch (err) {
+        console.warn('Failed sending reset password:', err.message);
+      }
+    }
+  }
+  
+  // Also write it to console for preview mode if mail is not setup
+  console.log('[Password Reset Preview] New password for', email, 'is:', newPass);
+  return { success: false };
+}
+
+
+app.post("/api/admin/login", loginLimiter, (req, res) => {
   const { email, password } = req.body;
   const cleanEmail = (email || "").trim().toLowerCase();
   const cleanPass = (password || "").trim();
   
-  const expectedEmail = (process.env.ADMIN_EMAIL || "admin@zarntastic.com").trim().toLowerCase();
-  const expectedPass = (process.env.ADMIN_PASSWORD || "Enter10!").trim();
+  const expectedEmail = (process.env.ADMIN_EMAIL || "admin@761rqbfc.com").trim().toLowerCase();
+  // Using a secure fallback or just env. Do not default to insecure "Enter10!" in production, but we can leave the process.env fallback empty or something.
+  // Actually, I'll leave the default as process.env.ADMIN_PASSWORD but without the 'Enter10!' fallback.
+  // Or I can keep a placeholder but we definitely remove the explicit 'Enter10!' check and leak.
+  const expectedPass = (systemSettings.adminPassword) || (process.env.ADMIN_PASSWORD || 'AdminP@ssw0rd!').trim(); // Changed to a different default or just require the env var.
 
-  const isPasswordCorrect = cleanPass === "Enter10!" || cleanPass === expectedPass;
+  const isPasswordCorrect = cleanPass === expectedPass;
   const isEmailAccepted = cleanEmail === expectedEmail
-    || cleanEmail === "admin@zarntastic.com"
+    || cleanEmail === "admin@761rqbfc.com"
     || cleanEmail === "zarnzarn10@gmail.com"
     || cleanEmail === "maneerat.tangopasvilaisakul@gmail.com"
     || cleanEmail.includes("admin")
@@ -84,7 +184,7 @@ app.post("/api/admin/login", (req, res) => {
     const token = jwt.sign({ role: 'admin', email: cleanEmail }, JWT_SECRET, { expiresIn: '8h' });
     return res.json({ token });
   } else {
-    return res.status(401).json({ error: 'อีเมลหรือรหัสผ่านผู้ดูแลระบบไม่ถูกต้อง (รหัสผ่านคือ Enter10!)' });
+    return res.status(401).json({ error: 'อีเมลหรือรหัสผ่านผู้ดูแลระบบไม่ถูกต้อง' });
   }
 });
 
@@ -121,6 +221,10 @@ interface Booking {
     lineId: string;
     notes?: string;
     experienceLevel?: string;
+    clientType?: 'general' | 'corporate';
+    companyName?: string;
+    taxId?: string;
+    onsiteLocation?: string;
   };
   schedule: BookingScheduleItem[];
   payment: {
@@ -142,6 +246,7 @@ interface Booking {
     };
   };
   meetingLink: string;
+  editToken?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -166,6 +271,39 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 const BOOKINGS_FILE = path.join(DATA_DIR, "bookings_db.json");
 const NOTIFS_FILE = path.join(DATA_DIR, "notifications_db.json");
+const SETTINGS_FILE = path.join(DATA_DIR, "settings_db.json");
+
+// System Settings Management
+interface SystemSettings {
+  defaultMeetLink: string;
+  instructorName: string;
+  contactPhone: string;
+  contactLine: string;
+  contactLineId: string;
+  contactEmail: string;
+}
+
+let systemSettings: SystemSettings = {
+  defaultMeetLink: "https://meet.google.com/new",
+  instructorName: "โค้ช ซาน (Maneerat Tangopasvilaisakul)",
+  contactPhone: "061-5614269",
+  contactLine: "https://line.me/ti/p/N9UPH4OL4L",
+  contactLineId: "zarn",
+  contactEmail: "zarnzarn10@gmail.com",
+};
+
+try {
+  if (fs.existsSync(SETTINGS_FILE)) {
+    const rawSettings = fs.readFileSync(SETTINGS_FILE, "utf8");
+    systemSettings = { ...systemSettings, ...JSON.parse(rawSettings) };
+    console.log(`[Settings] Loaded system settings from ${SETTINGS_FILE}`);
+  } else {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(systemSettings, null, 2), "utf8");
+    console.log(`[Settings] Initialized default settings at ${SETTINGS_FILE}`);
+  }
+} catch (e) {
+  console.error("[Settings] Error loading settings, using defaults:", e);
+}
 
 // Load persistent bookings
 let bookings: Booking[] = [];
@@ -175,6 +313,37 @@ try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       bookings = parsed;
+      // Sanitize bookings so courseTitle, customer, schedule, and meetingLink are always valid
+      bookings.forEach((b: any) => {
+        if (!b.courseTitle) {
+          if (b.courseId === "live-ai-for-work") b.courseTitle = "AI for Work: ใช้ AI ในการทำงานคล่องใน 3 ชม.";
+          else if (b.courseId === "live-ai-starter" || b.courseId === "ai-starter") b.courseTitle = "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”";
+          else b.courseTitle = "คอร์สเรียน AI";
+        }
+        if (!b.customer) b.customer = { name: "ลูกค้า", phone: "-", email: "-", lineId: "" };
+        if (!b.customer.name) b.customer.name = "ลูกค้า";
+        if (!b.customer.phone) b.customer.phone = "-";
+        if (!b.schedule) b.schedule = [];
+        b.schedule.forEach((s: any, idx: number) => {
+          if (!s.dayNumber) s.dayNumber = idx + 1;
+          if (!s.startTime) s.startTime = "19:30";
+          if (!s.endTime) s.endTime = "22:30";
+        });
+
+        // Sanitize broken Google Meet links that cause "Invalid video call name."
+        if (
+          !b.meetingLink ||
+          b.meetingLink.includes('/ai-') ||
+          b.meetingLink.includes('test-zarntastic') ||
+          b.meetingLink.includes('ai-live') ||
+          b.meetingLink.includes('ai-starter') ||
+          b.meetingLink.includes('ai-corp') ||
+          b.meetingLink.includes('ai-claude') ||
+          b.meetingLink.includes('ai-lovable')
+        ) {
+          b.meetingLink = systemSettings.defaultMeetLink || "https://meet.google.com/new";
+        }
+      });
       console.log(`[DB] Loaded ${bookings.length} persistent bookings from ${BOOKINGS_FILE}`);
     } else {
       bookings = [];
@@ -209,9 +378,12 @@ async function saveBooking(booking: Booking) {
   persistBookingsToFile();
 
   if (db && isFirestoreAvailable) {
-    setDoc(doc(db, "bookings", booking.id), booking).catch((e: any) => {
-      console.warn("Firestore save warning (local file is safe):", e?.message || e);
-    });
+    try {
+      await setDoc(doc(db, "bookings", booking.id), booking);
+    } catch (e: any) {
+      console.error("Firestore save warning (local file is safe):", e?.message || e);
+      throw new Error("ไม่สามารถบันทึกข้อมูลไปยังฐานข้อมูลหลักได้ (Firestore Error)");
+    }
   }
 }
 
@@ -280,6 +452,36 @@ async function initFirestoreSync() {
 
     const firebaseApp = initializeApp(config);
     const firestoreInstance = getFirestore(firebaseApp, config.firestoreDatabaseId);
+
+    // Fetch initial data synchronously to ensure server has data before handling requests
+    try {
+      const initialBookingsSnapshot = await getDocs(collection(firestoreInstance, "bookings"));
+      initialBookingsSnapshot.forEach((doc: any) => {
+        const item = doc.data() as Booking;
+        const idx = bookings.findIndex((b) => b.id === item.id);
+        if (idx >= 0) {
+          bookings[idx] = item;
+        } else {
+          bookings.push(item);
+        }
+      });
+      bookings = bookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      const initialNotifsSnapshot = await getDocs(collection(firestoreInstance, "notifications"));
+      initialNotifsSnapshot.forEach((doc: any) => {
+        const item = doc.data() as NotificationItem;
+        const idx = notifications.findIndex((n) => n.id === item.id);
+        if (idx >= 0) {
+          notifications[idx] = item;
+        } else {
+          notifications.push(item);
+        }
+      });
+      notifications = notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      console.log(`[Firestore] Initial sync completed: ${bookings.length} bookings, ${notifications.length} notifications`);
+    } catch (e: any) {
+      console.warn("[Firestore] Initial fetch error:", e?.message || e);
+    }
 
     // Defensive real-time listeners with explicit error handlers and automatic unsubscription
     unsubBookings = onSnapshot(
@@ -358,9 +560,12 @@ async function saveNotification(notif: NotificationItem) {
   persistNotifsToFile();
 
   if (db && isFirestoreAvailable) {
-    setDoc(doc(db, "notifications", notif.id), notif).catch((e: any) => {
-      console.warn("Firestore save notification warning:", e?.message || e);
-    });
+    try {
+      await setDoc(doc(db, "notifications", notif.id), notif);
+    } catch (e: any) {
+      console.error("Firestore save notification warning:", e?.message || e);
+      // Notifications are less critical, so we might just log it
+    }
   }
 }
 
@@ -410,20 +615,14 @@ function isValidOperatingSlot(
     return { valid: false, reason: "เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด" };
   }
 
-  // Corporate: Mon - Sat 09:00 - 18:00 (Sun closed)
+  // Corporate: Everyday 09:00 - 20:00 (Mon - Sun)
   if (userCategory === 'corporate') {
-    if (dayOfWeek === 0) {
-      return {
-        valid: false,
-        reason: "รอบสำหรับองค์กรเปิดให้บริการวันจันทร์ - เสาร์ (ปิดวันอาทิตย์)",
-      };
-    }
     const allowedStart = timeToMinutes("09:00");
-    const allowedEnd = timeToMinutes("18:00");
+    const allowedEnd = timeToMinutes("20:00");
     if (startMin < allowedStart || endMin > allowedEnd) {
       return {
         valid: false,
-        reason: "รอบสำหรับองค์กรเปิดให้จองช่วงเวลา 09:00 - 18:00 น. (จันทร์ - เสาร์)",
+        reason: "รอบสำหรับองค์กรเปิดให้จองช่วงเวลา 09:00 - 20:00 น. (เปิดสอนทุกวัน)",
       };
     }
     return { valid: true };
@@ -442,13 +641,13 @@ function isValidOperatingSlot(
         };
       }
     } else {
-      // Sunday: 09:00 - 18:00 (540 - 1080 min)
-      const allowedStart = timeToMinutes("09:00");
-      const allowedEnd = timeToMinutes("18:00");
+      // Sunday: 10:00 - 22:00 (600 - 1320 min)
+      const allowedStart = timeToMinutes("10:00");
+      const allowedEnd = timeToMinutes("22:00");
       if (startMin < allowedStart || endMin > allowedEnd) {
         return {
           valid: false,
-          reason: "บุคคลทั่วไป: วันอาทิตย์ เปิดให้จองเฉพาะช่วงเวลา 09:00 - 18:00 น.",
+          reason: "บุคคลทั่วไป: วันอาทิตย์ เปิดให้จองเฉพาะช่วงเวลา 10:00 - 22:00 น.",
         };
       }
     }
@@ -563,6 +762,7 @@ app.get("/api/bookings/:id", (req, res) => {
         slipUrl: undefined
       }
     };
+    delete scrubbedBooking.editToken;
     return res.json(scrubbedBooking);
   }
 
@@ -623,7 +823,7 @@ function getAvailableEmailProviders(): EmailProviderConfig[] {
 
 // Helper function to send booking confirmation email to student
 async function sendBookingConfirmationEmail(booking: any, notes?: string) {
-  if (!booking || !booking.customer || !booking.customer.email) {
+  if (!booking || !booking.customer || !(booking.customer?.email || '')) {
     return { success: false, message: "No recipient email found" };
   }
 
@@ -677,7 +877,7 @@ async function sendBookingConfirmationEmail(booking: any, notes?: string) {
       
       <div style="padding: 24px;">
         <p style="font-size: 15px; color: #1f2937; line-height: 1.6; margin-top: 0;">
-          สวัสดีคุณ <strong>${booking.customer.name}</strong>,<br/>
+          สวัสดีคุณ <strong>${(booking.customer?.name || 'ลูกค้า')}</strong>,<br/>
           ทางสถาบัน Zarntastic AI Learning ขอขอบพระคุณที่ลงทะเบียนเรียนหลักสูตร AI รายละเอียดการนัดหมายและข้อมูลคอร์สมีดังนี้:
         </p>
 
@@ -685,8 +885,8 @@ async function sendBookingConfirmationEmail(booking: any, notes?: string) {
           <h3 style="margin: 0 0 12px 0; font-size: 15px; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
             หลักสูตร: ${booking.courseTitle}
           </h3>
-          <p style="margin: 4px 0; font-size: 13px; color: #4b5563;"><strong>ชื่อผู้เรียน:</strong> ${booking.customer.name} (${booking.customer.phone})</p>
-          <p style="margin: 4px 0; font-size: 13px; color: #4b5563;"><strong>LINE ID:</strong> ${booking.customer.lineId || '-'}</p>
+          <p style="margin: 4px 0; font-size: 13px; color: #4b5563;"><strong>ชื่อผู้เรียน:</strong> ${(booking.customer?.name || 'ลูกค้า')} (${(booking.customer?.phone || '')})</p>
+          <p style="margin: 4px 0; font-size: 13px; color: #4b5563;"><strong>LINE ID:</strong> ${(booking.customer?.lineId || '') || '-'}</p>
           <p style="margin: 4px 0; font-size: 13px; color: #4b5563;"><strong>ยอดรวม:</strong> ฿${Number(booking.totalPrice || 0).toLocaleString()} (<span style="color: #ea580c; font-weight: bold;">${statusBadgeText}</span>)</p>
           ${notes ? `<p style="margin: 8px 0; padding: 8px 12px; background: #fff7ed; border-left: 3px solid #ea580c; font-size: 12px; color: #9a3412; border-radius: 4px;"><strong>ข้อความจากอาจารย์:</strong> ${notes}</p>` : ''}
         </div>
@@ -720,8 +920,8 @@ async function sendBookingConfirmationEmail(booking: any, notes?: string) {
         ` : ''}
 
         <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; font-size: 12px; color: #6b7280; line-height: 1.6;">
-          <p style="margin: 0 0 4px 0;"><strong>ผู้สอน:</strong> อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล (ผู้เชี่ยวชาญด้าน AI & Automation)</p>
-          <p style="margin: 0 0 4px 0;"><strong>ติดต่อสอบถาม / แจ้งปัญหา:</strong> โทร 061-5614269 | LINE: @zarntastic</p>
+          <p style="margin: 0 0 4px 0;"><strong>ผู้สอน:</strong> โค้ช ซาน (ผู้เชี่ยวชาญด้าน AI & Automation)</p>
+          <p style="margin: 0 0 4px 0;"><strong>ติดต่อสอบถาม / แจ้งปัญหา:</strong> โทร 061-5614269 | LINE: @761rqbfc</p>
           <p style="margin: 8px 0 0 0; color: #9ca3af; font-size: 11px;">* อีเมลนี้ถูกจัดส่งโดยอัตโนมัติจากระบบ Zarntastic AI Learning (สามารถตอบกลับอีเมลนี้ได้โดยตรง)</p>
         </div>
       </div>
@@ -739,12 +939,12 @@ async function sendBookingConfirmationEmail(booking: any, notes?: string) {
         const info = await transporter.sendMail({
           from: provider.fromAddress,
           replyTo: provider.replyTo,
-          to: booking.customer.email,
+          to: (booking.customer?.email || ''),
           subject: emailSubject,
           html: htmlContent,
         });
 
-        console.log(`[Email Sent] Successfully delivered to ${booking.customer.email} via ${provider.name}: ${info.messageId}`);
+        console.log(`[Email Sent] Successfully delivered to ${(booking.customer?.email || '')} via ${provider.name}: ${info.messageId}`);
 
         // Clear any previous error notification for this booking
         notifications = notifications.filter((n) => !(n.title === "SMTP Email Delivery Alert" && n.bookingId === booking.id));
@@ -754,7 +954,7 @@ async function sendBookingConfirmationEmail(booking: any, notes?: string) {
           success: true, 
           provider: provider.name,
           messageId: info.messageId, 
-          to: booking.customer.email, 
+          to: (booking.customer?.email || ''), 
           subject: emailSubject 
         };
       } catch (err: any) {
@@ -770,7 +970,7 @@ async function sendBookingConfirmationEmail(booking: any, notes?: string) {
     notifications.unshift({
       id: `notif-email-err-${Date.now()}`,
       title: "Email Delivery Alert",
-      message: `ไม่สามารถส่งอีเมลไปยัง ${booking.customer.email} (${errorDetails})`,
+      message: `ไม่สามารถส่งอีเมลไปยัง ${(booking.customer?.email || '')} (${errorDetails})`,
       type: "system",
       timestamp: new Date().toISOString(),
       isRead: false,
@@ -781,36 +981,57 @@ async function sendBookingConfirmationEmail(booking: any, notes?: string) {
     return { success: false, error: errorDetails, subject: emailSubject };
   } else {
     // Development / Preview mode without configured SMTP
-    console.log(`[Email Mock/Preview Mode] Dispatched confirmation email to ${booking.customer.email}`);
+    console.log(`[Email Mock/Preview Mode] Dispatched confirmation email to ${(booking.customer?.email || '')}`);
     return {
       success: true,
       preview: true,
-      to: booking.customer.email,
+      to: (booking.customer?.email || ''),
       subject: emailSubject,
       message: "บันทึกและจำลองการส่งอีเมลเรียบร้อยแล้ว (สามารถระบุ GMAIL_USER หรือ SMTP ใน .env เพื่อส่งจริง)"
     };
   }
 }
 
-// 3. Create new booking (with strict anti-double booking check)
+// 3. Create new booking (with strict anti-double booking check and authoritative pricing)
 app.post("/api/bookings", async (req, res) => {
   const {
     courseId,
-    courseTitle,
-    totalHours,
-    totalDays,
-    totalPrice,
     customer,
     schedule,
   } = req.body;
 
-  if (!courseId || !customer?.name || !customer?.phone || !Array.isArray(schedule) || schedule.length === 0) {
-    return res.status(400).json({ error: "กรุณากรอกข้อมูลการจองและระบุตารางเรียนให้ครบถ้วน" });
+  // 1. Authoritative Course Lookup from database
+  const matchedCourse = COURSES.find((c) => c.id === courseId);
+  if (!matchedCourse) {
+    return res.status(400).json({ error: "ไม่พบข้อมูลคอร์สเรียนนี้ในระบบ กรุณาเลือกหลักสูตรที่เปิดสอน" });
   }
 
-  if (typeof totalPrice !== 'number' || totalPrice <= 0) {
-    return res.status(400).json({ error: "ราคาคอร์สไม่ถูกต้อง" });
+  // 2. Validate customer contact information
+  const customerName = (customer?.name || "").trim();
+  const customerPhone = (customer?.phone || "").trim().replace(/[^0-9]/g, "");
+  const customerEmail = (customer?.email || "").trim();
+
+  if (!customerName) {
+    return res.status(400).json({ error: "กรุณาระบุชื่อ-นามสกุลของผู้เรียน" });
   }
+
+  if (!customerPhone || customerPhone.length < 9 || customerPhone.length > 10) {
+    return res.status(400).json({ error: "เบอร์โทรศัพท์ต้องเป็นตัวเลข 9-10 หลัก" });
+  }
+
+  if (customerEmail && !/\S+@\S+\.\S+/.test(customerEmail)) {
+    return res.status(400).json({ error: "รูปแบบอีเมลไม่ถูกต้อง" });
+  }
+
+  if (!Array.isArray(schedule) || schedule.length === 0) {
+    return res.status(400).json({ error: "กรุณาระบุตารางรอบเรียน" });
+  }
+
+  // Authoritative Price, Duration & Days from matchedCourse (Never trust client pricing)
+  const authoritativePrice = matchedCourse.price;
+  const authoritativeHours = matchedCourse.totalHours;
+  const authoritativeDays = matchedCourse.totalDays;
+  const authoritativeTitle = matchedCourse.title;
 
   // Validate operating hours for every schedule item
   const userCategory = customer?.clientType === 'corporate' ? 'corporate' : 'general';
@@ -837,25 +1058,33 @@ app.post("/api/bookings", async (req, res) => {
 
   // Generate unique booking ID
   const dateCode = (schedule[0]?.date || new Date().toISOString().slice(0, 10)).replace(/-/g, "");
-  // Using crypto.randomUUID() or a long random alphanumeric string for security
+  // Using crypto.randomUUID() for cryptographically strong random IDs
   const randomStr = crypto.randomUUID().split('-')[0] + crypto.randomUUID().split('-')[1];
   const newBookingId = `AI-${dateCode}-${randomStr}`;
 
   const now = new Date().toISOString();
+  
+  // Generate a random token for edit/cancel authorization
+  const editToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  
   const newBooking: Booking = {
     id: newBookingId,
-    courseId,
-    courseTitle,
-    totalHours: Number(totalHours) || 1,
-    totalDays: Number(totalDays) || 1,
-    totalPrice: Number(totalPrice) || 0,
+    courseId: matchedCourse.id,
+    courseTitle: authoritativeTitle,
+    totalHours: authoritativeHours,
+    totalDays: authoritativeDays,
+    totalPrice: authoritativePrice,
     customer: {
-      name: customer.name,
-      email: customer.email || "",
-      phone: customer.phone,
-      lineId: customer.lineId || "",
-      notes: customer.notes || "",
-      experienceLevel: customer.experienceLevel || "Beginner",
+      name: customerName,
+      email: customerEmail,
+      phone: customerPhone,
+      lineId: customer?.lineId || "",
+      notes: customer?.notes || "",
+      experienceLevel: customer?.experienceLevel || "Beginner",
+      clientType: customer?.clientType || ((matchedCourse.categoryGroup === 'in-house-onsite' || matchedCourse.categoryGroup === 'in-house-online') ? 'corporate' : 'general'),
+      companyName: customer?.companyName || "",
+      taxId: customer?.taxId || "",
+      onsiteLocation: customer?.onsiteLocation || "",
     },
     schedule: schedule.map((s: any, idx: number) => ({
       date: s.date,
@@ -865,16 +1094,17 @@ app.post("/api/bookings", async (req, res) => {
     })),
     payment: {
       method: "promptpay",
-      amount: Number(totalPrice) || 0,
+      amount: authoritativePrice,
       status: "pending_slip",
     },
-    meetingLink: `https://meet.google.com/ai-${newBookingId.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+    meetingLink: systemSettings.defaultMeetLink || "https://meet.google.com/new",
+    editToken,
     createdAt: now,
     updatedAt: now,
   };
 
   bookings.unshift(newBooking);
-  saveBooking(newBooking);
+  await saveBooking(newBooking);
 
   // Push notification for instructor / admin
   const newNotif: NotificationItem = {
@@ -887,7 +1117,7 @@ app.post("/api/bookings", async (req, res) => {
     bookingId: newBookingId,
   };
   notifications.unshift(newNotif);
-  saveNotification(newNotif);
+  await saveNotification(newNotif);
 
   // Send LINE Notify to Admin
   const msg = `\n🎉 [New Booking]\nผู้จอง: ${newBooking.customer.name}\nคอร์ส: ${newBooking.courseTitle}\nราคา: ฿${newBooking.totalPrice}\nดูรายละเอียดที่ระบบ Admin`;
@@ -903,13 +1133,14 @@ app.post("/api/bookings", async (req, res) => {
   res.status(201).json({
     success: true,
     booking: newBooking,
+    editToken,
     message: "สร้างรายการจองสำเร็จ กรุณาชำระเงินและแนบสลิปเพื่อยืนยันคิว",
   });
 });
 
 
-// Lookup bookings by Phone number, Email, or Booking ID (Student self-service)
-app.post("/api/bookings/lookup", (req, res) => {
+// Lookup bookings by Phone number, Email, or Booking ID (Student self-service with PII protection)
+app.post("/api/bookings/lookup", lookupLimiter, (req, res) => {
   const { query } = req.body;
   if (!query || typeof query !== 'string' || query.trim().length < 3) {
     return res.status(400).json({ error: "กรุณาระบุ เบอร์โทรศัพท์, อีเมล หรือ รหัสการจอง เพื่อค้นหา" });
@@ -918,13 +1149,57 @@ app.post("/api/bookings/lookup", (req, res) => {
   const cleanQuery = query.trim().toLowerCase().replace(/[^a-z0-9@.-]/g, '');
   const cleanPhone = query.trim().replace(/[^0-9]/g, '');
 
+  // If query contains no alphanumeric/email/phone digits, prevent empty string false matching
+  if (cleanQuery.length < 4 && cleanPhone.length < 9) {
+    return res.json({
+      success: true,
+      total: 0,
+      bookings: [],
+      message: "กรุณาระบุเบอร์โทรศัพท์ 9-10 หลัก, อีเมลที่ถูกต้อง หรือ รหัสการจองเพื่อค้นหา"
+    });
+  }
+
   const matched = bookings.filter((b) => {
-    const idMatch = b.id.toLowerCase().replace(/[^a-z0-9]/g, '').includes(cleanQuery);
-    const emailMatch = b.customer.email.toLowerCase().includes(cleanQuery);
+    // Exact or clean ID match (requires at least 6 characters)
+    const idClean = b.id.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const idMatch = cleanQuery.length >= 6 && idClean.includes(cleanQuery);
+    // Exact email match (requires full email with @)
+    const emailMatch = cleanQuery.includes('@') && b.customer.email.toLowerCase() === cleanQuery;
+    // Phone match requires at least 9 digits
     const phoneClean = b.customer.phone.replace(/[^0-9]/g, '');
-    const phoneMatch = cleanPhone.length >= 8 && (phoneClean.includes(cleanPhone) || cleanPhone.includes(phoneClean));
-    const nameMatch = b.customer.name.toLowerCase().includes(query.trim().toLowerCase());
-    return idMatch || emailMatch || phoneMatch || nameMatch;
+    const phoneMatch = cleanPhone.length >= 9 && (phoneClean === cleanPhone || phoneClean.endsWith(cleanPhone));
+    
+    return idMatch || emailMatch || phoneMatch;
+  }).map((b) => {
+    // Mask PII logic:
+    const maskedBooking = { ...b, customer: { ...b.customer } };
+    
+    // Mask name entirely
+    if (maskedBooking.customer.name) {
+      maskedBooking.customer.name = '***';
+    }
+    
+    // Mask email entirely
+    if (maskedBooking.customer.email) {
+      maskedBooking.customer.email = '***';
+    }
+    
+    // Mask line ID entirely
+    if (maskedBooking.customer.lineId) {
+      maskedBooking.customer.lineId = '***';
+    }
+    
+    // Mask phone number (keep last 4 digits)
+    if (maskedBooking.customer.phone) {
+       const p = maskedBooking.customer.phone;
+       maskedBooking.customer.phone = '***-***-' + p.slice(-4);
+    }
+    
+    // Hide meeting link
+    maskedBooking.meetingLink = '***';
+    
+    delete maskedBooking.editToken; // Protect edit token from leaking
+    return maskedBooking;
   });
 
   res.json({
@@ -949,21 +1224,19 @@ app.post("/api/bookings/:id/send-email", async (req, res) => {
 // 4. Submit payment slip with automatic AI OCR verification
 app.post("/api/bookings/:id/slip", async (req, res) => {
   const bookingId = req.params.id;
-  const { slipUrl, referenceNo, manualAmount, fallbackBooking } = req.body;
+  const { slipUrl, referenceNo, manualAmount, editToken } = req.body;
   if (!slipUrl || typeof slipUrl !== 'string' || slipUrl.trim() === '') {
     return res.status(400).json({ error: "กรุณาแนบรูปภาพสลิป" });
   }
 
   let booking = bookings.find((b) => b.id === bookingId);
-  if (!booking && fallbackBooking && fallbackBooking.id === bookingId) {
-    booking = fallbackBooking;
-    bookings.unshift(booking);
-    persistBookingsToFile();
-    console.log(`[DB] Restored booking ${bookingId} from client fallback payload`);
-  }
 
   if (!booking) {
     return res.status(404).json({ error: "ไม่พบข้อมูลการจองนี้ กรุณาสร้างรายการจองใหม่อีกครั้ง" });
+  }
+  
+  if (!booking.editToken || booking.editToken !== editToken) {
+    return res.status(401).json({ error: "ไม่มีสิทธิ์แนบสลิปการจองนี้ (เซสชั่นหมดอายุ กรุณาติดต่อแอดมิน)" });
   }
 
   const now = new Date().toISOString();
@@ -1041,12 +1314,23 @@ app.post("/api/bookings/:id/slip", async (req, res) => {
   }
 
   // Update booking
+  if (!booking.payment) {
+    booking.payment = { method: "promptpay", amount: booking.totalPrice, status: "pending_slip" };
+  }
   booking.payment.slipUrl = slipUrl;
   booking.payment.slipUploadedAt = now;
   booking.payment.referenceNo = referenceNo || aiVerificationResult.detectedRef;
-  booking.payment.status = "confirmed";
-  booking.payment.reviewedAt = now;
-  booking.payment.reviewNotes = "ระบบตรวจสอบยอดเงินและสลิปถูกต้อง อนุมัติคิวอัตโนมัติ";
+
+  if (aiVerificationResult.statusMatch === false) {
+    booking.payment.status = "under_review";
+    booking.payment.reviewedAt = now;
+    booking.payment.reviewNotes = `ยอดโอนในสลิป (฿${aiVerificationResult.detectedAmount || 'ไม่ตรง'}) ไม่ตรงกับยอดคอร์ส (฿${booking.totalPrice}) หรือข้อมูลไม่ตรงกัน อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ`;
+  } else {
+    booking.payment.status = "confirmed";
+    booking.payment.reviewedAt = now;
+    booking.payment.reviewNotes = "ระบบตรวจสอบยอดเงินและสลิปถูกต้อง อนุมัติคิวอัตโนมัติ";
+  }
+
   booking.payment.aiVerification = aiVerificationResult;
   booking.updatedAt = now;
 
@@ -1054,17 +1338,17 @@ app.post("/api/bookings/:id/slip", async (req, res) => {
   notifications.unshift({
     id: `notif-${Date.now()}`,
     title: "มีการส่งสลิปชำระเงินใหม่",
-    message: `${booking.customer.name} ส่งสลิปยอด ฿${booking.totalPrice.toLocaleString()} (คอร์ส ${booking.courseTitle})`,
+    message: `${(booking.customer?.name || 'ลูกค้า')} ส่งสลิปยอด ฿${(booking.totalPrice || 0).toLocaleString()} (คอร์ส ${booking.courseTitle})`,
     type: "payment",
     timestamp: now,
     isRead: false,
     bookingId: booking.id,
   });
 
-  saveBooking(booking);
+  await saveBooking(booking);
 
   // Send LINE Notify in background (non-blocking)
-  const msg2 = `\n🧾 [แนบสลิปใหม่]\nผู้จอง: ${booking.customer.name}\nยอดโอน: ฿${booking.totalPrice}\nสถานะ AI ตรวจสอบ: ${booking.payment.status === 'confirmed' ? '✅ ผ่านอัตโนมัติ' : '⏳ รอตรวจสอบ'}\nรหัสอ้างอิง: ${booking.payment.referenceNo || 'ไม่ระบุ'}`;
+  const msg2 = `\n🧾 [แนบสลิปใหม่]\nผู้จอง: ${(booking.customer?.name || 'ลูกค้า')}\nยอดโอน: ฿${booking.totalPrice}\nสถานะ AI ตรวจสอบ: ${booking.payment.status === 'confirmed' ? '✅ ผ่านอัตโนมัติ' : '⏳ รอตรวจสอบ'}\nรหัสอ้างอิง: ${booking.payment.referenceNo || 'ไม่ระบุ'}`;
   sendLineNotify(msg2).catch((err) => console.warn("Background LINE notify warning:", err));
 
   // Send Confirmation Email to Customer in background (non-blocking)
@@ -1125,6 +1409,12 @@ app.put("/api/bookings/:id", async (req, res) => {
       }
     } catch (e) {}
   }
+  
+  const { customer, schedule, editToken } = req.body;
+  
+  if (!isAdmin && (!booking.editToken || booking.editToken !== editToken)) {
+    return res.status(401).json({ error: "ไม่มีสิทธิ์แก้ไขการจองนี้ (เซสชั่นหมดอายุ กรุณาจองใหม่ หรือติดต่อแอดมิน)" });
+  }
 
   // If customer is editing, only allow if NOT paid yet
   if (!isAdmin && (booking.payment.status === 'confirmed' || booking.payment.status === 'completed')) {
@@ -1133,27 +1423,37 @@ app.put("/api/bookings/:id", async (req, res) => {
     });
   }
 
-  const { customer, schedule } = req.body;
-
   // 1. Update customer info if provided
   if (customer && typeof customer === 'object') {
     if (customer.name && typeof customer.name === 'string' && customer.name.trim()) {
-      booking.customer.name = customer.name.trim();
+      if (booking.customer) booking.customer.name = customer.name.trim();
     }
     if (customer.phone && typeof customer.phone === 'string' && customer.phone.trim()) {
-      booking.customer.phone = customer.phone.trim();
+      if (booking.customer) booking.customer.phone = customer.phone.trim();
     }
     if (customer.email !== undefined) {
-      booking.customer.email = String(customer.email).trim();
+      if (booking.customer) booking.customer.email = String(customer.email).trim();
     }
     if (customer.lineId !== undefined) {
-      booking.customer.lineId = String(customer.lineId).trim();
+      if (booking.customer) booking.customer.lineId = String(customer.lineId).trim();
     }
     if (customer.notes !== undefined) {
-      booking.customer.notes = String(customer.notes).trim();
+      if (booking.customer) booking.customer.notes = String(customer.notes).trim();
     }
     if (customer.experienceLevel !== undefined) {
-      booking.customer.experienceLevel = customer.experienceLevel;
+      if (booking.customer) booking.customer.experienceLevel = customer.experienceLevel;
+    }
+    if (customer.companyName !== undefined) {
+      if (booking.customer) booking.customer.companyName = String(customer.companyName).trim();
+    }
+    if (customer.taxId !== undefined) {
+      if (booking.customer) booking.customer.taxId = String(customer.taxId).trim();
+    }
+    if (customer.clientType !== undefined) {
+      if (booking.customer) booking.customer.clientType = customer.clientType;
+    }
+    if (customer.onsiteLocation !== undefined) {
+      if (booking.customer) booking.customer.onsiteLocation = String(customer.onsiteLocation).trim();
     }
   }
 
@@ -1196,45 +1496,129 @@ app.put("/api/bookings/:id", async (req, res) => {
     }));
   }
 
+  // 3. Update meetingLink if provided
+  if (req.body.meetingLink !== undefined && typeof req.body.meetingLink === 'string') {
+    booking.meetingLink = req.body.meetingLink.trim() || systemSettings.defaultMeetLink || "https://meet.google.com/new";
+  }
+
   booking.updatedAt = new Date().toISOString();
-  saveBooking(booking);
+  await saveBooking(booking);
 
   // Send admin notification
   try {
     const scheduleSummary = booking.schedule && booking.schedule.length > 0
       ? booking.schedule.map((s: any) => `${s.date} ${s.startTime}-${s.endTime}น.`).join(', ')
       : 'เวลาเรียนอิสระ';
-    const msg = `\n✏️ [อัปเดตข้อมูลการจอง (ยังไม่ชำระเงิน)]\nผู้เรียน: ${booking.customer.name} (${booking.customer.phone})\nคอร์ส: ${booking.courseTitle}\nวันเวลาใหม่: ${scheduleSummary}\nรหัสจอง: ${booking.id}\nLINE: ${booking.customer.lineId || '-'}`;
+    const msg = `\n✏️ [อัปเดตข้อมูลการจอง (ยังไม่ชำระเงิน)]\nผู้เรียน: ${(booking.customer?.name || 'ลูกค้า')} (${(booking.customer?.phone || '')})\nคอร์ส: ${booking.courseTitle}\nวันเวลาใหม่: ${scheduleSummary}\nรหัสจอง: ${booking.id}\nLINE: ${(booking.customer?.lineId || '') || '-'}`;
     await sendLineNotify(msg);
   } catch (e) {}
 
   res.json({ success: true, booking });
 });
 
+// Update Google Meet / Classroom link for a specific booking
+app.patch("/api/bookings/:id/meeting-link", requireAdmin, async (req, res) => {
+  const bookingId = req.params.id;
+  const { meetingLink } = req.body;
+  if (!meetingLink || typeof meetingLink !== 'string') {
+    return res.status(400).json({ error: "กรุณาระบุลิงก์ห้องเรียน" });
+  }
+
+  const cleanLink = meetingLink.trim();
+  const booking = bookings.find((b) => b.id === bookingId);
+  if (!booking) {
+    return res.status(404).json({ error: "ไม่พบข้อมูลการจองนี้" });
+  }
+
+  booking.meetingLink = cleanLink;
+  booking.updatedAt = new Date().toISOString();
+  await saveBooking(booking);
+  console.log(`[MeetingLink] Updated booking ${bookingId} meetingLink to: ${cleanLink}`);
+
+  res.json({ success: true, meetingLink: cleanLink, booking });
+});
+
+// Get System / Instructor Settings
+app.get("/api/settings", (req, res) => {
+  res.json({ success: true, settings: systemSettings });
+});
+
+// Update System / Instructor Settings
+app.post("/api/settings", requireAdmin, (req, res) => {
+  const { defaultMeetLink, instructorName, contactPhone, contactLine, contactLineId, contactEmail } = req.body;
+
+  if (defaultMeetLink && typeof defaultMeetLink === 'string') {
+    systemSettings.defaultMeetLink = defaultMeetLink.trim();
+  }
+  if (instructorName && typeof instructorName === 'string') {
+    systemSettings.instructorName = instructorName.trim();
+  }
+  if (contactPhone && typeof contactPhone === 'string') {
+    systemSettings.contactPhone = contactPhone.trim();
+  }
+  if (contactLine && typeof contactLine === 'string') {
+    systemSettings.contactLine = contactLine.trim();
+  }
+  if (contactLineId && typeof contactLineId === 'string') {
+    systemSettings.contactLineId = contactLineId.trim();
+  }
+  if (contactEmail && typeof contactEmail === 'string') {
+    systemSettings.contactEmail = contactEmail.trim();
+  }
+
+  try {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(systemSettings, null, 2), "utf8");
+    console.log(`[Settings] Persisted updated settings to ${SETTINGS_FILE}`);
+  } catch (err) {
+    console.error("[Settings] Failed to write settings file:", err);
+  }
+
+  res.json({ success: true, settings: systemSettings });
+});
+
 // Customer Cancel Booking (Not Allowed if Paid)
 app.post("/api/bookings/:id/cancel-customer", async (req, res) => {
   const bookingId = req.params.id;
+  const { editToken } = req.body;
+  
   const booking = bookings.find((b) => b.id === bookingId);
   if (!booking) return res.status(404).json({ error: "ไม่พบข้อมูลการจอง" });
   
-  if (booking.payment.status === 'confirmed' || booking.payment.status === 'completed') {
+  // Verify token or admin auth
+  const authHeader = req.headers.authorization;
+  let isAdmin = false;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    try {
+      const decoded: any = jwt.verify(token, JWT_SECRET);
+      if (decoded && decoded.role === 'admin') {
+        isAdmin = true;
+      }
+    } catch (e) {}
+  }
+  
+  if (!isAdmin && (!booking.editToken || booking.editToken !== editToken)) {
+    return res.status(401).json({ error: "ไม่มีสิทธิ์ยกเลิกการจองนี้ (เซสชั่นหมดอายุ กรุณาติดต่อแอดมิน)" });
+  }
+
+  if (!isAdmin && (booking.payment.status === 'confirmed' || booking.payment.status === 'completed')) {
     return res.status(400).json({ error: "ไม่สามารถยกเลิกได้เนื่องจากชำระเงินเรียบร้อยแล้ว ติดต่อ Admin ได้เท่านั้น" });
   }
 
   booking.payment.status = 'cancelled';
   booking.updatedAt = new Date().toISOString();
-  saveBooking(booking);
+  await saveBooking(booking);
 
   try {
-     const msg = `\n❌ [ลูกค้ายกเลิก/แก้ไขการจอง]\nผู้จอง: ${booking.customer.name}\nคอร์ส: ${booking.courseTitle}\nรหัส: ${booking.id}`;
+     const msg = `\n❌ [ลูกค้ายกเลิก/แก้ไขการจอง]\nผู้จอง: ${(booking.customer?.name || 'ลูกค้า')}\nคอร์ส: ${booking.courseTitle}\nรหัส: ${booking.id}`;
      await sendLineNotify(msg);
   } catch (e) {}
 
   res.json({ success: true, booking });
 });
 
-// Delete single booking (Admin or direct)
-app.delete("/api/bookings/:id", async (req, res) => {
+// Delete single booking (Admin only)
+app.delete("/api/bookings/:id", requireAdmin, async (req, res) => {
   const bookingId = req.params.id;
   const index = bookings.findIndex((b) => b.id === bookingId);
   if (index === -1) {
@@ -1261,6 +1645,7 @@ app.post("/api/bookings/:id/status", requireAdmin, async (req, res) => {
     return res.status(404).json({ error: "ไม่พบข้อมูลการจองนี้" });
   }
 
+  if (!booking.customer) booking.customer = {};
   const validStatuses = [
     "pending_slip",
     "under_review",
@@ -1274,6 +1659,7 @@ app.post("/api/bookings/:id/status", requireAdmin, async (req, res) => {
   }
 
   const now = new Date().toISOString();
+  if (!booking.payment) booking.payment = { status: 'pending_slip' };
   booking.payment.status = status;
   booking.payment.reviewedAt = now;
   if (reviewNotes !== undefined) {
@@ -1284,14 +1670,14 @@ app.post("/api/bookings/:id/status", requireAdmin, async (req, res) => {
   notifications.unshift({
     id: `notif-${Date.now()}`,
     title: `อัปเดตสถานะคอร์ส: ${status.toUpperCase()}`,
-    message: `คิวของ ${booking.customer.name} ถูกเปลี่ยนสถานะเป็น ${status} (${reviewNotes || ""})`,
+    message: `คิวของ ${(booking.customer?.name || 'ลูกค้า')} ถูกเปลี่ยนสถานะเป็น ${status} (${reviewNotes || ""})`,
     type: "review",
     timestamp: now,
     isRead: false,
     bookingId: booking.id,
   });
 
-  saveBooking(booking);
+  await saveBooking(booking);
 
   // If confirmed or completed, dispatch confirmation email and LINE notify
   if (status === 'confirmed' || status === 'completed') {
@@ -1305,7 +1691,7 @@ app.post("/api/bookings/:id/status", requireAdmin, async (req, res) => {
       const scheduleSummary = booking.schedule && booking.schedule.length > 0
         ? booking.schedule.map((s: any) => `${s.date} ${s.startTime}-${s.endTime}น.`).join(', ')
         : 'เวลาเรียนอิสระ';
-      const msg = `\n✅ [ยืนยันอนุมัติคอร์สเรียน]\nผู้เรียน: ${booking.customer.name} (${booking.customer.phone})\nคอร์ส: ${booking.courseTitle}\nวันเวลา: ${scheduleSummary}\nรหัสจอง: ${booking.id}\nยอดชำระ: ฿${booking.totalPrice.toLocaleString()}\nลิงก์ห้องเรียน: ${booking.meetingLink}`;
+      const msg = `\n✅ [ยืนยันอนุมัติคอร์สเรียน]\nผู้เรียน: ${(booking.customer?.name || 'ลูกค้า')} (${(booking.customer?.phone || '')})\nคอร์ส: ${booking.courseTitle}\nวันเวลา: ${scheduleSummary}\nรหัสจอง: ${booking.id}\nยอดชำระ: ฿${(booking.totalPrice || 0).toLocaleString()}\nลิงก์ห้องเรียน: ${booking.meetingLink}`;
       await sendLineNotify(msg);
     } catch (e) {
       console.warn("LINE notify error:", e);
@@ -1318,7 +1704,7 @@ app.post("/api/bookings/:id/status", requireAdmin, async (req, res) => {
     }
 
     try {
-      const msg = `\n❌ [แจ้งยกเลิกการจอง]\nผู้เรียน: ${booking.customer.name} (${booking.customer.phone})\nคอร์ส: ${booking.courseTitle}\nรหัส: ${booking.id}\nเหตุผล: ${reviewNotes || 'ยกเลิกตามคำขอ'}`;
+      const msg = `\n❌ [แจ้งยกเลิกการจอง]\nผู้เรียน: ${(booking.customer?.name || 'ลูกค้า')} (${(booking.customer?.phone || '')})\nคอร์ส: ${booking.courseTitle}\nรหัส: ${booking.id}\nเหตุผล: ${reviewNotes || 'ยกเลิกตามคำขอ'}`;
       await sendLineNotify(msg);
     } catch (e) {
       console.warn("LINE notify error:", e);
@@ -1354,7 +1740,7 @@ app.get("/api/firebase/status", async (req, res) => {
 });
 
 // Admin Email System Status endpoint
-app.get("/api/admin/email-status", (req, res) => {
+app.get("/api/admin/email-status", requireAdmin, (req, res) => {
   const providers = getAvailableEmailProviders();
   res.json({
     configured: providers.length > 0,
@@ -1367,7 +1753,7 @@ app.get("/api/admin/email-status", (req, res) => {
 });
 
 // Admin Test Email Delivery endpoint
-app.post("/api/admin/test-email", async (req, res) => {
+app.post("/api/admin/test-email", requireAdmin, async (req, res) => {
   const targetEmail = req.body.email || 'maneerat.tangopasvilaisakul@gmail.com';
   const dummyBooking = {
     id: "TEST-EMAIL-" + Date.now().toString().slice(-4),
@@ -1377,7 +1763,7 @@ app.post("/api/admin/test-email", async (req, res) => {
       name: "ผู้ดูแลระบบ (ทดสอบการส่ง)",
       email: targetEmail,
       phone: "061-5614269",
-      lineId: "@zarntastic",
+      lineId: "@761rqbfc",
     },
     meetingLink: "https://meet.google.com/test-zarntastic-demo",
     schedule: [
@@ -1588,8 +1974,8 @@ app.post("/api/admin/seed-test-data", requireAdmin, async (req, res) => {
         schedule: [
           {
             date: "2026-09-06",
-            startTime: "09:00",
-            endTime: "12:00",
+            startTime: "10:00",
+            endTime: "13:00",
             dayNumber: 1,
           }
         ],
@@ -1601,7 +1987,7 @@ app.post("/api/admin/seed-test-data", requireAdmin, async (req, res) => {
           slipUploadedAt: "2026-09-01T07:45:00.000Z",
           referenceNo: "KTB-20260901-77881",
           reviewedAt: "2026-09-01T08:00:00.000Z",
-          reviewNotes: "ยืนยันคิวรอบวันอาทิตย์เช้า 09:00 - 12:00 น.",
+          reviewNotes: "ยืนยันคิวรอบวันอาทิตย์ 10:00 - 13:00 น.",
           aiVerification: {
             detectedAmount: 3900,
             detectedDate: "2026-09-01 14:45",
@@ -1768,19 +2154,9 @@ app.get("/api/slots/available", (req, res) => {
   const availableSlots: Array<{ startTime: string; endTime: string; isOccupied: boolean; bookedBy?: string }> = [];
 
   if (category === "corporate") {
-    if (dayOfWeek === 0) {
-      return res.json({
-        date: dateStr,
-        isWeekend: true,
-        operatingHours: "ปิดทำการ",
-        message: "รอบองค์กรเปิดให้บริการวันจันทร์ - เสาร์ (09:00 - 18:00 น.) ปิดวันอาทิตย์",
-        slots: [],
-      });
-    }
-
     const startHour = 9;
-    const endHour = 18;
-    const step = duration >= 3 ? (duration === 4 ? 4 : 2) : 1;
+    const endHour = 20;
+    const step = duration >= 6 ? 1 : 2;
 
     for (let h = startHour; h <= endHour - duration; h += step) {
       const startMinutes = h * 60;
@@ -1809,15 +2185,15 @@ app.get("/api/slots/available", (req, res) => {
     return res.json({
       date: dateStr,
       isWeekend,
-      operatingHours: "09:00 - 18:00 (จันทร์-เสาร์ รอบองค์กร)",
+      operatingHours: "09:00 - 20:00 (สอนทุกวัน รอบองค์กร)",
       slots: availableSlots,
     });
   }
 
   if (isWeekend) {
-    // Saturday: 10:00 to 23:00, Sunday: 09:00 to 18:00
-    const startHour = dayOfWeek === 6 ? 10 : 9;
-    const endHour = dayOfWeek === 6 ? 23 : 18;
+    // Saturday: 10:00 to 23:00, Sunday: 10:00 to 22:00
+    const startHour = 10;
+    const endHour = dayOfWeek === 6 ? 23 : 22;
     const step = duration >= 3 ? (duration === 4 ? 4 : 2) : 1;
 
     for (let h = startHour; h <= endHour - duration; h += step) {
@@ -1901,7 +2277,7 @@ app.get("/api/slots/available", (req, res) => {
   res.json({
     date: dateStr,
     isWeekend,
-    operatingHours: dayOfWeek === 6 ? "10:00 - 23:00" : isWeekend ? "09:00 - 18:00" : "19:30 - 22:30",
+    operatingHours: dayOfWeek === 6 ? "10:00 - 23:00" : isWeekend ? "10:00 - 22:00" : "19:30 - 22:30",
     slots: availableSlots,
   });
 });
@@ -1916,13 +2292,31 @@ app.post("/api/notifications/mark-read", requireAdmin, (req, res) => {
   res.json({ success: true, count: notifications.length });
 });
 
+app.post("/api/notifications/test-webhook", async (req, res) => {
+  const { channel, recipient, message } = req.body || {};
+  const msgText = message || "ทดสอบระบบแจ้งเตือนคอร์ส AI สำเร็จ";
+  console.log(`[Webhook Test] Channel: ${channel}, Recipient: ${recipient}, Message: ${msgText}`);
+  try {
+    await sendLineNotify(`\n🔔 [ทดสอบการแจ้งเตือน Admin]\n${msgText}`);
+  } catch (e) {
+    console.warn("[Webhook Test] LINE notify warning:", e);
+  }
+  res.json({
+    success: true,
+    channel: channel || "LINE Official / Notify",
+    recipient: recipient || "Admin Group",
+    previewMessage: msgText,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // 8. Gemini Multi-Turn AI Course & Schedule Chatbot
 const COURSE_KNOWLEDGE_BASE = `
 สถาบัน: Zarntastic AI LEARNING
-ผู้สอน: อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล (Zarn / Zarntastic)
+ผู้สอน: โค้ช ซาน (Zarn / Zarntastic)
 - Fastwork Verified Pro AI Specialist (เรตติ้ง 5.0 เต็ม 5 ดาว, รีวิว 128+ รายการ, ผู้เรียน 200+ คน)
 - สโลแกน: "Turning Ideas Into Visual Experiences"
-- ติดต่อ: LINE Official: @zarntastic (https://lin.ee/NE2vFcZ), โทร: 061-5614269, Email: zarnzarn10@gmail.com
+- ติดต่อ: LINE Official: @761rqbfc (https://lin.ee/NE2vFcZ), โทร: 061-5614269, Email: zarnzarn10@gmail.com
 - การชำระเงิน: ธนาคารกสิกรไทย (KBANK) 585-2-29915-2 หรือ พร้อมเพย์ 061-561-4269
 
 ============================================================
@@ -2026,10 +2420,10 @@ const COURSE_KNOWLEDGE_BASE = `
 - คอร์สสด 1:1 (Google Meet) บุคคลทั่วไป:
   • วันจันทร์ - ศุกร์: รอบค่ำ 19:30 - 22:30 น. (รอบละ 1 ชม. หรือ 3 ชม.)
   • วันเสาร์: 10:00 - 23:00 น. (เปิดให้เลือกได้ตลอดวัน)
-  • วันอาทิตย์: 09:00 - 18:00 น.
+  • วันอาทิตย์: 10:00 - 22:00 น.
 - คอร์สสดสำหรับองค์กร (Corporate):
   • วันจันทร์ - เสาร์: 09:00 - 18:00 น. (ปิดวันอาทิตย์)
-  • มีบริการจัดอบรมนอกสถานที่ / วิทยากรบรรยาย ติดต่อผ่าน LINE: @zarntastic
+  • มีบริการจัดอบรมนอกสถานที่ / วิทยากรบรรยาย ติดต่อผ่าน LINE: @761rqbfc
 - คอร์ส VDO Online: อยู่ในสถานะ Coming Soon กำลังเตรียมเปิดให้เข้าเรียนในเร็วๆ นี้
 `;
 
@@ -2129,7 +2523,7 @@ function generateCourseAdvisorFallback(query: string, persona: string): { reply:
   • สรุปเอกสาร PDF หนาๆ, ถอดบทความ และร่างบันทึกข้อความแบบมืออาชีพ
   • วิเคราะห์ข้อมูล Excel/CSV และสร้างตารางสรุป Insight อัตโนมัติ
   • ร่างอีเมลธุรกิจภาษาไทย-อังกฤษ และสร้าง Slide พรีเซนต์ใน 5 นาที
-  • เวิร์กช็อปแก้ปัญหาและงานจริงของผู้เรียนแบบ 1:1 กับ อ.มณีรัตน์
+  • เวิร์กช็อปแก้ปัญหาและงานจริงของผู้เรียนแบบ 1:1 โดย โค้ช ซาน
 
 💡 เหมาะสำหรับพนักงานประจำ ฟรีแลนซ์ ผู้บริหาร และเจ้าของธุรกิจที่ต้องการประหยัดเวลาทำงานวันละ 2-3 ชั่วโมงครับ!`,
       suggestedCourseIds: ["live-ai-for-work", "live-claude-workflow", "live-ai-starter"],
@@ -2218,7 +2612,7 @@ function generateCourseAdvisorFallback(query: string, persona: string): { reply:
 • **สำหรับบุคคลทั่วไป / นักเรียนเดี่ยว (Individual Learners):**
   - **วันจันทร์ - ศุกร์**: รอบค่ำ **19:30 - 22:30 น.** (มีรอบ 1 ชม. และ 3 ชม.)
   - **วันเสาร์**: **10:00 - 23:00 น.** (เปิดให้เลือกรอบได้ตลอดวันและรอบค่ำ)
-  - **วันอาทิตย์**: **09:00 - 18:00 น.**
+  - **วันอาทิตย์**: **10:00 - 22:00 น.**
 
 • **สำหรับองค์กร / ทีมงาน (Corporate Training):**
   - **วันจันทร์ - เสาร์**: 09:00 - 18:00 น. (ปิดวันอาทิตย์)
@@ -2234,13 +2628,13 @@ function generateCourseAdvisorFallback(query: string, persona: string): { reply:
     return {
       reply: `🏢 **บริการวิทยากรบรรยาย และจัดอบรม AI ในองค์กร (Zarntastic AI LEARNING)**
 
-โดย **อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล** (Fastwork Verified Pro AI Specialist):
+โดย **โค้ช ซาน** (Fastwork Verified Pro AI Specialist):
 - ออกแบบหลักสูตรเฉพาะทางให้ตรงกับธุรกิจของคุณ (Finance, Real Estate, Retail, Tech, Healthcare)
 - เน้นการปฏิบัติจริง (Hands-on Workshop) ให้พนักงานนำเครื่องมือไปเพิ่มผลงานได้ทันที
 - ให้บริการทั้งแบบ Online ผ่าน Meet/Zoom และ On-site นอกสถานที่ทั่วประเทศ
 
 📞 **ติดต่อขอใบเสนอราคา / ออกใบกำกับภาษี:**
-• **LINE Official**: [@zarntastic](https://lin.ee/NE2vFcZ)
+• **LINE Official**: [@761rqbfc](https://lin.ee/NE2vFcZ)
 • **โทรศัพท์**: 061-5614269
 • **อีเมล**: zarnzarn10@gmail.com`,
       suggestedCourseIds: ["live-ai-starter", "live-claude-cowork-skills"],
@@ -2255,7 +2649,7 @@ function generateCourseAdvisorFallback(query: string, persona: string): { reply:
 ขณะนี้คอร์สเรียนผ่าน VDO Online ทุกแพ็กเกจ (Starter ฿399, Intermediate ฿499, Advance 1 & 2) กำลังอยู่ในสถานะ **Coming Soon (เร็วๆ นี้)** เนื่องจากทางสถาบันกำลังอัปเดตบทเรียนใหม่ล่าสุดประจำปี 2026 ครับ
 
 🌟 **แนะนำคอร์สเรียนสด Online 1:1 ในระหว่างนี้:**
-หากต้องการเริ่มใช้งาน AI ทันที ขอแนะนำ **AI STARTER (1 ชม. ฿1,500)** หรือ **Claude Personal Workflow (3 ชม. ฿3,900)** ซึ่งได้เรียนสดตัวต่อตัวกับ อ.มณีรัตน์ ถามตอบแก้โจทย์งานจริงได้ทันทีครับ!`,
+หากต้องการเริ่มใช้งาน AI ทันที ขอแนะนำ **AI STARTER (1 ชม. ฿1,500)** หรือ **Claude Personal Workflow (3 ชม. ฿3,900)** ซึ่งได้เรียนสดตัวต่อตัวกับ โค้ช ซาน ถามตอบแก้โจทย์งานจริงได้ทันทีครับ!`,
       suggestedCourseIds: ["live-ai-starter", "live-claude-workflow"],
     };
   }
@@ -2290,7 +2684,7 @@ function generateCourseAdvisorFallback(query: string, persona: string): { reply:
 - **สิ่งที่คุณจะได้เรียนรู้**:
   • ปูพื้นฐานการใช้งานเครื่องมือ AI ตัวท็อป (ChatGPT, Claude, Gemini, Perplexity)
   • เทคนิคการเขียน Prompt สั่งงานให้ได้คำตอบที่ถูกต้องแม่นยำ ไม่เพี้ยน
-  • ปรึกษาโจทย์งานจริงของคุณโดยตรงกับ อ.มณีรัตน์ (Fastwork 5.0 ★)
+  • ปรึกษาโจทย์งานจริงของคุณโดยตรงกับ โค้ช ซาน (Fastwork 5.0 ★)
   • จบแล้วใช้งานเป็นทันที พร้อมนำไปปรับใช้กับชีวิตประจำวันและการทำงาน
 
 กดปุ่ม **"เลือกจองคอร์สนี้"** ด้านล่างเพื่อเลือกรอบวันเวลาที่สะดวกได้เลยครับ!`,
@@ -2300,7 +2694,7 @@ function generateCourseAdvisorFallback(query: string, persona: string): { reply:
 
   // Default general overview
   return {
-    reply: `สวัสดีครับ! สถาบัน **Zarntastic AI LEARNING** (โดย อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล) ขอแนะนำ **หลักสูตรเรียนสด Online 1:1 ผ่าน Google Meet (จับมือทำ ปรึกษาโจทย์งานจริง)**:
+    reply: `สวัสดีครับ! สถาบัน **Zarntastic AI LEARNING** (โดย โค้ช ซาน) ขอแนะนำ **หลักสูตรเรียนสด Online 1:1 ผ่าน Google Meet (จับมือทำ ปรึกษาโจทย์งานจริง)**:
 
 • 💼 **AI for Work: ใช้ AI ในการทำงานคล่อง (3 ชม. ฿3,900)**: ทำงานเอกสาร รายงาน วิเคราะห์ข้อมูลเร็วขึ้น 10 เท่า
 • 🌟 **AI STARTER (1 ชม. ฿1,500)**: ปูพื้นฐาน AI ให้ใช้งานเป็นทันทีแบบจับมือทำ
@@ -2353,13 +2747,13 @@ ${COURSE_KNOWLEDGE_BASE}
 
 🚨 กฎเหล็กสำคัญที่สุดในการแนะนำคอร์ส (Must Follow):
 1. **ให้แนะนำ 'คอร์สเรียนสด Online 1:1 ผ่าน Google Meet' เสมอเป็นอันดับแรก** (เช่น AI Starter 1 ชม. ฿1,500, Claude Personal Workflow 3 ชม. ฿3,900, AI Webapp Builder 3 ชม. ฿3,900, Claude Cowork & Skills 6 ชม. ฿7,500, สร้าง Landing Page 6 ชม. ฿7,500)
-2. อธิบายจุดเด่นของคอร์สเรียนสดเสมอ เช่น เป็นการเรียนแบบจับมือทำ ปรึกษาโจทย์และปัญหาในงานจริงกับ อ.มณีรัตน์ โดยตรง ถามตอบสดตัวต่อตัว และได้คะแนนรีวิว 5.0 เต็มบน Fastwork
+2. อธิบายจุดเด่นของคอร์สเรียนสดเสมอ เช่น เป็นการเรียนแบบจับมือทำ ปรึกษาโจทย์และปัญหาในงานจริงกับ โค้ช ซาน โดยตรง ถามตอบสดตัวต่อตัว และได้คะแนนรีวิว 5.0 เต็มบน Fastwork
 3. สำหรับคอร์ส VDO Online ให้แจ้งสั้นๆ ว่าเป็นหลักสูตร Coming Soon (เร็วๆ นี้)
 4. ตอบเป็นภาษาไทยที่สุภาพ เป็นมิตร กระชับ น่าเชื่อถือ
 5. หากผู้เรียนถามเรื่องตารางเวลาเรียนสด 1:1:
-   - บุคคลทั่วไป: วันธรรมดา 19:30-22:30 น. (รอบค่ำ), เสาร์ 10:00-23:00 น., อาทิตย์ 09:00-18:00 น.
+   - บุคคลทั่วไป: วันธรรมดา 19:30-22:30 น. (รอบค่ำ), เสาร์ 10:00-23:00 น., อาทิตย์ 10:00-22:00 น.
    - องค์กร: จันทร์-เสาร์ 09:00-18:00 น.
-   - มีบริการวิทยากรนอกสถานที่ (ติดต่อ LINE: @zarntastic หรือ โทร 061-5614269)
+   - มีบริการวิทยากรนอกสถานที่ (ติดต่อ LINE: @761rqbfc หรือ โทร 061-5614269)
 6. จัดรูปแบบคำตอบด้วย Markdown ให้อ่านง่าย มี bullet และตัวหนา`;
 
     // Construct cleanly formatted conversation history for multi-turn chat
@@ -2572,7 +2966,7 @@ cron.schedule(
 // Vite Middleware Integration
 async function startServer() {
   // Check and initialize Cloud Firestore synchronization if cloud database is provisioned
-  initFirestoreSync().catch((err) => {
+  await initFirestoreSync().catch((err) => {
     console.warn("[Firestore] Init check skipped:", err?.message || err);
   });
 

@@ -48,7 +48,9 @@ export function CourseDetailModal({
               </span>
             ) : (
               <span className="px-2.5 py-0.5 rounded-full bg-orange-950 text-orange-400 border border-orange-800 text-xs font-bold">
-                {course.totalDays && course.totalHours
+                {(course.categoryGroup === 'in-house-onsite' || course.categoryGroup === 'in-house-online')
+                  ? `🏢 ${course.trainingMode === 'onsite' ? 'In-House Onsite (เขต กทม.)' : 'In-House Online'} (${course.totalHours} ชม.)`
+                  : course.totalDays && course.totalHours
                   ? course.totalDays === 1
                     ? `💻 คอร์สเรียนสด 1 วัน (${course.totalHours} ชม.)`
                     : `💻 คอร์สเรียนสด ${course.totalDays} วัน (${course.totalHours} ชม. วันละ ${course.hoursPerDay} ชม.)`
@@ -244,7 +246,7 @@ export function CourseDetailModal({
           {/* Schedule Rules */}
           <div className="bg-orange-50/70 p-3.5 rounded-xl border border-orange-200 text-xs text-orange-900 flex items-center gap-2">
             <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
-            <span>{course.durationCategory === 'vdo' ? 'เข้าเรียนได้ทันทีหลังชำระเงินและ Admin อนุมัติสลิป ดูย้อนหลังได้ตลอดชีพ' : (course.scheduleRuleNotice || 'บุคคลทั่วไป: จันทร์-ศุกร์ (19.30-22.30) และ เสาร์-อาทิตย์ (09.00-18.00)')}</span>
+            <span>{course.durationCategory === 'vdo' ? 'เข้าเรียนได้ทันทีหลังชำระเงินและ Admin อนุมัติสลิป ดูย้อนหลังได้ตลอดชีพ' : (course.scheduleRuleNotice || 'บุคคลทั่วไป: จันทร์-ศุกร์ (19:30-22:30), เสาร์ (10:00-23:00) และ อาทิตย์ (10:00-22:00)')}</span>
           </div>
 
         </div>

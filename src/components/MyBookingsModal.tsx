@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Booking } from '../types';
 import { formatThaiDate, formatCurrency } from '../utils/scheduleUtils';
+import { normalizeMeetingLink, isInstantMeetLink } from '../utils/meetingUtils';
 import { 
   X, 
   Search, 
@@ -16,7 +17,8 @@ import {
   Check,
   CreditCard,
   Ban,
-  Pencil
+  Pencil,
+  MapPin
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { EditBookingModal } from './EditBookingModal';
@@ -49,6 +51,7 @@ export function MyBookingsModal({
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
 
   // Auto-search if default phone/email is provided or populate activeBooking
   useEffect(() => {
@@ -128,15 +131,17 @@ export function MyBookingsModal({
 
     const isConfirmed = booking.payment.status === 'confirmed' || booking.payment.status === 'completed';
     const statusStr = isConfirmed ? '✅ ชำระเงินและอนุมัติแล้ว' : '⏳ รอตรวจสอบชำระเงิน';
+    const onsiteStr = booking.customer.onsiteLocation
+      ? `\nสถานที่ Onsite: ${booking.customer.onsiteLocation}`
+      : `\nลิงก์ Google Meet: ${booking.meetingLink}`;
 
     return `[ใบนัดหมายคอร์สเรียน Zarntastic AI]
 รหัสการจอง: ${booking.id}
-ชื่อผู้เรียน: ${booking.customer.name} (${booking.customer.phone})
+ชื่อผู้เรียน: ${booking.customer.name} (${booking.customer.phone})${booking.customer.companyName ? `\nองค์กร: ${booking.customer.companyName}` : ''}
 คอร์สเรียน: ${booking.courseTitle}
-${scheduleStr}
-ลิงก์ Google Meet: ${booking.meetingLink}
-ยอดชำระ: ฿${booking.totalPrice.toLocaleString()} (${statusStr})
-ติดต่อผู้สอน: 061-5614269 | LINE: @zarntastic`;
+${scheduleStr}${onsiteStr}
+ยอดชำระ: ฿${(booking.totalPrice || 0).toLocaleString()} (${statusStr})
+ติดต่อผู้สอน: 061-5614269 | LINE: @761rqbfc`;
   };
 
   const handleShareLine = (booking: Booking) => {
@@ -217,7 +222,7 @@ ${scheduleStr}
               </h4>
               <p className="text-xs text-stone-500 max-w-md mx-auto">
                 {hasSearched
-                  ? 'กรุณาตรวจสอบความถูกต้องของเบอร์โทรศัพท์ หรือติดต่ออาจารย์ผู้สอนผ่าน LINE @zarntastic'
+                  ? 'กรุณาตรวจสอบความถูกต้องของเบอร์โทรศัพท์ หรือติดต่ออาจารย์ผู้สอนผ่าน LINE @761rqbfc'
                   : 'ระบบจะแสดงรายการนัดหมาย วันเวลาเรียนทั้งหมด พร้อมลิงก์เข้าห้องเรียน Google Meet และปุ่มส่งอีเมลยืนยัน'}
               </p>
             </div>
@@ -287,7 +292,7 @@ ${scheduleStr}
                       {booking.courseTitle}
                     </h4>
                     <div className="text-sm font-bold text-orange-600">
-                      ฿{booking.totalPrice.toLocaleString()}
+                      ฿{(booking.totalPrice || 0).toLocaleString()}
                     </div>
                   </div>
 
@@ -316,22 +321,45 @@ ${scheduleStr}
                       </div>
                     )}
 
-                    {/* Google Meet Link (if paid/active) */}
-                    <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-xs text-stone-600 truncate">
-                        <Video className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <span className="font-mono text-stone-800 truncate">{booking.meetingLink}</span>
+                    {/* Onsite Location (if present) */}
+                    {booking.customer?.onsiteLocation && (
+                      <div className="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-start gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">สถานที่จัดอบรม In-House Onsite (กทม.):</span>
+                          <span className="ml-1 text-amber-950 font-medium">{booking.customer.onsiteLocation}</span>
+                        </div>
                       </div>
-                      <a
-                        href={booking.meetingLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0"
-                      >
-                        <span>เข้าห้องเรียน</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
+                    )}
+
+                    {/* Google Meet Link (if paid/active) */}
+                    {(() => {
+                      const safeMeet = normalizeMeetingLink(booking.meetingLink);
+                      return (
+                        <div className="pt-2 border-t border-stone-100 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-xs text-stone-600 truncate">
+                              <Video className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                              <span className="font-mono text-stone-800 text-[11px] truncate">{safeMeet}</span>
+                            </div>
+                            <a
+                              href={safeMeet}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0 shadow-xs"
+                            >
+                              <span>เข้าห้องเรียน</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                          {isInstantMeetLink(safeMeet) && (
+                            <p className="text-[10px] text-stone-500 bg-stone-50 p-1.5 rounded-md border border-stone-100">
+                              ห้องเรียนออนไลน์ Google Meet สด 1:1 — อาจารย์ผู้สอนจะเปิดห้องเรียนหรือส่งลิงก์ห้องเรียนเฉพาะรอบให้ก่อนเริ่มเรียน 15-30 นาที
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Action Buttons Row */}
@@ -399,18 +427,39 @@ ${scheduleStr}
 
                     {/* Cancel Booking (Allowed only if NOT paid) */}
                     {!isPaid && !isCancelled && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`คุณต้องการยกเลิกการจองรหัส ${booking.id} ใช่หรือไม่?`)) {
-                            onCancelBooking(booking.id);
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors cursor-pointer ml-auto"
-                      >
-                        <Ban className="w-3 h-3" />
-                        <span>ยกเลิกการจอง</span>
-                      </button>
+                      <div className="ml-auto">
+                        {cancellingBookingId === booking.id ? (
+                          <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-300 rounded-lg px-2 py-1 text-xs">
+                            <span className="text-rose-900 font-semibold">ยืนยันยกเลิก?</span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setCancellingBookingId(null);
+                                await onCancelBooking(booking.id);
+                              }}
+                              className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px] cursor-pointer"
+                            >
+                              ยืนยัน
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCancellingBookingId(null)}
+                              className="px-1.5 py-0.5 text-stone-600 hover:text-stone-900 text-[11px] cursor-pointer"
+                            >
+                              ปิด
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setCancellingBookingId(booking.id)}
+                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <Ban className="w-3 h-3" />
+                            <span>ยกเลิกการจอง</span>
+                          </button>
+                        )}
+                      </div>
                     )}
 
                   </div>
@@ -424,7 +473,7 @@ ${scheduleStr}
         {/* Modal Footer */}
         <div className="p-4 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs text-stone-600">
           <div>
-            สอบถามข้อมูลเพิ่มเติม: โทร <strong>061-5614269</strong> | LINE: <strong>@zarntastic</strong>
+            สอบถามข้อมูลเพิ่มเติม: โทร <strong>061-5614269</strong> | LINE: <strong>@761rqbfc</strong>
           </div>
           <button
             onClick={onClose}

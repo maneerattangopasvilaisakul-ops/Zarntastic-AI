@@ -58,7 +58,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
           {
             id: 'user_demo_student',
             name: 'คุณวิภาวรรณ (ผู้เรียนทดสอบ)',
-            email: 'student@zarntastic.com',
+            email: 'student@761rqbfc.com',
             password: 'password123',
             phone: '081-2345678',
             lineId: '@studentdemo',
@@ -70,7 +70,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
             email: 'zarnzarn10@gmail.com',
             password: 'Enter10!',
             phone: '061-5614269',
-            lineId: '@zarntastic',
+            lineId: '@761rqbfc',
             role: 'admin'
           }
         ];
@@ -84,9 +84,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
   // Switch to Admin Login Screen (requires password entry)
   const handleSwitchToAdminMode = () => {
     setMode('admin');
-    if (!email || email === 'student@zarntastic.com') {
-      setEmail('zarnzarn10@gmail.com');
-    }
+    setEmail('');
     setPassword('');
     setError('');
   };
@@ -126,7 +124,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
     }
 
     // 1. Admin Master Check (always validates password strictly)
-    const isAdminEmail = cleanEmail === 'zarnzarn10@gmail.com' || cleanEmail === 'admin@zarntastic.com';
+    const isAdminEmail = cleanEmail === 'zarnzarn10@gmail.com' || cleanEmail === 'admin@761rqbfc.com';
     if (isAdminEmail || mode === 'admin') {
       try {
         const res = await fetch('/api/admin/login', {
@@ -139,10 +137,10 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
         
         login({
           id: 'admin_001',
-          name: 'อาจารย์ซาน (Administrator)',
+          name: 'อาจารย์ซาน',
           email: cleanEmail,
           phone: '061-5614269',
-          lineId: '@zarntastic',
+          lineId: '@761rqbfc',
           role: 'admin',
           token: data.token
         });
@@ -225,7 +223,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
       }
 
       // Disallow registering with Admin email
-      if (cleanEmail === 'zarnzarn10@gmail.com' || cleanEmail === 'admin@zarntastic.com') {
+      if (cleanEmail === 'zarnzarn10@gmail.com' || cleanEmail === 'admin@761rqbfc.com') {
         setError('อีเมลนี้สงวนไว้สำหรับผู้ดูแลระบบ กรุณาใช้แท็บ "เข้าสู่ระบบ" และกรอกรหัสผ่าน');
         return;
       }
@@ -352,7 +350,7 @@ export function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all"
-                    placeholder="zarnzarn10@gmail.com"
+                    placeholder="กรอกอีเมลผู้ดูแลระบบ"
                   />
                 </div>
               </div>

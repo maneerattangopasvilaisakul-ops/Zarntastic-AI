@@ -35,25 +35,26 @@ export function isTimeOverlap(
 }
 
 export function isDateWeekend(dateStr: string): boolean {
+  if (!dateStr) return false;
   const date = new Date(dateStr + 'T00:00:00');
   const day = date.getDay();
   return day === 0 || day === 6; // Sun or Sat
 }
 
 export function getOperatingHours(dateStr: string, userCategory: 'general' | 'corporate' = 'general'): string {
+  if (!dateStr) return '';
   const date = new Date(dateStr + 'T00:00:00');
   const day = date.getDay(); // 0: Sun, 6: Sat
 
   if (userCategory === 'corporate') {
-    if (day === 0) return 'ปิดทำการ (องค์กรเปิด จันทร์-เสาร์ 09:00-20:00 น.)';
-    return '09:00 - 20:00 น. (รอบองค์กร จันทร์-เสาร์)';
+    return '09:00 - 20:00 น. (รอบองค์กร เปิดสอนทุกวัน จันทร์-อาทิตย์)';
   }
 
   if (day === 6) {
     return '10:00 - 23:00 น. (วันเสาร์)';
   }
   if (day === 0) {
-    return '09:00 - 18:00 น. (วันอาทิตย์)';
+    return '10:00 - 22:00 น. (วันอาทิตย์)';
   }
   return '19:30 - 22:30 น. (จันทร์-ศุกร์ รอบค่ำ)';
 }
@@ -79,7 +80,8 @@ export function formatThaiDateShort(dateStr: string): string {
 }
 
 export function formatCurrency(amount: number): string {
-  return `฿${amount.toLocaleString()}`;
+  if (amount === undefined || amount === null || isNaN(amount)) return '฿0';
+  return '฿' + Number(amount).toLocaleString();
 }
 
 export function getValidNextDates(count = 21): Array<{ dateStr: string; isWeekend: boolean; dayName: string }> {
@@ -118,6 +120,7 @@ export function generateSlotsForDate(
   isAllowed: boolean;
   reasonNotAllowed?: string;
 }> {
+  if (!dateStr) return [];
   const date = new Date(dateStr + 'T00:00:00');
   const day = date.getDay(); // 0 = Sun, 6 = Sat
   const isWeekend = day === 0 || day === 6;
@@ -130,14 +133,40 @@ export function generateSlotsForDate(
     reasonNotAllowed?: string;
   }> = [];
 
-  // Corporate: Mon - Sat (09:00 - 20:00), Sun is closed
+  // Corporate: Everyday Monday - Sunday (09:00 - 20:00)
   if (userCategory === 'corporate') {
-    if (day === 0) {
-      return []; // Sunday closed for corporate
+    if (durationHours === 6) {
+      const startTime = '09:00';
+      const endTime = '16:00';
+      let isOccupied = false;
+      let bookedBy: string | undefined;
+
+      for (const b of existingBookings) {
+        if (excludeBookingId && b.id === excludeBookingId) continue;
+        if (b.payment.status === 'cancelled' || b.payment.status === 'rejected') continue;
+        for (const s of b.schedule) {
+          if (s.date === dateStr && isTimeOverlap(startTime, endTime, s.startTime, s.endTime)) {
+            isOccupied = true;
+            bookedBy = `${(b.customer?.name || 'User').slice(0, 3)}*** (${b.courseTitle})`;
+            break;
+          }
+        }
+        if (isOccupied) break;
+      }
+
+      slots.push({
+        startTime,
+        endTime,
+        isOccupied,
+        bookedBy,
+        isAllowed: true,
+      });
+      return slots;
     }
+
     const startHour = 9;
     const endHour = 20;
-    const step = durationHours;
+    const step = durationHours >= 6 ? 1 : 2;
 
     for (let h = startHour; h <= endHour - durationHours; h += step) {
       const sMin = h * 60;
@@ -237,9 +266,9 @@ export function generateSlotsForDate(
       });
     }
   } else {
-    // Weekend: Saturday 10:00 - 23:00, Sunday 09:00 - 18:00
-    const startHour = day === 6 ? 10 : 9;
-    const endHour = day === 6 ? 23 : 18; // Saturday up to 23:00, Sunday up to 18:00
+    // Weekend: Saturday 10:00 - 23:00, Sunday 10:00 - 22:00
+    const startHour = 10;
+    const endHour = day === 6 ? 23 : 22; // Saturday up to 23:00, Sunday up to 22:00
     const step = durationHours;
 
     for (let h = startHour; h <= endHour - durationHours; h += step) {

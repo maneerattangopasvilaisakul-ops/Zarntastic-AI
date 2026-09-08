@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { Course, CustomerInfo, ScheduleSlot } from '../types';
 import { formatThaiDate, formatCurrency } from '../utils/scheduleUtils';
 import { toast } from 'react-hot-toast';
@@ -15,7 +15,8 @@ import {
   CalendarCheck,
   ShieldAlert,
   Building2,
-  Receipt
+  Receipt,
+  MapPin
 } from 'lucide-react';
 
 interface CustomerFormProps {
@@ -40,8 +41,37 @@ export function CustomerForm({
   errorMessage,
 }: CustomerFormProps) {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const isCorporate = customerInfo.clientType === 'corporate';
+
+  // Ensure student form is never populated with instructor or admin info
+  useEffect(() => {
+    const isInstructorInfo =
+      customerInfo.name?.includes('อาจารย์') ||
+      customerInfo.name?.includes('Admin') ||
+      customerInfo.name?.includes('Administrator') ||
+      customerInfo.email?.toLowerCase().includes('zarnzarn10') ||
+      customerInfo.email?.toLowerCase().includes('zarntastic.com') ||
+      customerInfo.phone?.includes('061-5614269') ||
+      customerInfo.phone?.includes('0615614269') ||
+      customerInfo.lineId === '@761rqbfc';
+
+    if (isInstructorInfo) {
+      onUpdateCustomer({
+        name: '',
+        email: '',
+        phone: '',
+        lineId: '',
+        notes: '',
+        experienceLevel: 'Beginner',
+        clientType: customerInfo.clientType || 'general',
+      });
+      try {
+        localStorage.removeItem('zarntastic_customer_info');
+      } catch (e) {}
+    }
+  }, [customerInfo.name, customerInfo.email, customerInfo.phone, customerInfo.lineId, onUpdateCustomer, customerInfo.clientType]);
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
@@ -62,6 +92,10 @@ export function CustomerForm({
 
     if (isCorporate && !customerInfo.companyName?.trim()) {
       newErrors.companyName = 'กรุณาระบุชื่อบริษัท / องค์กร';
+    }
+
+    if (course.trainingMode === 'onsite' && !customerInfo.onsiteLocation?.trim()) {
+      newErrors.onsiteLocation = 'กรุณาระบุสถานที่จัดอบรม Onsite ในเขตกรุงเทพฯ';
     }
 
     setErrors(newErrors);
@@ -94,7 +128,9 @@ export function CustomerForm({
             กรอกข้อมูลผู้เรียน
           </h2>
           <p className="text-sm text-stone-600 mt-1">
-            ข้อมูลนี้จะใช้สำหรับการส่งลิงก์เข้าเรียน Google Meet และออกเอกสารใบเสร็จ
+            {course.trainingMode === 'onsite'
+              ? 'ข้อมูลนี้จะใช้สำหรับการประสานงานจัดอบรม Onsite (เขต กทม.) และออกเอกสารใบเสร็จ/ใบกำกับภาษี'
+              : 'ข้อมูลนี้จะใช้สำหรับการส่งลิงก์เข้าเรียน Google Meet และออกเอกสารใบเสร็จ'}
           </p>
         </div>
 
@@ -160,28 +196,50 @@ export function CustomerForm({
               </span>
             </div>
             {(customerInfo.name || customerInfo.email || customerInfo.phone) && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm('ต้องการล้างข้อมูลในฟอร์มเพื่อกรอกใหม่หรือไม่?')) {
-                    onUpdateCustomer({
-                      name: '',
-                      email: '',
-                      phone: '',
-                      lineId: '',
-                      notes: '',
-                      experienceLevel: 'Beginner',
-                      clientType: 'general',
-                    });
-                    try {
-                      localStorage.removeItem('zarntastic_customer_info');
-                    } catch (e) {}
-                  }
-                }}
-                className="text-[11px] text-stone-500 hover:text-stone-800 underline shrink-0 cursor-pointer self-end sm:self-auto"
-              >
-                ล้างข้อมูลฟอร์ม
-              </button>
+              <div className="shrink-0 self-end sm:self-auto">
+                {showClearConfirm ? (
+                  <div className="flex items-center gap-1.5 bg-white/90 border border-emerald-300 rounded-lg px-2 py-1 text-[11px]">
+                    <span className="text-stone-700 font-medium">ล้างข้อมูลฟอร์ม?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onUpdateCustomer({
+                          name: '',
+                          email: '',
+                          phone: '',
+                          lineId: '',
+                          notes: '',
+                          experienceLevel: 'Beginner',
+                          clientType: 'general',
+                        });
+                        try {
+                          localStorage.removeItem('zarntastic_customer_info');
+                        } catch (e) {}
+                        setShowClearConfirm(false);
+                      }}
+                      className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
+                    >
+                      ยืนยัน
+                    </button>
+                    <span className="text-stone-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowClearConfirm(false)}
+                      className="text-stone-500 hover:text-stone-700 cursor-pointer"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirm(true)}
+                    className="text-[11px] text-stone-500 hover:text-stone-800 underline cursor-pointer"
+                  >
+                    ล้างข้อมูลฟอร์ม
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -272,6 +330,33 @@ export function CustomerForm({
             </div>
 
           </div>
+
+          {/* Onsite Location (If Course is Onsite) */}
+          {course.trainingMode === 'onsite' && (
+            <div className="p-4 bg-orange-50/70 border border-orange-200 rounded-2xl space-y-2">
+              <div className="text-xs font-bold text-orange-950 flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-orange-600" />
+                <span>สถานที่จัดอบรม Onsite (เขต กทม.) <span className="text-rose-500">*</span></span>
+              </div>
+              <p className="text-xs text-stone-600">
+                หลักสูตรนี้จัดอบรมแบบ Onsite ณ หน่วยงาน/บริษัทในเขตกรุงเทพฯ กรุณาระบุชื่ออาคาร ชั้น ห้องประชุม หรือที่อยู่
+              </p>
+              <div className="relative">
+                <MapPin className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  id="input-customer-onsite-location"
+                  placeholder="เช่น ห้องประชุมชั้น 5 อาคารสำนักงานใหญ่ ถ.พหลโยธิน เขตพญาไท กทม."
+                  value={customerInfo.onsiteLocation || ''}
+                  onChange={(e) => onUpdateCustomer({ ...customerInfo, onsiteLocation: e.target.value })}
+                  className={`w-full pl-10 pr-4 py-2.5 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all ${
+                    errors.onsiteLocation ? 'border-rose-400 bg-rose-50/30' : 'border-orange-200'
+                  }`}
+                />
+              </div>
+              {errors.onsiteLocation && <p className="text-xs text-rose-600 mt-1">{errors.onsiteLocation}</p>}
+            </div>
+          )}
 
           {/* Corporate Specific Fields */}
           {isCorporate && (
@@ -442,14 +527,26 @@ export function CustomerForm({
 
               <div className="flex justify-between py-1 border-b border-stone-800/60">
                 <span className="text-stone-400">ผู้สอน:</span>
-                <span className="font-semibold text-white">{course.instructor?.name || 'อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)'}</span>
+                <span className="font-semibold text-white">{course.instructor?.name || 'โค้ช ซาน'}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-stone-800/60">
                 <span className="text-stone-400">ช่องทางเรียน:</span>
                 <span className="font-semibold text-emerald-400">
-                  {course.durationCategory === 'vdo' ? 'Google Drive VDO Online' : 'Google Meet (Live 1-on-1)'}
+                  {course.durationCategory === 'vdo'
+                    ? 'Google Drive VDO Online'
+                    : course.trainingMode === 'onsite'
+                    ? 'Onsite (เขต กทม.)'
+                    : 'Google Meet (Live Online)'}
                 </span>
               </div>
+              {course.trainingMode === 'onsite' && customerInfo.onsiteLocation && (
+                <div className="flex justify-between py-1 border-b border-stone-800/60">
+                  <span className="text-stone-400">สถานที่ Onsite:</span>
+                  <span className="font-semibold text-amber-300 text-right max-w-[170px] truncate" title={customerInfo.onsiteLocation}>
+                    {customerInfo.onsiteLocation}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

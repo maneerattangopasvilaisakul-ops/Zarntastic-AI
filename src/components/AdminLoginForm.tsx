@@ -16,6 +16,30 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
+  
+  const handleForgotPassword = async () => {
+    if (!username) {
+      toast.error('กรุณากรอกอีเมลผู้ดูแลระบบก่อนคลิกลืมรหัสผ่าน');
+      return;
+    }
+    const toastId = toast.loading('กำลังส่งรหัสผ่านใหม่...');
+    try {
+      const res = await fetch('/api/admin/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: username })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.message || 'ส่งรหัสผ่านใหม่แล้ว กรุณาตรวจสอบอีเมล', { id: toastId, duration: 6000 });
+      } else {
+        toast.error(data.error || 'ไม่พบอีเมลในระบบ', { id: toastId });
+      }
+    } catch (err) {
+      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ', { id: toastId });
+    }
+  };
+
   const doAdminLogin = async (emailVal: string, passVal: string) => {
     const cleanEmail = emailVal.trim().toLowerCase();
     const cleanPass = passVal.trim();
@@ -36,10 +60,10 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
       setError('');
       login({
         id: 'admin_001',
-        name: 'อาจารย์ซาน (Administrator)',
+        name: 'อาจารย์ซาน',
         email: cleanEmail,
         phone: '061-5614269',
-        lineId: '@zarntastic',
+        lineId: '@761rqbfc',
         role: 'admin',
         token: data.token
       } as any);
@@ -113,9 +137,7 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
               </label>
               <button
                 type="button"
-                onClick={() => {
-                  toast.success("รหัสผ่านผู้ดูแลระบบคือ: Enter10! (หรือติดต่อ LINE: @zarntastic โทร 061-5614269)", { duration: 6000 });
-                }}
+                onClick={handleForgotPassword}
                 className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
               >
                 ลืมรหัสผ่าน?
@@ -131,7 +153,7 @@ export function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-medium"
-                placeholder="กรอกรหัสผ่านผู้ดูแลระบบ (Enter10!)"
+                placeholder="กรอกรหัสผ่านผู้ดูแลระบบ"
               />
               <button
                 type="button"

@@ -123,7 +123,7 @@ export function KnowledgeBase({ onSelectCourseById }: KnowledgeBaseProps) {
           </h2>
 
           <p className="text-sm sm:text-base text-stone-300 leading-relaxed font-normal">
-            เจาะลึกเทคนิคการใช้งาน AI ระดับมืออาชีพ ปรับแต่งเว็บไซต์ให้ติดอันดับบน AI Search Engine (Perplexity, ChatGPT, Google SGE) และคู่มือการสร้าง AI Web App ใช้งานได้จริง โดย <strong className="text-white font-semibold">อ.มณีรัตน์ ตั้งโอภาสวิไลสกุล ( Coach ซาน)</strong> (Fastwork 5.0 ★)
+            เจาะลึกเทคนิคการใช้งาน AI ระดับมืออาชีพ ปรับแต่งเว็บไซต์ให้ติดอันดับบน AI Search Engine (Perplexity, ChatGPT, Google SGE) และคู่มือการสร้าง AI Web App ใช้งานได้จริง โดย <strong className="text-white font-semibold">โค้ช ซาน</strong> (Fastwork 5.0 ★)
           </p>
 
           {/* Quick Search in Banner */}
@@ -277,7 +277,7 @@ export function KnowledgeBase({ onSelectCourseById }: KnowledgeBaseProps) {
                 {/* Card Footer */}
                 <div className="pt-3 border-t border-stone-100 flex items-center justify-between mt-auto">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-stone-700">อ.มณีรัตน์</span>
+                    <span className="text-[11px] font-bold text-stone-700">โค้ช ซาน</span>
                     <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded flex items-center gap-0.5">
                       <Star className="w-2 h-2 fill-amber-500 text-amber-500" /> 5.0
                     </span>
@@ -305,7 +305,7 @@ export function KnowledgeBase({ onSelectCourseById }: KnowledgeBaseProps) {
             ต้องการวางระบบ AI หรือเรียนสด 1:1 แบบจับมือทำ?
           </h3>
           <p className="text-xs sm:text-sm text-stone-300 max-w-xl">
-            สถาบัน Zarntastic เปิดสอนหลักสูตรสด Online 1:1 ผ่าน Google Meet ปรึกษาและแก้โจทย์งานจริงกับ อ.มณีรัตน์ โดยตรง พร้อมระบบจองคิวอัตโนมัติ
+            สถาบัน Zarntastic เปิดสอนหลักสูตรสด Online 1:1 ผ่าน Google Meet ปรึกษาและแก้โจทย์งานจริงกับ โค้ช ซาน โดยตรง พร้อมระบบจองคิวอัตโนมัติ
           </p>
         </div>
 

@@ -40,7 +40,7 @@ export function ShareLinkModal({
 
   const currentShortUrl = selectedUrl || "https://tinyurl.com/zarntastic";
 
-  const clientMessage = `สวัสดีค่ะ/ครับ ขออนุญาตส่งลิงก์ระบบจองคอร์สเรียน AI กับ อ.มณีรัตน์ (Zarntastic AI Learning)
+  const clientMessage = `สวัสดีค่ะ/ครับ ขออนุญาตส่งลิงก์ระบบจองคอร์สเรียน AI โดย โค้ช ซาน (Zarntastic AI Learning)
 
 ✨ สามารถคลิกเลือกดูรายละเอียดคอร์ส ตรวจสอบวันและเวลาที่ว่าง และจองคิวออนไลน์ได้ทันทีที่:
 ${currentShortUrl}

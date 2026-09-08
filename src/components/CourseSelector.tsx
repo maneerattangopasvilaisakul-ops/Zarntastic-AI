@@ -58,13 +58,8 @@ export function CourseSelector({
   // Category Tabs
   const categoryTabs: Array<{ id: CourseCategoryGroup; label: string; count: number }> = [
     { id: 'all', label: 'ทั้งหมด', count: COURSES.length },
-    { id: 'starter', label: 'Starter พื้นฐาน AI', count: COURSES.filter(c => c.categoryGroup === 'starter').length },
-    { id: 'productivity', label: 'Productivity & งานเอกสาร', count: COURSES.filter(c => c.categoryGroup === 'productivity').length },
-    { id: 'marketing', label: 'Content & การตลาด', count: COURSES.filter(c => c.categoryGroup === 'marketing').length },
-    { id: 'web', label: 'Landing Page & No-Code', count: COURSES.filter(c => c.categoryGroup === 'web').length },
-    { id: 'claude', label: 'Claude & AI Agent', count: COURSES.filter(c => c.categoryGroup === 'claude').length },
-    { id: 'coaching', label: 'Private Coaching', count: COURSES.filter(c => c.categoryGroup === 'coaching').length },
-    { id: 'corporate', label: 'องค์กร / บริษัท', count: COURSES.filter(c => c.categoryGroup === 'corporate').length },
+    { id: 'in-house-onsite', label: 'In-House Onsite', count: COURSES.filter(c => c.categoryGroup === 'in-house-onsite').length },
+    { id: 'in-house-online', label: 'In-House Online', count: COURSES.filter(c => c.categoryGroup === 'in-house-online').length },
   ];
 
   // Filtered and sorted courses
@@ -404,15 +399,23 @@ export function CourseSelector({
                       </span>
                     ) : course.totalDays && course.totalHours ? (
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold ${
-                        course.totalDays === 1
+                        (course.categoryGroup === 'in-house-onsite' || course.categoryGroup === 'in-house-online')
+                          ? course.trainingMode === 'onsite'
+                            ? 'bg-amber-100/80 text-amber-950 border border-amber-300'
+                            : 'bg-orange-50 text-orange-900 border border-orange-200'
+                          : course.totalDays === 1
                           ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                           : course.totalDays === 2
                           ? 'bg-indigo-50 text-indigo-800 border border-indigo-200'
                           : 'bg-rose-50 text-rose-800 border border-rose-200'
                       }`}>
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className={`w-2 h-2 rounded-full ${
+                          (course.categoryGroup === 'in-house-onsite' || course.categoryGroup === 'in-house-online') ? (course.trainingMode === 'onsite' ? 'bg-amber-600' : 'bg-orange-500') : 'bg-emerald-500'
+                        }`} />
                         <Clock className="w-3.5 h-3.5 shrink-0" />
-                        {course.totalDays === 1
+                        {(course.categoryGroup === 'in-house-onsite' || course.categoryGroup === 'in-house-online')
+                          ? `${course.trainingMode === 'onsite' ? '🏢 In-House Onsite (กทม.)' : '🌐 In-House Online'} (${course.totalHours} ชม.)`
+                          : course.totalDays === 1
                           ? `💻 เรียนสด 1:1 (${course.totalHours} ชม.)`
                           : `💻 เรียนสด 1:1 (${course.totalDays} วัน ${course.totalHours} ชม.)`}
                       </span>

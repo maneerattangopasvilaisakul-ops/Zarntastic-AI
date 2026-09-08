@@ -43,7 +43,7 @@ export function SlotScheduler({
   userCategory = 'general',
   onUserCategoryChange,
 }: SlotSchedulerProps) {
-  const currentCategory: UserCategory = course.categoryGroup === "corporate" ? "corporate" : "general";
+  const currentCategory: UserCategory = (course.categoryGroup === 'in-house-onsite' || course.categoryGroup === 'in-house-online') ? "corporate" : "general";
   useEffect(() => {
     if (onUserCategoryChange && userCategory !== currentCategory) {
       onUserCategoryChange(currentCategory);
@@ -62,8 +62,7 @@ export function SlotScheduler({
   const [chosenDatesByDay, setChosenDatesByDay] = useState<Record<number, string>>(() => {
     const initDate = dates.find((d) => {
       if (currentCategory === 'corporate') {
-        const day = new Date(d.dateStr + 'T00:00:00').getDay();
-        return day !== 0; // Mon-Sat
+        return true; // Everyday (Mon - Sun)
       }
       return is4HourCourse ? d.isWeekend : true;
     })?.dateStr || dates[0].dateStr;
@@ -74,8 +73,7 @@ export function SlotScheduler({
   useEffect(() => {
     const initDate = dates.find((d) => {
       if (currentCategory === 'corporate') {
-        const day = new Date(d.dateStr + 'T00:00:00').getDay();
-        return day !== 0; // Mon-Sat
+        return true; // Everyday (Mon - Sun)
       }
       return is4HourCourse ? d.isWeekend : true;
     })?.dateStr || dates[0].dateStr;
@@ -118,7 +116,7 @@ export function SlotScheduler({
         const nextDateCandidate = dates.find((d) => {
           if (d.dateStr <= activeViewingDate) return false;
           if (currentCategory === 'corporate') {
-            return new Date(d.dateStr + 'T00:00:00').getDay() !== 0;
+            return true;
           }
           return is4HourCourse ? d.isWeekend : true;
         });
@@ -198,11 +196,26 @@ export function SlotScheduler({
           <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight flex items-center gap-2">
             <span>ตารางจองคิว: {course.title}</span>
           </h2>
-          <p className="text-sm text-stone-600 mt-1">
-            {course.totalDays === 1 
-              ? `คอร์สเรียน 1 วัน (${course.totalHours} ชั่วโมง)` 
-              : `คอร์สเรียน ${course.totalDays} วัน (รวม ${course.totalHours} ชั่วโมง • แบ่งเรียนวันละ ${course.hoursPerDay} ชั่วโมง)`}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap mt-1.5">
+            <span className="text-sm text-stone-600">
+              {course.totalDays === 1 
+                ? `คอร์สเรียน 1 วัน (${course.totalHours} ชั่วโมง)` 
+                : `คอร์สเรียน ${course.totalDays} วัน (รวม ${course.totalHours} ชั่วโมง • แบ่งเรียนวันละ ${course.hoursPerDay} ชั่วโมง)`}
+            </span>
+            {course.trainingMode === 'onsite' ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300 shadow-2xs">
+                🏢 จัดอบรม Onsite ณ หน่วยงาน (เขต กทม.)
+              </span>
+            ) : (course.categoryGroup === 'in-house-onsite' || course.categoryGroup === 'in-house-online') ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-900 text-xs font-bold border border-blue-200 shadow-2xs">
+                🌐 เรียนสด Online ผ่าน Google Meet
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
+                💻 เรียนสด 1:1 ผ่าน Google Meet
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Operating Hours Banner */}
@@ -212,10 +225,10 @@ export function SlotScheduler({
           </div>
           <div className="text-stone-300 space-y-0.5">
             <div className={currentCategory === 'general' ? 'text-white font-medium' : 'text-stone-400'}>
-              • บุคคลทั่วไป: <strong className="text-orange-300">จ.-ศ. 19:30-22:30</strong> | <strong className="text-orange-300">เสาร์ 10:00-23:00</strong> | <strong className="text-orange-300">อาทิตย์ 09:00-18:00</strong>
+              • บุคคลทั่วไป: <strong className="text-orange-300">จ.-ศ. 19:30-22:30</strong> | <strong className="text-orange-300">เสาร์ 10:00-23:00</strong> | <strong className="text-orange-300">อาทิตย์ 10:00-22:00</strong>
             </div>
             <div className={currentCategory === 'corporate' ? 'text-white font-medium' : 'text-stone-400'}>
-              • องค์กร (Corporate): <strong className="text-amber-300">จ.-ส. 09:00-18:00</strong> (ปิดวันอาทิตย์)
+              • องค์กร (Corporate): <strong className="text-amber-300">09:00-20:00</strong> (เปิดสอนทุกวัน จันทร์-อาทิตย์)
             </div>
           </div>
         </div>
@@ -245,7 +258,7 @@ export function SlotScheduler({
               </div>
               <div>
                 <div className="font-bold text-sm">บุคคลทั่วไป (รอบค่ำ & วันหยุด)</div>
-                <div className="text-xs text-stone-500">จ.-ศ. 19:30-22:30 น. / ส. 10:00-23:00 น. / อา. 09:00-18:00 น.</div>
+                <div className="text-xs text-stone-500">จ.-ศ. 19:30-22:30 น. / ส. 10:00-23:00 น. / อา. 10:00-22:00 น.</div>
               </div>
             </div>
             {currentCategory === 'general' && <CheckCircle2 className="w-5 h-5 text-orange-600" />}
@@ -269,7 +282,7 @@ export function SlotScheduler({
               </div>
               <div>
                 <div className="font-bold text-sm">องค์กร / บริษัท (In-House Training)</div>
-                <div className="text-xs text-stone-500">เปิดรอบเวลากลางวัน จันทร์-เสาร์ 09:00-18:00 น.</div>
+                <div className="text-xs text-stone-500">เปิดรอบ 09:00-20:00 น. ทุกวัน (จันทร์-อาทิตย์)</div>
               </div>
             </div>
             {currentCategory === 'corporate' && <CheckCircle2 className="w-5 h-5 text-amber-600" />}
@@ -295,7 +308,7 @@ export function SlotScheduler({
                     const nextDate = dates.find((d) => {
                       if (d.dateStr <= prevDate) return false;
                       if (currentCategory === 'corporate') {
-                        return new Date(d.dateStr + 'T00:00:00').getDay() !== 0;
+                        return true;
                       }
                       return is4HourCourse ? d.isWeekend : true;
                     })?.dateStr;
@@ -342,7 +355,7 @@ export function SlotScheduler({
         <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
           <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <strong className="font-semibold">ข้อกำหนดคอร์ส 8 ชั่วโมง (บุคคลทั่วไป - วันละ 4 ชม.):</strong> เนื่องจากวันธรรมดามีช่วงเวลาสอนรอบค่ำ 19:30-22:30 น. (3 ชม.) ซึ่งไม่เพียงพอต่อเนื้อหา 4 ชม./วัน ระบบจึงเปิดให้ลงทะเบียนเฉพาะ <strong className="underline">วันเสาร์ (10:00 - 23:00 น.) และวันอาทิตย์ (09:00 - 18:00 น.)</strong>
+            <strong className="font-semibold">ข้อกำหนดคอร์ส 8 ชั่วโมง (บุคคลทั่วไป - วันละ 4 ชม.):</strong> เนื่องจากวันธรรมดามีช่วงเวลาสอนรอบค่ำ 19:30-22:30 น. (3 ชม.) ซึ่งไม่เพียงพอต่อเนื้อหา 4 ชม./วัน ระบบจึงเปิดให้ลงทะเบียนเฉพาะ <strong className="underline">วันเสาร์ (10:00 - 23:00 น.) และวันอาทิตย์ (10:00 - 22:00 น.)</strong>
           </div>
         </div>
       )}
@@ -370,10 +383,7 @@ export function SlotScheduler({
             let reasonText = '';
 
             if (currentCategory === 'corporate') {
-              if (isSunday) {
-                disabled = true;
-                reasonText = 'ปิดวันอาทิตย์';
-              }
+              // Corporate can book any day 09:00 - 20:00
             } else {
               // General
               if (is4HourCourse && !isWeekend) {
@@ -511,7 +521,13 @@ export function SlotScheduler({
                         จองแล้ว ({slot.bookedBy || 'ติดคิวผู้เรียนอื่น'})
                       </span>
                     ) : (
-                      <span>คลาสสดออนไลน์ (Google Meet)</span>
+                      <span>
+                        {course.trainingMode === 'onsite'
+                          ? '🏢 คลาสสด Onsite (เขต กทม.)'
+                          : (course.categoryGroup === 'in-house-onsite' || course.categoryGroup === 'in-house-online')
+                          ? '🌐 คลาสสดออนไลน์องค์กร (Google Meet)'
+                          : '💻 คลาสสดออนไลน์ (Google Meet)'}
+                      </span>
                     )}
                   </div>
                 </button>
