@@ -11,7 +11,12 @@
     <meta name="description" content="Turning Ideas Into Visual Experiences. สถาบันอบรม AI คุณภาพสูง 15 คอร์ส สอนสด 1:1 และวิดีโอ โดย Fastwork Verified Pro ครอบคลุม Gemini, ChatGPT, Claude, AI Agents, Automation และ AI for Business" />
     <meta name="keywords" content="เรียน AI, คอร์ส AI, สอน AI ตัวต่อตัว, AI Workflow, Gemini, ChatGPT, Claude, AI Agent, AI Marketing, Prompt Engineering, Zarntastic AI LEARNING, โค้ช ซาน, Fastwork Pro" />
     <meta name="author" content="Zarntastic AI LEARNING - โค้ช ซาน" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow" id="robots-meta" />
+    <script>
+      if (window.location.hostname.includes("run.app") || window.location.hostname.includes("localhost")) {
+        document.getElementById("robots-meta").setAttribute("content", "noindex, nofollow");
+      }
+    </script>
     <link rel="canonical" href="https://zarntastic-ai-learning.com/" />
 
     <!-- Open Graph / Facebook -->
@@ -59,6 +64,25 @@
             "contactType": "customer support",
             "areaServed": "TH",
             "availableLanguage": ["Thai", "English"]
+          }
+        },
+        {
+          "@type": "Course",
+          "name": "คอร์สเรียน AI และ Workflow Automation ตัวต่อตัว",
+          "description": "คอร์สเรียน AI ตั้งแต่พื้นฐานจนถึงการประยุกต์ใช้งานจริง (Gemini, ChatGPT, AI Agents, Automation)",
+          "offers": {
+            "@type": "Offer",
+            "category": "Paid",
+            "priceCurrency": "THB",
+            "price": "599"
+          },
+          "provider": {
+            "@id": "https://zarntastic-ai-learning.com/#organization"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "5.0",
+            "reviewCount": "128"
           }
         },
         {

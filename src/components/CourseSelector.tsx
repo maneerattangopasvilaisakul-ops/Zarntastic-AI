@@ -497,9 +497,14 @@ export function CourseSelector({
                         {formatCurrency(course.price)}
                       </span>
                       {course.originalPrice > course.price && (
-                        <span className="text-xs text-stone-400 line-through">
-                          {formatCurrency(course.originalPrice)}
-                        </span>
+                        <>
+                          <span className="text-xs text-stone-400 line-through">
+                            {formatCurrency(course.originalPrice)}
+                          </span>
+                          <span className="text-[10px] text-rose-500 font-bold ml-1 bg-rose-50 px-1.5 py-0.5 rounded">
+                            ถึงสิ้นเดือนนี้เท่านั้น!
+                          </span>
+                        </>
                       )}
                     </div>
                     <span className="text-[10px] text-emerald-600 font-medium">

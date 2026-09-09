@@ -46,7 +46,8 @@ import {
   Check,
   Layers,
   SearchX,
-  Share2
+  Share2,
+  LogOut
 } from 'lucide-react';
 import { AdminCalendarView } from './AdminCalendarView';
 import { AdminAINewsAutomation } from './AdminAINewsAutomation';
@@ -67,7 +68,7 @@ export function AdminDashboard({
   onRefreshBookings,
   onOpenShareLink,
 }: AdminDashboardProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
@@ -276,69 +277,6 @@ export function AdminDashboard({
       alert(e.message || 'เกิดข้อผิดพลาดในการบันทึก');
     } finally {
       setIsSavingMeetSettings(false);
-    }
-  };
-
-  // Handle Seed Test Data to Firebase
-  const handleSeedTestData = async () => {
-    setIsSeeding(true);
-    setSeedNotice(null);
-    try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (user?.token) {
-        headers['Authorization'] = `Bearer ${user.token}`;
-      }
-      const res = await fetch('/api/admin/seed-test-data', {
-        method: 'POST',
-        headers,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSeedNotice(data.message || 'สร้างชุดข้อมูลทดสอบใน Firebase สำเร็จแล้ว!');
-        onRefreshBookings();
-        fetchFirebaseStatus();
-      } else {
-        setSeedNotice(data.error || 'เกิดข้อผิดพลาดในการสร้างข้อมูลทดสอบ');
-      }
-    } catch (err: any) {
-      setSeedNotice(`ข้อผิดพลาด: ${err.message}`);
-    } finally {
-      setIsSeeding(false);
-      setTimeout(() => setSeedNotice(null), 8000);
-    }
-  };
-
-  // Handle Clear Test Data from Firebase
-  const handleClearTestData = async () => {
-    setIsClearing(true);
-    setShowClearConfirm(false);
-    setSeedNotice(null);
-    try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (user?.token) {
-        headers['Authorization'] = `Bearer ${user.token}`;
-      }
-      const res = await fetch('/api/admin/clear-test-data', {
-        method: 'POST',
-        headers,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSeedNotice(data.message || 'ล้างข้อมูลใน Firebase Firestore เรียบร้อยแล้ว');
-        onRefreshBookings();
-        fetchFirebaseStatus();
-      } else {
-        setSeedNotice(data.error || 'เกิดข้อผิดพลาดในการล้างข้อมูล');
-      }
-    } catch (err: any) {
-      setSeedNotice(`ข้อผิดพลาด: ${err.message}`);
-    } finally {
-      setIsClearing(false);
-      setTimeout(() => setSeedNotice(null), 8000);
     }
   };
 
@@ -609,175 +547,34 @@ export function AdminDashboard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {onOpenShareLink && (
-            <button
-              id="admin-btn-share-link"
-              onClick={onOpenShareLink}
-              className="p-2.5 bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
-              title="ลิงก์สั้นและ QR Code สำหรับส่งลูกค้า"
-            >
-              <Share2 className="w-4 h-4 text-orange-600" />
-              <span>ลิงก์ส่งลูกค้า (Short Link)</span>
-            </button>
-          )}
 
           <button
-            onClick={() => {
-              onRefreshBookings();
-              fetchFirebaseStatus();
-            }}
-            className="p-2.5 bg-white hover:bg-stone-50 border border-stone-200 rounded-xl text-stone-700 text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
-            title="รีเฟรชข้อมูลคิวล่าสุด"
+            onClick={logout}
+            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4 text-stone-500" />
-            <span>รีเฟรช</span>
+            <LogOut className="w-3.5 h-3.5" />
+            ออกจากระบบ (Logout)
           </button>
 
           <button
-            onClick={handleTestLineNotify}
-            className="p-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
-            title="ทดสอบส่งแจ้งเตือนเข้า LINE Notify"
+            onClick={handleTestEmail}
+            disabled={isTestingEmail}
+            className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
           >
-            <Send className="w-4 h-4 text-emerald-600" />
-            <span>ทดสอบ LINE Alert</span>
-          </button>
-
-          <button
-            onClick={() => setShowMeetSettingsModal(true)}
-            className="p-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
-            title="ตั้งค่าห้องเรียน Google Meet เริ่มต้น"
-          >
-            <Video className="w-4 h-4 text-blue-600" />
-            <span>ตั้งค่า Google Meet</span>
-          </button>
-
-          <button
-            onClick={handleExportCSV}
-            className="p-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
+            {isTestingEmail ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>กำลังส่งทดสอบ...</span>
+              </>
+            ) : (
+              <>
+                <Mail className="w-3.5 h-3.5" />
+                <span>✉️ ทดสอบส่งอีเมล (Gmail)</span>
+              </>
+            )}
           </button>
         </div>
       </div>
-
-      {/* Firebase Live Database & Test Data Control Panel */}
-      <div className="bg-gradient-to-r from-stone-900 via-indigo-950 to-stone-900 text-white p-4 sm:p-5 rounded-2xl border border-indigo-800/40 shadow-md">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              {firebaseStatus.connected ? (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Firebase Firestore Connected
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  ระบบฐานข้อมูลถาวร (Persistent Active)
-                </span>
-              )}
-              {emailStatus?.configured ? (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
-                  <Mail className="w-3 h-3 text-emerald-400" />
-                  อีเมลคอนเฟิร์ม: {emailStatus.gmailUser ? `Gmail (${emailStatus.gmailUser})` : 'พร้อมส่งอัตโนมัติ'}
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold">
-                  <Mail className="w-3 h-3 text-amber-400" />
-                  อีเมลคอนเฟิร์ม: โหมดจำลอง
-                </span>
-              )}
-              <span className="text-xs text-indigo-300 font-mono bg-indigo-900/60 px-2.5 py-0.5 rounded-md border border-indigo-700/50">
-                DB: {firebaseStatus.databaseId || 'bookings_db.json'}
-              </span>
-              <span className="text-xs text-stone-300">
-                ({bookings.length} รายการจอง)
-              </span>
-            </div>
-            <p className="text-xs text-stone-300">
-              {firebaseStatus.connected
-                ? "ฐานข้อมูลคลาวด์ Real-time: ทุกการจอง การอัปโหลดสลิป และการเปลี่ยนสถานะจะบันทึกตรงเข้า Firestore อัตโนมัติ"
-                : "ระบบจัดเก็บข้อมูลถาวร: ทุกการจอง การอัปโหลดสลิป การอนุมัติ และบันทึกประวัติการทำงานถูกซิงก์ลงดิสก์อย่างสมบูรณ์แบบ"}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={handleSeedTestData}
-              disabled={isSeeding}
-              className="px-3.5 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isSeeding ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>กำลังสร้างข้อมูลทดสอบ...</span>
-                </>
-              ) : (
-                <>
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>🌱 สร้างชุดข้อมูลทดสอบ (Seed Test Data)</span>
-                </>
-              )}
-            </button>
-
-            {showClearConfirm ? (
-              <div className="flex items-center gap-1.5 bg-rose-950 border border-rose-600 rounded-xl px-2.5 py-1 text-xs">
-                <span className="text-rose-200 font-medium">ล้างข้อมูลทั้งหมด?</span>
-                <button
-                  onClick={handleClearTestData}
-                  disabled={isClearing}
-                  className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[11px] cursor-pointer"
-                >
-                  ยืนยันล้าง
-                </button>
-                <button
-                  onClick={() => setShowClearConfirm(false)}
-                  className="px-1.5 py-0.5 text-stone-300 hover:text-white text-[11px] cursor-pointer"
-                >
-                  ยกเลิก
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowClearConfirm(true)}
-                disabled={isClearing}
-                className="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {isClearing ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>กำลังล้าง...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                    <span>🧹 ล้างข้อมูลทั้งหมด</span>
-                  </>
-                )}
-              </button>
-            )}
-
-            <button
-              onClick={handleTestEmail}
-              disabled={isTestingEmail}
-              className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
-            >
-              {isTestingEmail ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>กำลังส่งทดสอบ...</span>
-                </>
-              ) : (
-                <>
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>✉️ ทดสอบส่งอีเมล (Gmail)</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
         {emailTestResult && (
           <div className={`mt-3 p-3 rounded-xl text-xs flex items-center gap-2 ${
             emailTestResult.success 
@@ -799,7 +596,7 @@ export function AdminDashboard({
             <span>{seedNotice}</span>
           </div>
         )}
-      </div>
+
 
       {lineTestResult && (
         <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-xs text-emerald-900 font-medium flex items-center gap-2">
@@ -810,7 +607,7 @@ export function AdminDashboard({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
           <div className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
             คิวทั้งหมดในระบบ
@@ -860,7 +657,7 @@ export function AdminDashboard({
             กราฟแสดงความต้องการ (Demand) ของคอร์สต่างๆ เพื่อช่วยวิเคราะห์การเปิดคิวเพิ่มเติม
           </p>
         </div>
-        
+
         {chartData.length > 0 ? (
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -968,7 +765,7 @@ export function AdminDashboard({
         <>
           {/* Filter and Search Bar */}
           <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
-            
+
             {/* Search */}
             <div className="relative w-full xl:w-72">
               <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
@@ -1025,7 +822,7 @@ export function AdminDashboard({
 
           {/* Bookings List Table */}
           <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-            
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm border-collapse">
                 <thead>
@@ -1061,7 +858,7 @@ export function AdminDashboard({
                   ) : (
                     paginatedBookings.map((b) => (
                       <tr key={b.id} className="hover:bg-stone-50/80 transition-colors">
-                        
+
                         {/* ID & Customer */}
                         <td className="py-3.5 px-4">
                           <div className="font-mono text-xs font-bold text-stone-900">
@@ -1114,7 +911,7 @@ export function AdminDashboard({
 
                         {/* Status */}
                         <td className="py-3.5 px-4">
-                          {getStatusBadge((b.payment?.status || ''))}
+                          {getStatusBadge((b.payment?.status || 'pending_slip') as any)}
                           {(b.payment?.aiVerification) && (
                             <div className="text-[10px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
                               <Sparkles className="w-3 h-3 text-emerald-600" /> AI OCR ตรวจแล้ว
@@ -1125,7 +922,7 @@ export function AdminDashboard({
                         {/* Actions */}
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            
+
                             {/* Inspect Slip Button */}
                             <button
                               onClick={() => setInspectingBooking(b)}
@@ -1166,7 +963,7 @@ export function AdminDashboard({
 
                 </tbody>
               </table>
-              
+              </div>
               {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-stone-200">
@@ -1206,7 +1003,7 @@ export function AdminDashboard({
                       </nav>
                     </div>
                   </div>
-                  
+
                   {/* Mobile Pagination */}
                   <div className="flex items-center justify-between sm:hidden w-full">
                     <button
@@ -1230,7 +1027,7 @@ export function AdminDashboard({
             </div>
 
 
-          </div>
+
         </>
       )}
 
@@ -1238,7 +1035,7 @@ export function AdminDashboard({
       {inspectingBooking && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
           <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-3xl w-full overflow-hidden max-h-[92vh] flex flex-col">
-            
+
             {/* Header */}
             <div className="bg-stone-900 text-white p-5 flex items-center justify-between border-b border-stone-800">
               <div>
@@ -1260,9 +1057,9 @@ export function AdminDashboard({
 
             {/* Content */}
             <div className="p-6 overflow-y-auto space-y-6">
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
+
                 {/* Left: Slip Image */}
                 <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex flex-col items-center justify-center text-center min-h-[300px]">
                   {inspectingBooking.payment.slipUrl ? (
@@ -1286,7 +1083,7 @@ export function AdminDashboard({
 
                 {/* Right: AI OCR Breakdown & Booking Info */}
                 <div className="space-y-4 text-xs">
-                  
+
                   {/* AI Verification Report */}
                   {inspectingBooking.payment.aiVerification ? (
                     <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 text-purple-950 space-y-2">
@@ -1457,7 +1254,7 @@ export function AdminDashboard({
               )}
 
               <div className="flex items-center gap-2">
-                
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -1497,7 +1294,7 @@ export function AdminDashboard({
             </div>
 
           </div>
-        </div>
+
       )}
 
       {/* Edit Booking Modal */}

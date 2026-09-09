@@ -1,3 +1,8 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/data/courses.ts.bak', 'utf8');
-fs.writeFileSync('src/data/courses.ts', code);
+const path = 'src/data/courses.ts';
+let data = fs.readFileSync(path, 'utf8');
+
+// Replace all occurrences of "originalPrice: 1500," etc.
+data = data.replace(/[ \t]*originalPrice:[ \t]*[0-9]+,\n/g, '');
+
+fs.writeFileSync(path, data);

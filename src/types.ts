@@ -42,7 +42,7 @@ export interface Course {
   totalDays?: number;
   hoursPerDay?: number;
   price: number;
-  originalPrice: number;
+  originalPrice?: number;
   level?: 'เริ่มต้น (Beginner)' | 'เริ่มต้น - ปานกลาง (Beginner - Intermediate)' | 'ปานกลาง (Intermediate)' | 'ขั้นสูง (Advanced)' | 'ปานกลาง - ขั้นสูง (Intermediate - Advanced)';
   instructor?: {
     name: string;

@@ -281,6 +281,7 @@ interface SystemSettings {
   contactLine: string;
   contactLineId: string;
   contactEmail: string;
+  adminPassword?: string;
 }
 
 let systemSettings: SystemSettings = {
@@ -701,6 +702,52 @@ function checkSlotConflict(
 
 // --- API ROUTES ---
 
+// --- App Users (In-Memory Database) ---
+let appUsers: any[] = [
+  {
+    id: 'user_1',
+    name: 'คุณวิภาวรรณ (ผู้เรียนทดสอบ)',
+    email: 'student@761rqbfc.com',
+    password: 'password123',
+    phone: '081-2345678',
+    lineId: '@studentdemo',
+    role: 'student'
+  }
+];
+
+app.post("/api/auth/register", (req, res) => {
+  const { name, email, password, phone, lineId } = req.body;
+  if (!name || !email || !password) return res.status(400).json({ error: "Missing required fields" });
+  
+  if (appUsers.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    return res.status(400).json({ error: "อีเมลนี้มีในระบบแล้ว" });
+  }
+  
+  const newUser = {
+    id: 'user_' + Date.now(),
+    name,
+    email: email.toLowerCase(),
+    password,
+    phone: phone || '',
+    lineId: lineId || '',
+    role: 'student'
+  };
+  appUsers.push(newUser);
+  
+  const { password: _, ...userWithoutPass } = newUser;
+  res.json({ success: true, user: userWithoutPass });
+});
+
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+  const user = appUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+  if (!user) {
+    return res.status(401).json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
+  }
+  const { password: _, ...userWithoutPass } = user;
+  res.json({ success: true, user: userWithoutPass });
+});
+
 // 1. Get all bookings (with optional filtering)
 app.get("/api/bookings", async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -720,19 +767,19 @@ app.get("/api/bookings", async (req, res) => {
   }
 
   if (!isAdmin) {
-    // Scrub PII for public access
-    result = result.map(b => ({
-      ...b,
-      customer: { ...b.customer, name: "***", phone: "***", lineId: "***", email: "***" },
-      meetingLink: "***",
-      payment: {
-        ...b.payment,
-        slipUrl: undefined // Remove Base64 string from public API
-      }
-    }));
+    // Scrub PII for public access (return ONLY necessary fields for calendar rendering)
+    result = result.map((b: any) => ({
+      id: b.id,
+      courseId: b.courseId,
+      schedule: b.schedule,
+      payment: { status: b.payment?.status },
+      // Return empty strings for required typing in frontend if needed, but DO NOT return actual PII
+      customer: { name: '***' }
+    })) as any;
   }
 
   res.json(result);
+
 });
 
 // 2. Get single booking details
@@ -758,8 +805,10 @@ app.get("/api/bookings/:id", (req, res) => {
       customer: { ...booking.customer, name: "***", phone: "***", lineId: "***", email: "***" },
       meetingLink: "***",
       payment: {
-        ...booking.payment,
-        slipUrl: undefined
+        method: booking.payment?.method,
+        amount: booking.payment?.amount,
+        status: booking.payment?.status,
+        expiresAt: booking.payment?.expiresAt
       }
     };
     delete scrubbedBooking.editToken;
@@ -1198,7 +1247,7 @@ app.post("/api/bookings/lookup", lookupLimiter, (req, res) => {
     // Hide meeting link
     maskedBooking.meetingLink = '***';
     
-    delete maskedBooking.editToken; // Protect edit token from leaking
+    if (maskedBooking.payment) { const p = { ...maskedBooking.payment }; delete p.slipUrl; delete p.referenceNo; delete p.aiVerification; maskedBooking.payment = p; } delete maskedBooking.editToken; // Protect edit token from leaking
     return maskedBooking;
   });
 
@@ -1326,9 +1375,16 @@ app.post("/api/bookings/:id/slip", async (req, res) => {
     booking.payment.reviewedAt = now;
     booking.payment.reviewNotes = `ยอดโอนในสลิป (฿${aiVerificationResult.detectedAmount || 'ไม่ตรง'}) ไม่ตรงกับยอดคอร์ส (฿${booking.totalPrice}) หรือข้อมูลไม่ตรงกัน อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ`;
   } else {
-    booking.payment.status = "confirmed";
-    booking.payment.reviewedAt = now;
-    booking.payment.reviewNotes = "ระบบตรวจสอบยอดเงินและสลิปถูกต้อง อนุมัติคิวอัตโนมัติ";
+    // Manual review criteria for high-priced courses
+    if (booking.totalPrice >= 3000) {
+      booking.payment.status = "under_review";
+      booking.payment.reviewedAt = now;
+      booking.payment.reviewNotes = "ระบบ AI ตรวจสอบผ่านแล้ว แต่ยอดเงินสูงกว่าเกณฑ์กำหนด กรุณาตรวจสอบและยืนยันด้วยตนเอง (Manual Review Required)";
+    } else {
+      booking.payment.status = "confirmed";
+      booking.payment.reviewedAt = now;
+      booking.payment.reviewNotes = "ระบบ AI ตรวจสอบและอนุมัติอัตโนมัติสำเร็จ";
+    }
   }
 
   booking.payment.aiVerification = aiVerificationResult;
@@ -1348,7 +1404,7 @@ app.post("/api/bookings/:id/slip", async (req, res) => {
   await saveBooking(booking);
 
   // Send LINE Notify in background (non-blocking)
-  const msg2 = `\n🧾 [แนบสลิปใหม่]\nผู้จอง: ${(booking.customer?.name || 'ลูกค้า')}\nยอดโอน: ฿${booking.totalPrice}\nสถานะ AI ตรวจสอบ: ${booking.payment.status === 'confirmed' ? '✅ ผ่านอัตโนมัติ' : '⏳ รอตรวจสอบ'}\nรหัสอ้างอิง: ${booking.payment.referenceNo || 'ไม่ระบุ'}`;
+  const msg2 = `\n🧾 [แนบสลิปใหม่]\nผู้จอง: ${(booking.customer?.name || 'ลูกค้า')}\nยอดโอน: ฿${booking.totalPrice}\nสถานะ AI ตรวจสอบ: ${booking.payment.status === 'confirmed' as any ? '✅ ผ่านอัตโนมัติ' : '⏳ รอตรวจสอบ'}\nรหัสอ้างอิง: ${booking.payment.referenceNo || 'ไม่ระบุ'}`;
   sendLineNotify(msg2).catch((err) => console.warn("Background LINE notify warning:", err));
 
   // Send Confirmation Email to Customer in background (non-blocking)
@@ -1645,7 +1701,7 @@ app.post("/api/bookings/:id/status", requireAdmin, async (req, res) => {
     return res.status(404).json({ error: "ไม่พบข้อมูลการจองนี้" });
   }
 
-  if (!booking.customer) booking.customer = {};
+  if (!booking.customer) booking.customer = {} as any;
   const validStatuses = [
     "pending_slip",
     "under_review",
@@ -1659,7 +1715,7 @@ app.post("/api/bookings/:id/status", requireAdmin, async (req, res) => {
   }
 
   const now = new Date().toISOString();
-  if (!booking.payment) booking.payment = { status: 'pending_slip' };
+  if (!booking.payment) booking.payment = { status: 'pending_slip' } as any;
   booking.payment.status = status;
   booking.payment.reviewedAt = now;
   if (reviewNotes !== undefined) {
@@ -1784,356 +1840,6 @@ app.post("/api/admin/test-email", requireAdmin, async (req, res) => {
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Admin Seed Test Data API
-app.post("/api/admin/seed-test-data", requireAdmin, async (req, res) => {
-  try {
-    const testBookings: Booking[] = [
-      {
-        id: "AI-20260902-8812",
-        courseId: "live-ai-webapp",
-        courseTitle: "AI Webapp Builder with Google AI Studio",
-        totalHours: 3,
-        totalDays: 1,
-        totalPrice: 3900,
-        customer: {
-          name: "คุณกานต์ พัฒนกิจ",
-          email: "karn.pat@gmail.com",
-          phone: "081-999-1234",
-          lineId: "karn_dev",
-          notes: "ต้องการสร้าง Web App ต่อ Gemini API ไว้ใช้ในบริษัท",
-          experienceLevel: "Intermediate",
-        },
-        schedule: [
-          {
-            date: "2026-09-02",
-            startTime: "19:30",
-            endTime: "22:30",
-            dayNumber: 1,
-          }
-        ],
-        payment: {
-          method: "promptpay",
-          amount: 3900,
-          status: "confirmed",
-          slipUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80",
-          slipUploadedAt: "2026-09-01T08:30:00.000Z",
-          referenceNo: "KBANK-TRX-20260901-88912",
-          reviewedAt: "2026-09-01T08:35:00.000Z",
-          reviewNotes: "สลิปยอด 3,900 บ. โอนเข้า KBANK ถูกต้อง ระบบ AI ตรวจจับครบถ้วน",
-          aiVerification: {
-            detectedAmount: 3900,
-            detectedDate: "2026-09-01 15:30",
-            detectedRef: "KBANK-TRX-20260901-88912",
-            confidence: 0.99,
-            statusMatch: true,
-            notes: "ตรวจพบยอดโอน ฿3,900 ตรงกับราคาคอร์ส 100%",
-          }
-        },
-        meetingLink: "https://meet.google.com/ai-live-webapp-karn",
-        createdAt: "2026-09-01T08:25:00.000Z",
-        updatedAt: "2026-09-01T08:35:00.000Z",
-      },
-      {
-        id: "AI-20260903-5521",
-        courseId: "live-ai-for-work",
-        courseTitle: "AI for Work: ใช้ AI ในการทำงานคล่องใน 3 ชม.",
-        totalHours: 3,
-        totalDays: 1,
-        totalPrice: 3900,
-        customer: {
-          name: "คุณณภัทร วงศ์เจริญ",
-          email: "naphat.w@siamcorp.co.th",
-          phone: "089-876-5432",
-          lineId: "naphat_pm",
-          notes: "เน้นการสรุปเอกสารรายงาน และการวิเคราะห์ข้อมูล Excel",
-          experienceLevel: "Beginner",
-        },
-        schedule: [
-          {
-            date: "2026-09-03",
-            startTime: "19:30",
-            endTime: "22:30",
-            dayNumber: 1,
-          }
-        ],
-        payment: {
-          method: "promptpay",
-          amount: 3900,
-          status: "under_review",
-          slipUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80",
-          slipUploadedAt: "2026-09-01T10:15:00.000Z",
-          referenceNo: "SCB-TRX-998231",
-          aiVerification: {
-            detectedAmount: 3900,
-            detectedDate: "2026-09-01 17:14",
-            detectedRef: "SCB-TRX-998231",
-            confidence: 0.95,
-            statusMatch: true,
-            notes: "รออาจารย์ผู้สอนตรวจสอบยืนยันขั้นสุดท้าย",
-          }
-        },
-        meetingLink: "https://meet.google.com/ai-live-work-naphat",
-        createdAt: "2026-09-01T10:10:00.000Z",
-        updatedAt: "2026-09-01T10:15:00.000Z",
-      },
-      {
-        id: "AI-20260904-3319",
-        courseId: "live-ai-starter",
-        courseTitle: "AI STARTER “เริ่มใช้ AI ให้เป็นภายใน 1 ชม.”",
-        totalHours: 1,
-        totalDays: 1,
-        totalPrice: 1500,
-        customer: {
-          name: "คุณธีรเดช สุขสวัสดิ์",
-          email: "teeradej.s@gmail.com",
-          phone: "085-123-4567",
-          lineId: "teera_ai",
-          notes: "มือใหม่เริ่มจากศูนย์ อยากลองใช้ ChatGPT และ Gemini",
-          experienceLevel: "Beginner",
-        },
-        schedule: [
-          {
-            date: "2026-09-04",
-            startTime: "19:30",
-            endTime: "20:30",
-            dayNumber: 1,
-          }
-        ],
-        payment: {
-          method: "promptpay",
-          amount: 1500,
-          status: "pending_slip",
-        },
-        meetingLink: "https://meet.google.com/ai-starter-teera",
-        createdAt: "2026-09-01T11:00:00.000Z",
-        updatedAt: "2026-09-01T11:00:00.000Z",
-      },
-      {
-        id: "AI-20260905-9920",
-        courseId: "live-corporate-halfday",
-        courseTitle: "In-House Training: AI for Business Transformation & Operations (ครึ่งวัน)",
-        totalHours: 3,
-        totalDays: 1,
-        totalPrice: 15000,
-        customer: {
-          name: "บริษัท สยาม ดิจิทัล อินโนเวชั่น จำกัด (ผู้ติดต่อ: คุณศิริพร)",
-          email: "siriporn.hr@siamdigital.com",
-          phone: "062-333-8899",
-          lineId: "siamdigital_hr",
-          notes: "อบรมทีมการตลาดและการขาย 15 ท่าน ผ่าน Google Meet และ Workshop",
-          experienceLevel: "Intermediate",
-        },
-        schedule: [
-          {
-            date: "2026-09-05",
-            startTime: "09:00",
-            endTime: "12:00",
-            dayNumber: 1,
-          }
-        ],
-        payment: {
-          method: "bank_transfer",
-          amount: 15000,
-          status: "confirmed",
-          slipUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80",
-          slipUploadedAt: "2026-09-01T09:00:00.000Z",
-          referenceNo: "BBL-CORP-20260901-0021",
-          reviewedAt: "2026-09-01T09:15:00.000Z",
-          reviewNotes: "ออกใบเสนอราคาและเอกสารหัก ณ ที่จ่าย 3% เรียบร้อย ยืนยันรอบจัดอบรม",
-          aiVerification: {
-            detectedAmount: 15000,
-            detectedDate: "2026-09-01 16:00",
-            detectedRef: "BBL-CORP-20260901-0021",
-            confidence: 0.98,
-            statusMatch: true,
-            notes: "โอนผ่านบัญชีนิติบุคคล ยอดถูกต้อง ฿15,000",
-          }
-        },
-        meetingLink: "https://meet.google.com/ai-corp-siamdigital",
-        createdAt: "2026-09-01T08:50:00.000Z",
-        updatedAt: "2026-09-01T09:15:00.000Z",
-      },
-      {
-        id: "AI-20260906-7731",
-        courseId: "live-claude-workflow",
-        courseTitle: "Claude Personal Workflow",
-        totalHours: 3,
-        totalDays: 1,
-        totalPrice: 3900,
-        customer: {
-          name: "คุณวิภาดา จิตตรง",
-          email: "wiphada.j@outlook.com",
-          phone: "090-456-7890",
-          lineId: "wiphada_claude",
-          notes: "เน้น Claude Projects และ Artifacts เพื่อจัดระบบงานส่วนตัว",
-          experienceLevel: "Intermediate",
-        },
-        schedule: [
-          {
-            date: "2026-09-06",
-            startTime: "10:00",
-            endTime: "13:00",
-            dayNumber: 1,
-          }
-        ],
-        payment: {
-          method: "promptpay",
-          amount: 3900,
-          status: "confirmed",
-          slipUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80",
-          slipUploadedAt: "2026-09-01T07:45:00.000Z",
-          referenceNo: "KTB-20260901-77881",
-          reviewedAt: "2026-09-01T08:00:00.000Z",
-          reviewNotes: "ยืนยันคิวรอบวันอาทิตย์ 10:00 - 13:00 น.",
-          aiVerification: {
-            detectedAmount: 3900,
-            detectedDate: "2026-09-01 14:45",
-            detectedRef: "KTB-20260901-77881",
-            confidence: 0.99,
-            statusMatch: true,
-            notes: "ตรวจสอบสลิปยอดเงินตรง 100%",
-          }
-        },
-        meetingLink: "https://meet.google.com/ai-claude-wiphada",
-        createdAt: "2026-09-01T07:30:00.000Z",
-        updatedAt: "2026-09-01T08:00:00.000Z",
-      },
-      {
-        id: "AI-20260829-4412",
-        courseId: "live-ai-website-lovable",
-        courseTitle: "AI Website Builder with Lovable/Codex/ClaudeCode",
-        totalHours: 6,
-        totalDays: 2,
-        totalPrice: 7500,
-        customer: {
-          name: "คุณเอกชัย สุวรรณภูมิ",
-          email: "ekkachai.tech@gmail.com",
-          phone: "087-654-3210",
-          lineId: "ekkachai_web",
-          notes: "เรียนจบทั้ง 2 วันเรียบร้อย เว็บไซต์เสร็จสมบูรณ์",
-          experienceLevel: "Advanced",
-        },
-        schedule: [
-          {
-            date: "2026-08-29",
-            startTime: "10:00",
-            endTime: "13:00",
-            dayNumber: 1,
-          },
-          {
-            date: "2026-08-30",
-            startTime: "10:00",
-            endTime: "13:00",
-            dayNumber: 2,
-          }
-        ],
-        payment: {
-          method: "promptpay",
-          amount: 7500,
-          status: "completed",
-          slipUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80",
-          slipUploadedAt: "2026-08-27T12:00:00.000Z",
-          referenceNo: "TTB-20260827-4411",
-          reviewedAt: "2026-08-27T12:15:00.000Z",
-          reviewNotes: "เรียนจบหลักสูตร มอบของแถมและบันทึก VDO ย้อนหลังเรียบร้อย",
-        },
-        meetingLink: "https://meet.google.com/ai-lovable-ekkachai",
-        createdAt: "2026-08-27T11:45:00.000Z",
-        updatedAt: "2026-08-30T13:30:00.000Z",
-      }
-    ];
-
-    const testNotifications: NotificationItem[] = [
-      {
-        id: "notif-test-1",
-        title: "มีการส่งสลิปชำระเงินใหม่",
-        message: "คุณณภัทร วงศ์เจริญ ส่งสลิปยอด ฿3,900 (คอร์ส AI for Work)",
-        type: "payment",
-        timestamp: "2026-09-01T10:15:00.000Z",
-        isRead: false,
-        bookingId: "AI-20260903-5521",
-      },
-      {
-        id: "notif-test-2",
-        title: "มีรายการจองคอร์สใหม่เข้ามา!",
-        message: "คุณธีรเดช สุขสวัสดิ์ จอง AI STARTER (2026-09-04 19:30น.)",
-        type: "booking",
-        timestamp: "2026-09-01T11:00:00.000Z",
-        isRead: false,
-        bookingId: "AI-20260904-3319",
-      },
-      {
-        id: "notif-test-3",
-        title: "ยืนยันคิวองค์กรสำเร็จ",
-        message: "บริษัท สยาม ดิจิทัล อินโนเวชั่น จำกัด ยืนยันรอบ In-House Training ฿15,000",
-        type: "review",
-        timestamp: "2026-09-01T09:15:00.000Z",
-        isRead: true,
-        bookingId: "AI-20260905-9920",
-      }
-    ];
-
-    // Update memory & local disk persistence
-    bookings = testBookings;
-    notifications = testNotifications;
-    persistBookingsToFile();
-    persistNotifsToFile();
-
-    // Save to Firestore only if available
-    if (db && isFirestoreAvailable) {
-      for (const b of testBookings) {
-        await setDoc(doc(db, "bookings", b.id), b).catch(() => {});
-      }
-      for (const n of testNotifications) {
-        await setDoc(doc(db, "notifications", n.id), n).catch(() => {});
-      }
-    }
-
-    res.json({
-      success: true,
-      message: "สร้างชุดข้อมูลทดสอบสำเร็จแล้ว (6 รายการจอง + 3 การแจ้งเตือน)",
-      bookings: testBookings,
-      notifications: testNotifications,
-    });
-  } catch (error: any) {
-    console.error("Seed test data error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Admin Clear All Bookings & Notifications API
-app.post("/api/admin/clear-test-data", requireAdmin, async (req, res) => {
-  try {
-    if (db && isFirestoreAvailable) {
-      try {
-        const snapB = await getDocs(collection(db, "bookings"));
-        for (const d of snapB.docs) {
-          await deleteDoc(doc(db, "bookings", d.id)).catch(() => {});
-        }
-        const snapN = await getDocs(collection(db, "notifications"));
-        for (const d of snapN.docs) {
-          await deleteDoc(doc(db, "notifications", d.id)).catch(() => {});
-        }
-      } catch (err) {
-        console.warn("Firestore clear warning:", err);
-      }
-    }
-
-    bookings = [];
-    notifications = [];
-    persistBookingsToFile();
-    persistNotifsToFile();
-
-    res.json({
-      success: true,
-      message: "ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว",
-    });
-  } catch (error: any) {
-    console.error("Clear test data error:", error);
-    res.status(500).json({ error: error.message });
   }
 });
 
